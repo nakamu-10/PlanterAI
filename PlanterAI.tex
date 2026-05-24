@@ -1,4 +1,4 @@
-\documentclass[a4paper,10pt]{jarticle}
+\documentclass[a4paper,11pt]{jarticle}
 \usepackage[dvipdfmx]{graphicx}
 \usepackage{amsmath}
 \usepackage{latexsym}
@@ -6,12 +6,26 @@
 \usepackage{url}
 \usepackage{newtxtext,newtxmath}
 \usepackage{subcaption}
-\setlength{\textwidth}{165mm} %165mm-marginparwidth
-\setlength{\marginparwidth}{40mm}
-\setlength{\textheight}{225mm}
-\setlength{\topmargin}{-5mm}
-\setlength{\oddsidemargin}{-3.5mm}
+\usepackage{ulem} 
 
+% --- 脚注番号の見た目を「(1)」に変更する設定 ---
+\renewcommand{\thefootnote}{(\arabic{footnote})}
+
+% --- 【要件】余白設定（上下25mm、左右20mm） ---
+\setlength{\textwidth}{170mm}      
+\setlength{\textheight}{247mm}     
+\setlength{\oddsidemargin}{-5.4mm}  
+\setlength{\evensidemargin}{-5.4mm}
+\setlength{\topmargin}{-5.4mm}     
+\setlength{\headheight}{0mm}
+\setlength{\headsep}{0mm}
+
+% --- 【要件】1ページ目左下に所属情報を絶対配置するための設定 ---
+\usepackage[absolute]{textpos}
+\setlength{\TPHorizModule}{1mm}
+\setlength{\TPVertModule}{1mm}
+
+% --- 既存のマクロ（そのまま維持） ---
 \def\vector#1{\mbox{\boldmath $#1$}}
 \newcommand{\AmSLaTeX}{%
  $\mathcal A$\lower.4ex\hbox{$\!\mathcal M\!$}$\mathcal S$-\LaTeX}
@@ -21,38 +35,86 @@
 \newcommand{\pderiv}[2]{{\partial#1\over\partial#2}}
 \newcommand{\deriv}[2]{{{\rm d}#1\over{\rm d}#2}}
 \newcommand{\dderiv}[2]{{{\rm d}^2#1\over{\rm d}#2^2}}
-\newcommand{\DeLta}{{\mit\Delta}}
+\setlength{\marginparwidth}{40mm}
+\def\DeLta{{\mit\Delta}}
 \renewcommand{\d}{{\rm d}}
 \def\wcaption#1{\caption[]{\parbox[t]{100mm}{#1}}}
 \def\rm#1{\mathrm{#1}}
 \def\tempC{^\circ \rm{C}}
 
+% --- セクションのフォントサイズ調整（本文の10.5ptに合わせる） ---
 \makeatletter
-%\def\section{\@startsection {section}{1}{\z@}{-3.5ex plus -1ex minus % -.2ex}{2.3ex plus .2ex}{\Large\bf}}
 \def\section{\@startsection {section}{1}{\z@}{-3.5ex plus -1ex minus
--.2ex}{2.3ex plus .2ex}{\normalsize\bf}}
-\makeatother
-
-\makeatletter
-\def\subsection{\@startsection {subsection}{1}{\z@}{-3.5ex plus -1ex minus
--.2ex}{2.3ex plus .2ex}{\normalsize\bf}}
-\makeatother
-
-\makeatletter
+-.2ex}{2.3ex plus .2ex}{\normalfont\normalsize\bfseries}}
+\def\subsection{\@startsection {subsection}{2}{\z@}{-3.25ex plus -1ex minus
+-.2ex}{1.5ex plus .2ex}{\normalfont\normalsize\bfseries}}
 \def\@seccntformat#1{\@ifundefined{#1@cntformat}%
    {\csname the#1\endcsname\quad}%      default
    {\csname #1@cntformat\endcsname}%    enable individual control
-
 }
 \makeatother
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% --------------------------------------------------------------------
+% 本文領域の開始
+% --------------------------------------------------------------------
 \begin{document}
-\title{レポートタイトル}
-\author{氏名}
-\date{提出日：2024年6月30日}
-\maketitle
+\pagestyle{empty} 
 
+% --- 【要件】タイトル: 中央揃え、ゴシック系14pt、前12pt・後6ptあける ---
+\vspace*{12pt}
+\begin{center}
+    {\fontsize{14pt}{20pt}\selectfont\sffamily\bfseries planterAI(仮)}
+\end{center}
+\vspace*{6pt}
+
+% --- 【要件】著者名: 中央揃え、明朝体12pt、代表者に下線、上付き文字 ---
+\begin{center}
+    {\fontsize{12pt}{18pt}\selectfont\mcfamily \uline{中村耕介}$^{(1)}$，地引宙人$^{(2)}$}
+\end{center}
+\vspace*{6pt}
+
+% --- ページ最下部の線付き脚注（自動生成） ---
+\footnotetext[1]{情報理工学域II類先端ロボティクスプログラム3年（なかむら こうすけ）}
+\footnotetext[2]{地引宙人さんの所属・学年をここに記入}
+
+% --- 【要件】選択テーマ（対象者のみ） ---
+\begin{center}
+    {\fontsize{12pt}{18pt}\selectfont\mcfamily 調布市の「まちの課題」選択テーマ：テーマ4 誰でも楽しめるイベント体験の創出}
+\end{center}
+\vspace*{6pt}
+
+% --- 【要件】概要: 明朝体11pt、改行なし、前1行・後0.5行あける ---
+\vspace*{1\baselineskip}
+\begin{center}
+    \begin{minipage}{0.95\textwidth}
+        {\fontsize{11pt}{16pt}\selectfont\mcfamily 概要：ここに提案の概要を改行なしで200字程度で書いてください。明朝体11ptです。この文章はフォーマットの要件に準拠するために文字数を調整して記述される必要があります。概要文の前にはちょうど1行分のスペースが空き、後ろには0.5行分のスペースがあくように設定されています。}
+    \end{minipage}
+\end{center}
+\vspace*{0.5\baselineskip}
+
+
+
+
+% --- 【要件修正】本文を正確に10.5pt（行送り15pt）に設定 ---
+\fontsize{10.5pt}{15pt}\selectfont
+\fontfamily{cmr}\selectfont 
+
+% --- 【要件】本文の冒頭に「想定するユーザ」を配置 ---
+\section{想定するユーザ}
+ここに提案したものにより、どのような人が、どのような恩恵を受けるのか、簡単でもよいので記述してください。
+
+% --- 【要件】モノやサービスの詳細（文章と図・写真を駆使する） ---
+\section{提案システム（モノ・サービス）の詳細}
+作っている、あるいは作ろうとしているモノやサービスの詳細に関して丁寧に記述してください。モノやサービスの構造、使用している機材やライブラリ、動作の仕組み、使用する状況や使用の様子、その効果などについて記述します。
+
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=0.6\textwidth]{image.png} % 画像を挿入する場合はここを使う
+    \caption{開発するブレッドボード型ゲームの動作イメージ}
+    \label{fig:system}
+\end{figure}
+
+\subsection{独創性と工夫点（実装のインパクト）}
+審査方針である「独創性」や「構成力」を意識し、どのような着眼点で問題を解決しているか、または高度な技術でなくとも絶妙な工夫でインパクトを出している点についてアピールします。
 
 \end{document}
-
