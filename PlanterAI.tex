@@ -19,6 +19,9 @@
 \setlength{\headsep}{0mm}
 
 % --- 【要件】1ページ目左下に所属情報を絶対配置するための設定 ---
+\def\pgfsysdriver{pgfsys-dvipdfmx.def}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
 \usepackage[absolute]{textpos}
 \setlength{\TPHorizModule}{1mm}
 \setlength{\TPVertModule}{1mm}
@@ -61,7 +64,7 @@
 % --- 【要件】タイトル: 中央揃え、ゴシック系14pt、前12pt・後6ptあける ---
 \vspace*{12pt}
 \begin{center}
-    {\fontsize{14pt}{20pt}\selectfont\sffamily\bfseries planterAI(仮)}
+    {\fontsize{14pt}{20pt}\selectfont\sffamily\bfseries PlanterAI：植物が語りかけるIoTシステム}
 \end{center}
 \vspace*{6pt}
 
@@ -101,18 +104,54 @@
 \section{提案と背景}
 % --- 【要件】モノやサービスの詳細（文章と図・写真を駆使する） ---
 \section{プロトタイプ}
-作っている、あるいは作ろうとしているモノやサービスの詳細に関して丁寧に記述してください。モノやサービスの構造、使用している機材やライブラリ、動作の仕組み、使用する状況や使用の様子、その効果などについて記述します。
 
 \begin{figure}[htbp]
-    \centering
-    % \includegraphics[width=0.6\textwidth]{image.png} % 画像を挿入する場合はここを使う
-    \caption{開発するブレッドボード型ゲームの動作イメージ}
-    \label{fig:system}
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  box/.style={draw, rounded corners=4pt, minimum width=2.5cm, minimum height=0.9cm,
+              align=center, font=\normalsize, thick},
+  hw/.style ={box, fill=blue!8},
+  sv/.style ={box, fill=green!8},
+  nt/.style ={box, fill=orange!8},
+  arr/.style ={-{Stealth[length=6pt]}, very thick},
+  darr/.style={{Stealth[length=5pt]}-{Stealth[length=5pt]}, thick, dashed, gray}
+]
+\node[hw] at (0,0)     (sensor) {センサー群\\{\small 湿度・温度・照度}};
+\node[hw] at (3.6,0)   (esp)    {ESP32\\{\small Wi-Fi}};
+\node[sv] at (7.2,0)   (api)    {Next.js API\\{\small (Vercel)}};
+\node[sv] at (7.2,-2.0)(db)     {Supabase DB\\{\small 過去ログ}};
+\node[sv] at (10.8,0)  (llm)    {Gemini Flash};
+\node[nt] at (14.4,0)  (line)   {LINE\\{\small Messaging API}};
+\node[nt] at (18.0,0)  (user)   {ユーザー\\{\small LINE}};
+
+\draw[arr]  (sensor) -- (esp);
+\draw[arr]  (esp)    -- node[above, font=\scriptsize, align=center]{HTTP\\POST} (api);
+\draw[arr]  (api)    -- (llm);
+\draw[arr]  (llm)    -- (line);
+\draw[arr]  (line)   -- (user);
+\draw[darr] (api)    -- node[right, font=\small]{ログ参照} (db);
+\end{tikzpicture}%
+}
+\caption{システム全体の構成}
+\label{fig:system}
 \end{figure}
+
+　本プロトタイプの構成を図\ref{fig:system}に示す．ESP32マイコンが土壌湿度・気温・照度の各センサー値を定期取得し，Wi-Fi経由でVercel上のNext.js APIへ送信する．これにより「乾燥しているうえ日当たりも足りない」のような複合的な状況をLLMへ伝えられる．サーバーはセンサー値をまずルールベースで状態分類した後，植物のキャラクター設定とSupabaseに蓄積した過去ログ（乾燥継続日数・前回メッセージのトーン等）をプロンプトに含めてGemini Flash APIへ投入しセリフを生成する．ルールベース先行により，センサーの瞬間的なバグ値による不自然な出力を防ぐ．過去ログ参照によって「昨日も頼んだのに…」のような文脈ある発言が実現し，長期的な愛着を生む．生成したセリフはLINE Messaging APIでプッシュ通知し，通知は状態遷移時と1日最大3回に限定することで希少性を維持する．
 
 \section{アプリケーション}
 
-\section{今後の展望}
+\subsection{LINEによる双方向コミュニケーション}
 
-\section*{参考文献（あれば）}
+　現在の構成に加え，ユーザーから植物へ話しかける機能を実装する．LINE Webhook経由でメッセージを受信し，過去ログとキャラクター設定を参照して植物の口調で返答する．「今日の調子は？」「ちゃんと水あげたよ」といった日常会話が成立することで，通知を待つだけの受動的な体験から，能動的に関わりたくなる双方向の関係が生まれる．
+
+\subsection{キャラクター設定Web UI}
+
+　植物ごとのキャラクター設定をブラウザ上で行えるWeb画面を，Next.jsの同一リポジトリ内に実装する．設定項目は植物の名前・口調（ツンデレ，のんびり屋，敬語など）・通知頻度の3つを想定する．設定はSupabaseへ保存しプロンプト生成時に参照することで，ユーザーが自分だけの植物キャラクターを育てる感覚を強化する．
+
+\subsection{発展構想}
+
+　将来的にはカメラモジュールをプランターに追加し，葉の色や萎れ具合を画像解析することで，センサーでは検知できない植物の状態変化を把握する仕組みを目指す．また気圧・CO$_2$センサーの追加や，複数の植物を一括管理できるアプリへの発展も検討している．
+
+
 \end{document}
