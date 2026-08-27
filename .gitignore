@@ -28,3 +28,14 @@ Thumbs.db
 *.swp
 *.swo
 *.vscode/
+
+# Node.js build artifacts
+node_modules/
+dist/
+
+# Vercel local metadata
+.vercel/
+
+# Original iPhone photos (Web用JPEGだけを管理する)
+site/public/images/*.heic
+site/public/images/*.HEIC

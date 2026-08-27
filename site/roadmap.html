@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="PlanterAIの今後の展望。専用アプリ、複数植物の管理、カメラによる観察機能について。">
+<meta name="theme-color" content="#5FA36C">
+<title>今後の展望｜PlanterAI</title>
+<style>html,body{background:#5FA36C;margin:0}img{max-width:100%;height:auto;display:block}.preloader{position:fixed;inset:0;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#16211C}.preloader__mark{width:116px;height:auto}.chrome-top{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:16px 20px}.chrome-mark{width:34px;height:auto}.chrome-menu{position:fixed;inset:0;z-index:400;opacity:0;visibility:hidden}.chrome-menu__mark{width:56px;height:auto}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Noto+Sans+JP:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script type="module" src="/src/main.js"></script>
+<noscript><style>.preloader{display:none}</style></noscript>
+</head>
+<body>
+
+<div class="preloader" id="preloader" aria-hidden="true">
+  <img src="/images/karami.png" alt="" class="preloader__mark" id="preloaderMark" />
+  <div class="preloader__label">PLANTERAI</div>
+  <div class="preloader__bar"><div class="preloader__fill" id="preloaderFill"></div></div>
+  <div class="preloader__count" id="preloaderCount">0</div>
+</div>
+
+<header class="chrome-top">
+  <a href="/index.html" class="chrome-mark-link" aria-label="PlanterAI トップページへ"><img src="/images/karami.png" alt="PlanterAI" class="chrome-mark" /></a>
+  <div class="chrome-top__right">
+    <span class="chrome-top__label mono">U☆PoC 2026</span>
+    <button class="chrome-menu-btn" id="menuBtn" aria-label="メニューを開く" aria-expanded="false" aria-controls="chromeMenu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<nav class="chrome-menu" id="chromeMenu" aria-hidden="true">
+  <div class="chrome-menu__inner">
+    <div class="chrome-menu__brand">
+      <img src="/images/karami.png" alt="" class="chrome-menu__mark" />
+      <div class="chrome-menu__wordmark">PlanterAI</div>
+      <div class="chrome-menu__tagline">IoT SMART PLANTER</div>
+    </div>
+    <div class="chrome-menu__links">
+      <div class="chrome-menu__col">
+        <a class="chrome-menu__item" href="/index.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">TOP</span><span class="chrome-menu__jp">トップページ</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/software.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">SOFTWARE</span><span class="chrome-menu__jp">ソフトウェア</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/hardware.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">HARDWARE</span><span class="chrome-menu__jp">ハードウェア</span></span>
+        </a>
+      </div>
+      <div class="chrome-menu__col">
+        <a class="chrome-menu__item" href="/karami.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">KARAMI</span><span class="chrome-menu__jp">カラ美について</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/team.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">TEAM</span><span class="chrome-menu__jp">製作者情報</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/roadmap.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">ROADMAP</span><span class="chrome-menu__jp">今後の展望</span></span>
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="card">
+
+    <section class="section article-head editorial-intro">
+      <div class="eyebrow">ROADMAP</div>
+      <h1 class="heading">今後の展望</h1>
+      <p class="lead" data-reveal>LINEから届く言葉と、プランターに浮かぶ表情。ここまでは、すでに実機で動いています。次につくるのは、通知を待つだけではなく、こちらからカラ美に会いにいける体験です。</p>
+    </section>
+
+    <section class="section editorial-section" id="roadmap-now" data-section-reveal>
+      <h2 class="heading" data-reveal>いまできること</h2>
+      <p class="lead" data-reveal>センサーで測り、状態を判断し、カラ美の言葉に変えてLINEへ届ける。こちらから話しかければ会話が続き、OLEDにも表情が現れます。この一連の動作までは実装済みです。</p>
+
+      <div class="phases" data-reveal-group>
+        <div class="phase phase--done" data-reveal-item>
+          <span class="phase__badge">実装済</span>
+          <div><div class="phase__title">LINE通知とOLEDの表情</div><div class="phase__text">センサー計測から状態判定、言葉の生成、LINE通知、OLED表示まで動作します。</div></div>
+        </div>
+        <div class="phase phase--done" data-reveal-item>
+          <span class="phase__badge">実装済</span>
+          <div><div class="phase__title">双方向の会話</div><div class="phase__text">こちらから話しかけると、カラ美が応答します。状態は判定し直さず、すでに確定した内容だけを参照します。</div></div>
+        </div>
+      </div>
+
+      <h3 class="subheading" data-reveal>現在の技術構成</h3>
+      <div class="tags" data-reveal-group>
+        <span class="tag-pill" data-reveal-item>Arduino</span>
+        <span class="tag-pill" data-reveal-item>Supabase</span>
+        <span class="tag-pill" data-reveal-item>Gemini</span>
+        <span class="tag-pill" data-reveal-item>LINE Messaging API</span>
+      </div>
+    </section>
+
+    <section class="section editorial-section" id="roadmap-next" data-section-reveal>
+      <h2 class="heading" data-reveal>次につくるもの</h2>
+      <p class="lead" data-reveal>次に取り組んでいるのは、カラ美と直接触れ合える専用アプリです。LINEが異変を受け取る場所なら、アプリは用事がないときにも会いにいける場所。通知を見るだけだった関係を、こちらから関われるものへ広げます。</p>
+
+      <div class="phases" data-reveal-group>
+        <div class="phase phase--active" data-reveal-item>
+          <span class="phase__badge">開発中</span>
+          <div><div class="phase__title">触れると、カラ美が応える</div><div class="phase__text">画面の中のカラ美をつまんだり、触れたり、話しかけたりすると、そのときの植物の状態に合わせて反応が変わる予定です。</div></div>
+        </div>
+        <div class="phase" data-reveal-item>
+          <span class="phase__badge">これから</span>
+          <div><div class="phase__title">複数の植物を、ひとつの場所で</div><div class="phase__text">複数の植物をまとめて管理し、これまでの状態や会話を振り返れるようにします。</div></div>
+        </div>
+        <div class="phase" data-reveal-item>
+          <span class="phase__badge">これから</span>
+          <div><div class="phase__title">カメラで葉の変化を見る</div><div class="phase__text">葉の色やしおれ方を画像から捉え、変色や虫害を見つける機能を検討しています。</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section editorial-section" id="roadmap-issues" data-section-reveal>
+      <h2 class="heading" data-reveal>使い続けるために</h2>
+      <p class="lead" data-reveal>機能を増やすだけでは、日常で使える製品にはなりません。防水、センサーのずれ、運用コストには、まだ解かなければならない課題があります。</p>
+
+      <div class="rules" data-reveal-group>
+        <div class="rule" data-reveal-item>
+          <div class="rule__title">屋外で使える防水へ</div>
+          <p class="rule__text">防水はプロトタイプの段階で、屋外への常設には対応していません。</p>
+        </div>
+        <div class="rule" data-reveal-item>
+          <div class="rule__title">センサーのずれを抑える</div>
+          <p class="rule__text">土壌水分センサーにはADCドリフトがあり、長く使うには定期的な校正が必要です。</p>
+        </div>
+        <div class="rule" data-reveal-item>
+          <div class="rule__title">運用コストを下げる</div>
+          <p class="rule__text">LLM APIの運用コストも課題です。通知回数を抑える設計は、コスト削減にもつながります。</p>
+        </div>
+        <div class="rule" data-reveal-item>
+          <div class="rule__title">調査対象を広げる</div>
+          <p class="rule__text">調査の回答者83名は10代と20代が80%、学生が76%を占めています。回答者に偏りがあるため、一般消費者全体には当てはめられません。</p>
+        </div>
+      </div>
+
+      <p class="lead" data-reveal>通知回数を抑える設計や異常値を捨てる処理を重ねながら、無理なく使い続けられる形に近づけていきます。</p>
+    </section>
+
+    <footer class="colophon">
+      <span>PlanterAI — 植物のほうから話しかけてくるプランター</span>
+      <span>電気通信大学　U☆PoC 2026</span>
+    </footer>
+
+  </div>
+</div>
+
+</body>
+</html>

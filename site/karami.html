@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="PlanterAIのキャラクター、カラ美について。決まった通知文ではなく、そのときの状態や性格に合わせて話します。">
+<meta name="theme-color" content="#5FA36C">
+<title>カラ美について｜PlanterAI</title>
+<style>html,body{background:#5FA36C;margin:0}img{max-width:100%;height:auto;display:block}.preloader{position:fixed;inset:0;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#16211C}.preloader__mark{width:116px;height:auto}.chrome-top{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:16px 20px}.chrome-mark{width:34px;height:auto}.chrome-menu{position:fixed;inset:0;z-index:400;opacity:0;visibility:hidden}.chrome-menu__mark{width:56px;height:auto}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Noto+Sans+JP:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script type="module" src="/src/main.js"></script>
+<noscript><style>.preloader{display:none}</style></noscript>
+</head>
+<body>
+
+<div class="preloader" id="preloader" aria-hidden="true">
+  <img src="/images/karami.png" alt="" class="preloader__mark" id="preloaderMark" />
+  <div class="preloader__label">PLANTERAI</div>
+  <div class="preloader__bar"><div class="preloader__fill" id="preloaderFill"></div></div>
+  <div class="preloader__count" id="preloaderCount">0</div>
+</div>
+
+<header class="chrome-top">
+  <a href="/index.html" class="chrome-mark-link" aria-label="PlanterAI トップページへ"><img src="/images/karami.png" alt="PlanterAI" class="chrome-mark" /></a>
+  <div class="chrome-top__right">
+    <span class="chrome-top__label mono">U☆PoC 2026</span>
+    <button class="chrome-menu-btn" id="menuBtn" aria-label="メニューを開く" aria-expanded="false" aria-controls="chromeMenu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<nav class="chrome-menu" id="chromeMenu" aria-hidden="true">
+  <div class="chrome-menu__inner">
+    <div class="chrome-menu__brand">
+      <img src="/images/karami.png" alt="" class="chrome-menu__mark" />
+      <div class="chrome-menu__wordmark">PlanterAI</div>
+      <div class="chrome-menu__tagline">IoT SMART PLANTER</div>
+    </div>
+    <div class="chrome-menu__links">
+      <div class="chrome-menu__col">
+        <a class="chrome-menu__item" href="/index.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">TOP</span><span class="chrome-menu__jp">トップページ</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/software.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">SOFTWARE</span><span class="chrome-menu__jp">ソフトウェア</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/hardware.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">HARDWARE</span><span class="chrome-menu__jp">ハードウェア</span></span>
+        </a>
+      </div>
+      <div class="chrome-menu__col">
+        <a class="chrome-menu__item" href="/karami.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">KARAMI</span><span class="chrome-menu__jp">カラ美について</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/team.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">TEAM</span><span class="chrome-menu__jp">製作者情報</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/roadmap.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">ROADMAP</span><span class="chrome-menu__jp">今後の展望</span></span>
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="card">
+
+    <section class="section article-head">
+      <div class="eyebrow">KARAMI</div>
+      <h1 class="heading">カラ美を好きになりましょう</h1>
+      <p class="heading-en">Let's all love Karami</p>
+    </section>
+
+    <section class="section">
+      <div class="article-media article-media--mascot" data-reveal>
+        <img src="/images/karami.png" alt="カラ美" />
+      </div>
+
+      <p class="lead" data-reveal>決まった通知文を繰り返すのではなく、そのときの状態や性格に合わせて話します。</p>
+      <p class="lead" data-reveal>土が乾けば水をほしがり、日差しが強ければ窓から離れたいと伝えます。水をやったあとは、元気になったことも知らせてくれます。こちらから話しかければ返事をし、途中で雑談を挟んでも、植物の状態を忘れずに会話を続けます。</p>
+
+      <h2 class="subheading" data-reveal>同じ状態でも、言葉は毎回変わる</h2>
+      <p class="sublead" data-reveal>伝える内容が同じでも、言い回しはその都度つくります。決まった文面の繰り返しにはなりません。下は実際の生成例です。</p>
+      <div class="examples" data-reveal-group>
+        <div class="example" style="border-left-color: var(--data-blue);" data-reveal-item>
+          <div class="example__tag" style="color: var(--data-blue);"><span class="swatch" style="background: var(--data-blue);"></span>THIRSTY　水分不足</div>
+          <p class="example__line">土がカラカラだよ……そろそろ、お水をもらってもいい？</p>
+          <p class="example__line">のどが渇いたなあ。帰ってきたら、一杯くれるとうれしい。</p>
+        </div>
+        <div class="example" style="border-left-color: var(--data-orange);" data-reveal-item>
+          <div class="example__tag" style="color: #FFD08A;"><span class="swatch swatch--triangle"></span>SUNBURN　日照過多</div>
+          <p class="example__line">日差しがまぶしすぎるよ……少し窓から離れたいかも。</p>
+        </div>
+        <div class="example" style="border-left-color: var(--data-teal);" data-reveal-item>
+          <div class="example__tag" style="color: var(--green-300);"><span class="swatch swatch--circle" style="background: var(--data-teal);"></span>RECOVERED　回復後</div>
+          <p class="example__line">さっきのお水で生き返った！ありがとう。もう元気だよ。</p>
+        </div>
+      </div>
+
+      <div class="article-media" data-reveal>
+        <img src="/images/line-chat.jpg" alt="カラ美とのLINEのやりとり" />
+        <span class="article-media__caption">実機から届いた通知と、その後のやりとり</span>
+      </div>
+
+      <p class="lead" data-reveal>現在は、カラ美ともっと近くで交流できる専用アプリを開発しています。画面の中のカラ美をつまんだり、触れたり、話しかけたりすると、そのときの植物の状態に合わせて反応が変わる予定です。</p>
+      <p class="lead" data-reveal>LINEは、異変をすぐに知らせるための場所。専用アプリは、用事がないときにもカラ美に会いにいける場所です。植物を管理するだけでなく、一緒に暮らす相手として感じられる体験を目指しています。</p>
+    </section>
+
+    <footer class="colophon">
+      <span>PlanterAI — 植物のほうから話しかけてくるプランター</span>
+      <span>電気通信大学　U☆PoC 2026</span>
+    </footer>
+
+  </div>
+</div>
+
+</body>
+</html>

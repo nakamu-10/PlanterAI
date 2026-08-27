@@ -1,0 +1,8 @@
+# Supabase CLI のローカル一時ファイル（プロジェクトref・接続URL等が入る）
+.branches
+.temp
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local

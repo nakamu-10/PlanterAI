@@ -1,0 +1,8 @@
+/*
+!site
+!site/**
+!vercel.json
+site/node_modules
+site/dist
+site/public/images/*.heic
+site/public/images/*.HEIC
