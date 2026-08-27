@@ -5,7 +5,21 @@
 生成AIで人格を持つIoTプランター。土壌湿度・温度・照度・空気湿度のセンサーデータをもとに、植物が擬人化キャラクターとして LINE で自発的に話しかけ、こちらの返信にも応える育成支援システム。単なる数値の可視化ではなく「感情の可視化」を目指す。
 
 - メンバー：中村耕介（代表）、地引宙翔
-- 提案書：`PlanterAI.tex` → `PlanterAI.pdf`
+- 提案書：`docs/proposal/PlanterAI.tex` → `PlanterAI.pdf`
+
+## Webサイト
+
+6ページ構成の公式サイトは `site/` にある。Viteでローカル起動と静的ビルドを行い、ルートの `vercel.json` からVercelへデプロイする。
+
+公開URL：[https://planter-ai-zeta.vercel.app/](https://planter-ai-zeta.vercel.app/)
+
+```sh
+cd site
+npm ci
+npm run dev
+```
+
+本番用の静的ファイルは `npm run build` で `site/dist/` に生成される。`node_modules/` と `dist/` は生成物のためGitでは管理しない。
 
 ## システム構成
 
@@ -40,18 +54,21 @@
 ## ディレクトリ構成
 
 ```
-supabase/
-  functions/
-    ingest-sensor/    ESP32のPOSTを受ける本体（3レイヤーを実行）
-    line-webhook/     ユーザーのLINEメッセージに返信（署名検証・重複排除つき）
-    weekly-summary/   週次の関係性サマリーを生成（要 x-cron-key）
-    _shared/          config / normalize / emotionEngine / emotionTable /
-                      llm / line / fallback / dailyLight などの共有モジュール
-  migrations/         DBスキーマ（devices, sensor_logs, emotion_logs,
-                      conversation_logs, relationship_summaries）
-  config.toml
-test/                 npx tsx で走るロジック検証（logic / notify / dailyLight）
-PlanterAI.tex         U☆PoC 提案書のソース
+site/                   Vite製の公式Webサイト
+  public/images/        Webサイトで使う画像
+  src/                  JavaScriptとCSS
+  *.html                6ページのHTMLエントリ
+supabase/               Edge FunctionsとDBマイグレーション
+  functions/_shared/    状態判定・LLM・LINEなどの共有処理
+  functions/*/          ingest-sensor、line-webhook、weekly-summary
+  migrations/           PostgreSQLスキーマ
+tests/                  状態判定・通知・日照判定のテスト
+docs/
+  proposal/             U☆PoC提案書と図版
+  slides/               ポスターとプレゼン資料
+  qr/                   公開サイトのQRコード
+hardware/models/        3Dプリント用モデル
+archive/legacy-site/    旧シングルページLP
 ```
 
 ## 設定ポイント
@@ -100,14 +117,16 @@ supabase secrets set \
 ## テスト
 
 ```sh
-npx tsx test/logic.test.ts      # Layer 1/2 のスコア化・感情判定
-npx tsx test/notify.test.ts     # 通知クールダウン（チャタリング対策）
-npx tsx test/dailyLight.test.ts # 積算光量による日照不足の日次判定
+npm ci
+npm run check
 ```
+
+`npm run check`はテスト、Edge Functionsの型検査、Webサイトの本番ビルド、Denoのフォーマット確認をまとめて実行する。テストだけを行う場合は`npm test`を使う。
 
 ## 提案書ビルド
 
 ```sh
+cd docs/proposal
 platex PlanterAI.tex
 dvipdfmx PlanterAI.dvi
 # → PlanterAI.pdf

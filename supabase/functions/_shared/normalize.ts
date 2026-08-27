@@ -10,11 +10,11 @@ import { PlantProfile, SensorThresholds, soilAdcToPercent } from "./config.ts";
 
 // ESP32が送ってくる生値の形
 export interface RawReading {
-  soil_adc: number;   // SEN0193のADC生値（GPIO34）
-  temp: number;       // BME280 気温（℃）
-  humidity: number;   // BME280 空気湿度（%）※v3でスコア化・主訴化に使用
-  pressure?: number;  // BME280 気圧（hPa）※ログ用
-  lux: number;        // BH1750 照度
+  soil_adc: number; // SEN0193のADC生値（GPIO34）
+  temp: number; // BME280 気温（℃）
+  humidity: number; // BME280 空気湿度（%）※v3でスコア化・主訴化に使用
+  pressure?: number; // BME280 気圧（hPa）※ログ用
+  lux: number; // BH1750 照度
   soil_temp?: number; // DS18B20 土壌温度（オプション）
 }
 
@@ -74,26 +74,43 @@ export function toScore(value: number, t: SensorThresholds): number {
 
   // 低い側
   if (value < t.comfortLow) {
-    if (value >= t.cautionLow) return lerp(value, t.cautionLow, t.comfortLow, 50, 100);
-    if (value >= t.dangerLow) return lerp(value, t.dangerLow, t.cautionLow, 0, 50);
+    if (value >= t.cautionLow) {
+      return lerp(value, t.cautionLow, t.comfortLow, 50, 100);
+    }
+    if (value >= t.dangerLow) {
+      return lerp(value, t.dangerLow, t.cautionLow, 0, 50);
+    }
     return 0;
   }
 
   // 高い側（対称）
-  if (value <= t.cautionHigh) return lerp(value, t.comfortHigh, t.cautionHigh, 100, 50);
-  if (value <= t.dangerHigh) return lerp(value, t.cautionHigh, t.dangerHigh, 50, 0);
+  if (value <= t.cautionHigh) {
+    return lerp(value, t.comfortHigh, t.cautionHigh, 100, 50);
+  }
+  if (value <= t.dangerHigh) {
+    return lerp(value, t.cautionHigh, t.dangerHigh, 50, 0);
+  }
   return 0;
 }
 
 // 線形補間: x が [x0, x1] のとき y を [y0, y1] で対応させる
-function lerp(x: number, x0: number, x1: number, y0: number, y1: number): number {
+function lerp(
+  x: number,
+  x0: number,
+  x1: number,
+  y0: number,
+  y1: number,
+): number {
   if (x1 === x0) return y0; // 閾値設定ミスでもゼロ除算しないよう保険
   const ratio = (x - x0) / (x1 - x0);
   return Math.round(y0 + ratio * (y1 - y0));
 }
 
 // フィルタ済みの値 → 各センサーの快適スコア
-export function toComfortScores(f: FilteredReading, profile: PlantProfile): ComfortScores {
+export function toComfortScores(
+  f: FilteredReading,
+  profile: PlantProfile,
+): ComfortScores {
   return {
     moisture: toScore(f.moisture_pct, profile.moisture),
     temp: toScore(f.temp, profile.temp),

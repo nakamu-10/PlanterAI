@@ -15,17 +15,21 @@
 
 export type Emotion = "満足" | "軽い不満" | "不満" | "不安" | "苛立ち";
 export type Complaint =
-  | "水分不足" | "水分過多"
-  | "日照不足" | "日照過剰"
-  | "温度低すぎ" | "温度高すぎ"
-  | "湿度低すぎ" | "湿度高すぎ";
+  | "水分不足"
+  | "水分過多"
+  | "日照不足"
+  | "日照過剰"
+  | "温度低すぎ"
+  | "温度高すぎ"
+  | "湿度低すぎ"
+  | "湿度高すぎ";
 export type Urgency = "none" | "low" | "medium" | "high";
 
 export function scoreToUrgency(score: number): Urgency {
-  if (score >= 80) return "none";   // 快適
-  if (score >= 50) return "low";    // 注意レンジ寄り
+  if (score >= 80) return "none"; // 快適
+  if (score >= 50) return "low"; // 注意レンジ寄り
   if (score >= 20) return "medium"; // 注意〜危険の間
-  return "high";                    // 危険レンジ
+  return "high"; // 危険レンジ
   // 危険度を判定する
 }
 
@@ -34,8 +38,8 @@ export const COMPLAINT_PRIORITY: Record<Complaint, number> = {
   "水分不足": 90,
   "温度高すぎ": 80,
   "温度低すぎ": 70,
-  "日照過剰": 60,  // 葉焼け
-  "日照不足": 50,  // 進行が遅い
+  "日照過剰": 60, // 葉焼け
+  "日照不足": 50, // 進行が遅い
   "湿度低すぎ": 40, // 空気の乾燥。葉先褐変は進行が遅く、水やりより緊急度は低い
   "湿度高すぎ": 30, // 多湿。単体では最も緩やか（カビは風通しとの複合要因）
   // 主訴の優先度を決める関数。
@@ -76,7 +80,7 @@ export const ESCALATION_RULES: Record<Complaint, EscalationRule> = {
   },
   "日照過剰": {
     base: { low: "軽い不満", medium: "不満", high: "不安" },
-    escalationHours: [6, 12],  // 葉焼けは数時間で進む
+    escalationHours: [6, 12], // 葉焼けは数時間で進む
   },
   "温度低すぎ": {
     base: { low: "軽い不満", medium: "不満", high: "不安" },
@@ -84,7 +88,7 @@ export const ESCALATION_RULES: Record<Complaint, EscalationRule> = {
   },
   "温度高すぎ": {
     base: { low: "不満", medium: "不安", high: "苛立ち" },
-    escalationHours: [6, 12],  // 高温障害は速い
+    escalationHours: [6, 12], // 高温障害は速い
   },
   "湿度低すぎ": {
     base: { low: "軽い不満", medium: "不満", high: "不満" },

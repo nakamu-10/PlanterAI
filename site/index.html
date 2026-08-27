@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="PlanterAIは、植物の状態を言葉にして届けるIoTプランターです。センサーで捉えた状態を、カラテアのカラ美からLINEで伝えます。">
+<meta name="theme-color" content="#5FA36C">
+<title>PlanterAI｜植物のほうから話しかけてくる</title>
+<style>html,body{background:#5FA36C;margin:0}img{max-width:100%;height:auto;display:block}.preloader{position:fixed;inset:0;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#16211C}.preloader__mark{width:116px;height:auto}.chrome-top{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:16px 20px}.chrome-mark{width:34px;height:auto}.chrome-menu{position:fixed;inset:0;z-index:400;opacity:0;visibility:hidden}.chrome-menu__mark{width:56px;height:auto}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Noto+Sans+JP:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+<script type="module" src="/src/main.js"></script>
+<noscript><style>.preloader{display:none}</style></noscript>
+</head>
+<body class="page-top">
+
+<div class="preloader" id="preloader" aria-hidden="true">
+  <img src="/images/karami.png" alt="" class="preloader__mark" id="preloaderMark" />
+  <div class="preloader__label">PLANTERAI</div>
+  <div class="preloader__bar"><div class="preloader__fill" id="preloaderFill"></div></div>
+  <div class="preloader__count" id="preloaderCount">0</div>
+</div>
+
+<header class="chrome-top">
+  <a href="/index.html" class="chrome-mark-link" aria-label="PlanterAI トップページへ"><img src="/images/karami.png" alt="PlanterAI" class="chrome-mark" /></a>
+  <div class="chrome-top__right">
+    <span class="chrome-top__label mono">U☆PoC 2026</span>
+    <button class="chrome-menu-btn" id="menuBtn" aria-label="メニューを開く" aria-expanded="false" aria-controls="chromeMenu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<nav class="chrome-menu" id="chromeMenu" aria-hidden="true">
+  <div class="chrome-menu__inner">
+    <div class="chrome-menu__brand">
+      <img src="/images/karami.png" alt="" class="chrome-menu__mark" />
+      <div class="chrome-menu__wordmark">PlanterAI</div>
+      <div class="chrome-menu__tagline">IoT SMART PLANTER</div>
+    </div>
+    <div class="chrome-menu__links">
+      <div class="chrome-menu__col">
+        <a class="chrome-menu__item" href="/index.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">TOP</span><span class="chrome-menu__jp">トップページ</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/software.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">SOFTWARE</span><span class="chrome-menu__jp">ソフトウェア</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/hardware.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">HARDWARE</span><span class="chrome-menu__jp">ハードウェア</span></span>
+        </a>
+      </div>
+      <div class="chrome-menu__col">
+        <a class="chrome-menu__item" href="/karami.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">KARAMI</span><span class="chrome-menu__jp">カラ美について</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/team.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">TEAM</span><span class="chrome-menu__jp">製作者情報</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/roadmap.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">ROADMAP</span><span class="chrome-menu__jp">今後の展望</span></span>
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="card">
+
+    <section class="hero" id="hero">
+      <div class="hero__stage">
+        <h1 class="hero__title" id="heroTitle">
+          <span class="hero__title-line"><span>植物のほうから、</span></span>
+          <span class="hero__title-line"><span class="accent">話しかけてくる。</span></span>
+        </h1>
+        <div class="hero__planter-anchor">
+          <div class="hero__planter-track" id="heroPlanterTrack">
+            <img src="/images/planter.png" alt="青い鉢で育つPlanterAIの植物" class="hero__planter" id="heroPlanter" />
+          </div>
+        </div>
+        <div class="hero__signature" id="heroSignature" aria-label="PlanterAI、U☆PoC 2026出展中">
+          <span class="hero__signature-rule" aria-hidden="true"></span>
+          <span class="hero__signature-copy">
+            <span class="hero__signature-brand">PlanterAI</span>
+            <span class="hero__signature-event">EXHIBITING AT U☆PoC 2026</span>
+          </span>
+        </div>
+      </div>
+      <p class="hero__lead" id="heroLead">PlanterAIは、植物の状態を言葉にして届けるIoTプランターです。土壌水分、照度、温度、湿度をセンサーで測り、水が足りないときや日差しが強すぎるときには、カラテアの<strong>カラ美</strong>からLINEが届きます。</p>
+
+      <div class="hero__evidence" id="heroChat">
+        <img src="/images/line-chat.jpg" alt="カラ美から実際に届いたLINEのやりとり" />
+      </div>
+      <p class="hero__caption">実機から届いた通知と、その後のやりとり</p>
+    </section>
+
+    <section class="section section--relationship" id="relationship">
+      <p class="lead" data-reveal>植物の変化は静かです。葉の張りや色に表れても、気づいたときには元に戻せないことがあります。毎日様子を見にいかなくても、異変があれば植物のほうから知らせてくれる。PlanterAIは、そんな関係を目指してつくっています。</p>
+    </section>
+
+    <section class="section section--problem" id="problem">
+      <div class="eyebrow" data-reveal>PROBLEM</div>
+      <h2 class="heading" data-reveal>植物を育てることの難しさ</h2>
+      <p class="lead" data-reveal><strong>植物のSOSは、葉の張りや色のわずかな変化にしか表れません。</strong>声も音もないため、育てる人が気づくころには<strong>元に戻せなくなっている</strong>こともあります。私たちは、気づかれないまま枯れていく状態を「沈黙死」と呼んでいます。</p>
+
+      <h3 class="subheading" data-reveal>アンケート調査結果</h3>
+      <p class="sublead" data-reveal>年齢や性別を問わず、SNS上で独自にアンケートを実施しました。植物を育てるうえでの悩みや興味を尋ね、実際に需要があるかを確かめるためです。</p>
+      <div class="survey" data-reveal>
+        <div class="survey__note">独自Webアンケート　回答者83名</div>
+        <div class="survey__rows">
+          <div>
+            <div class="survey__row-top">
+              <span class="survey__num" style="color: var(--data-blue);">47%</span>
+              <span class="survey__label">旅行や外出中の管理が不安</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="background: var(--data-blue);" data-bar-fill="47"></div></div>
+          </div>
+          <div>
+            <div class="survey__row-top">
+              <span class="survey__num" style="color: var(--data-orange);">46%</span>
+              <span class="survey__label">日当たりの管理が難しい</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="background: var(--data-orange);" data-bar-fill="46"></div></div>
+          </div>
+          <div>
+            <div class="survey__row-top">
+              <span class="survey__num" style="color: var(--data-teal);">42%</span>
+              <span class="survey__label">異変に気づけないまま枯らした</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="background: var(--data-teal);" data-bar-fill="42"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-grid" data-reveal-group>
+        <div class="stat-card" data-reveal-item>
+          <div class="stat-card__num">89%</div>
+          <div class="stat-card__label">植物を枯らした経験あり</div>
+          <div class="stat-card__sub">61名中54名</div>
+        </div>
+        <div class="stat-card" data-reveal-item>
+          <div class="stat-card__num">78%</div>
+          <div class="stat-card__label">手遅れになってから気づいた</div>
+          <div class="stat-card__sub">54名中42名</div>
+        </div>
+        <div class="stat-card" data-reveal-item>
+          <div class="stat-card__num">74%</div>
+          <div class="stat-card__label">見た目だけで判断する自信がない</div>
+        </div>
+      </div>
+
+      <div class="spend-block" data-reveal>
+        <div class="spend-block__title">観葉植物への支出は、コロナ禍で伸び、その後は落ち込んだ。</div>
+        <p class="spend-block__desc">2020年から2022年にかけて増え、2023年以降は減少。始める人は増えても、続けるのは難しいことが数字から見えます。</p>
+      </div>
+      <div class="spend-chart-card" data-reveal>
+        <div class="chart">
+          <div class="chart__gridline" style="bottom: 76px;"><span>¥2,000</span></div>
+          <div class="chart__gridline chart__gridline--base" style="bottom: 0;"><span>¥0</span></div>
+          <div class="chart__col" data-col-fill="76"></div>
+          <div class="chart__col" data-col-fill="66"></div>
+          <div class="chart__col chart__col--on" data-col-fill="92"></div>
+          <div class="chart__col chart__col--on" data-col-fill="113"></div>
+          <div class="chart__col chart__col--on" data-col-fill="132"><span class="chart__value">¥3,476</span></div>
+          <div class="chart__col" data-col-fill="119"></div>
+          <div class="chart__col" data-col-fill="111"><span class="chart__value">¥2,922</span></div>
+          <div class="chart__col" data-col-fill="103"></div>
+        </div>
+        <div class="chart__labels">
+          <span>'18</span><span>'19</span><span>'20</span><span>'21</span><span>'22</span><span>'23</span><span>'24</span><span>'25</span>
+        </div>
+      </div>
+      <p class="lead" data-reveal>ピークだった2022年の年間支出は<strong>3,476円</strong>。2024年は<strong>2,922円</strong>で、<strong>約16%減りました</strong>。</p>
+      <p class="footnote">[1] 総務省統計局「家計調査（総世帯）家計収支編 詳細結果表」2018〜2025年、政府統計の総合窓口 e-Stat より作成。縦軸は2,700円を基準にした相対表示です。</p>
+
+      <h3 class="subheading" data-reveal>それでも、植物のある暮らしを</h3>
+      <p class="lead" data-reveal>観葉植物ブームが落ち着いたあとも、育て続ける難しさは残ります。仕事や暮らしに追われながら、植物の小さな変化を毎日見守るのは簡単ではありません。PlanterAIは、<strong>植物のほうから話しかけ、異変があったときだけ知らせます</strong>。つきっきりにならなくても、植物のある暮らしを続けられる。私たちがつくりたいのは、そんな関係です。</p>
+    </section>
+
+    <footer class="colophon">
+      <span>PlanterAI — 植物のほうから話しかけてくるプランター</span>
+      <span>電気通信大学　U☆PoC 2026</span>
+    </footer>
+
+  </div>
+</div>
+
+</body>
+</html>

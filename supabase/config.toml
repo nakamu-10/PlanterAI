@@ -70,6 +70,15 @@ enabled = true
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
 sql_paths = ["./seed.sql"]
 
+[functions.ingest-sensor]
+verify_jwt = false
+
+[functions.line-webhook]
+verify_jwt = false
+
+[functions.weekly-summary]
+verify_jwt = false
+
 [db.network_restrictions]
 # Enable management of network restrictions.
 enabled = false

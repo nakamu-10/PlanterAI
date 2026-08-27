@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="PlanterAIのソフトウェア。計測から通知までの流れ、正確に伝えるための設計、既存製品との違いを紹介します。">
+<meta name="theme-color" content="#5FA36C">
+<title>ソフトウェア｜PlanterAI</title>
+<style>html,body{background:#5FA36C;margin:0}img{max-width:100%;height:auto;display:block}.preloader{position:fixed;inset:0;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#16211C}.preloader__mark{width:116px;height:auto}.chrome-top{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:16px 20px}.chrome-mark{width:34px;height:auto}.chrome-menu{position:fixed;inset:0;z-index:400;opacity:0;visibility:hidden}.chrome-menu__mark{width:56px;height:auto}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Noto+Sans+JP:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script type="module" src="/src/main.js"></script>
+<noscript><style>.preloader{display:none}</style></noscript>
+</head>
+<body>
+
+<div class="preloader" id="preloader" aria-hidden="true">
+  <img src="/images/karami.png" alt="" class="preloader__mark" id="preloaderMark" />
+  <div class="preloader__label">PLANTERAI</div>
+  <div class="preloader__bar"><div class="preloader__fill" id="preloaderFill"></div></div>
+  <div class="preloader__count" id="preloaderCount">0</div>
+</div>
+
+<header class="chrome-top">
+  <a href="/index.html" class="chrome-mark-link" aria-label="PlanterAI トップページへ"><img src="/images/karami.png" alt="PlanterAI" class="chrome-mark" /></a>
+  <div class="chrome-top__right">
+    <span class="chrome-top__label mono">U☆PoC 2026</span>
+    <button class="chrome-menu-btn" id="menuBtn" aria-label="メニューを開く" aria-expanded="false" aria-controls="chromeMenu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<nav class="chrome-menu" id="chromeMenu" aria-hidden="true">
+  <div class="chrome-menu__inner">
+    <div class="chrome-menu__brand">
+      <img src="/images/karami.png" alt="" class="chrome-menu__mark" />
+      <div class="chrome-menu__wordmark">PlanterAI</div>
+      <div class="chrome-menu__tagline">IoT SMART PLANTER</div>
+    </div>
+    <div class="chrome-menu__links">
+      <div class="chrome-menu__col">
+        <a class="chrome-menu__item" href="/index.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">TOP</span><span class="chrome-menu__jp">トップページ</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/software.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">SOFTWARE</span><span class="chrome-menu__jp">ソフトウェア</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/hardware.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">HARDWARE</span><span class="chrome-menu__jp">ハードウェア</span></span>
+        </a>
+      </div>
+      <div class="chrome-menu__col">
+        <a class="chrome-menu__item" href="/karami.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">KARAMI</span><span class="chrome-menu__jp">カラ美について</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/team.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">TEAM</span><span class="chrome-menu__jp">製作者情報</span></span>
+        </a>
+        <a class="chrome-menu__item" href="/roadmap.html">
+          <span class="chrome-menu__dash">—</span>
+          <span class="chrome-menu__item-text"><span class="chrome-menu__en">ROADMAP</span><span class="chrome-menu__jp">今後の展望</span></span>
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="card">
+
+    <section class="section article-head software-intro">
+      <div class="eyebrow">SOFTWARE</div>
+      <h1 class="heading">ソフトウェア</h1>
+      <p class="lead" data-reveal>PlanterAIのソフトウェアは、測る、判断する、伝えるという流れをつないでいます。センサーの異常値を取り除き、通知は必要なときだけに絞り、最後にカラ美らしい言葉へ変える。植物の状態を正しく、うるさくならない形で届けるための工夫です。</p>
+    </section>
+
+    <section class="section software-section" id="software-flow" data-section-reveal>
+      <h2 class="heading" data-reveal>実際のフロー</h2>
+      <p class="lead" data-reveal>5分ごとの計測からLINE通知、ケア後の反応までが、ひとつの流れでつながっています。</p>
+      <div class="flow" data-reveal-group>
+        <div class="flow__step" data-reveal-item>
+          <span class="flow__num">01</span>
+          <span class="flow__name">計測</span>
+          <span class="flow__desc">5分ごとに土壌水分、照度、気温を計測</span>
+        </div>
+        <div class="flow__step" data-reveal-item>
+          <span class="flow__num">02</span>
+          <span class="flow__name">判定</span>
+          <span class="flow__desc">ルールで状態を確定。AIには判断させない</span>
+        </div>
+        <div class="flow__step flow__step--on" data-reveal-item>
+          <span class="flow__num">03</span>
+          <span class="flow__name">LINE通知</span>
+          <span class="flow__desc">カラ美の言葉でLINEに届く</span>
+        </div>
+        <div class="flow__step" data-reveal-item>
+          <span class="flow__num">04</span>
+          <span class="flow__name">ケア</span>
+          <span class="flow__desc">水をやる。置き場所を変える</span>
+        </div>
+        <div class="flow__step" data-reveal-item>
+          <span class="flow__num">05</span>
+          <span class="flow__name">OLEDが笑う</span>
+          <span class="flow__desc">ケアの結果がその場でわかる</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section software-section" id="software-accuracy" data-section-reveal>
+      <h2 class="heading" data-reveal>正確に伝える工夫</h2>
+
+      <h3 class="subheading" data-reveal>植物の状態を決めるのは、<br />AIではありません</h3>
+      <p class="lead" data-reveal>センサーから届いた値は、まず中央値フィルタで外れ値を除き、植物の品種に合った範囲と照らし合わせます。その結果をもとにルールで状態を決め、最後にLLMがカラ美らしい言葉へ変えます。AIに任せるのは伝え方だけです。</p>
+
+      <h3 class="subheading" data-reveal>判断と会話を、3つの層に分ける</h3>
+      <div class="layers" data-reveal-group>
+        <div class="layer" data-reveal-item>
+          <div class="layer__tag"><span class="swatch" style="background: var(--data-blue);"></span>LAYER 01 — 正規化</div>
+          <p class="layer__text">センサーから届く電圧、照度、温度、湿度を、品種ごとの適正範囲に照らしてスコアへ変えます。外れ値は、異常値に影響されにくい中央値フィルタで除きます。</p>
+        </div>
+        <div class="layer" data-reveal-item>
+          <div class="layer__tag"><span class="swatch swatch--triangle"></span>LAYER 02 — ルールベース判定</div>
+          <p class="layer__text">スコアの組み合わせと優先度から状態を決めます。同じ入力には、必ず同じ判定を返します。</p>
+        </div>
+        <div class="layer" data-reveal-item>
+          <div class="layer__tag"><span class="swatch swatch--circle" style="background: var(--data-teal);"></span>LAYER 03 — LLM言語生成</div>
+          <p class="layer__text">確定した状態とキャラクター設定だけをLLMに渡し、言い回しをつくります。植物の状態そのものは判断させません。</p>
+        </div>
+      </div>
+
+      <div class="callout" data-reveal>
+        <p class="callout__title">状態はルールで決め、伝え方だけをAIに任せる</p>
+        <p class="callout__text">センサーの値をそのままLLMに渡すと、実際には起きていない状態まで語ることがあります。そこで、植物の状態は必ずルールで判断し、AIには伝え方だけを任せています。</p>
+      </div>
+
+      <p class="lead" data-reveal>同じ入力には同じ判定を返すため、センサーが壊れて異常な値を送っても、それを植物の感覚として話すことはありません。実際に気温180.1℃、湿度100%という値が返り続けたときも、カラ美は確定済みの水分不足だけを伝えました。</p>
+
+      <div class="case" data-reveal>
+        <div class="case__label">CASE — 実機で起きたこと</div>
+        <div class="case__title">BME280が壊れた日も、カラ美は嘘をつかなかった</div>
+        <p class="case__text">運用中、センサーが断続的にリセットされ、気温180.1℃、湿度100%の固定値を返し続けました。</p>
+        <div class="case__compare">
+          <div class="case__block case__block--bad">
+            <div class="case__block-title">センサー値をそのまま渡していたら</div>
+            <p class="case__block-text">「あつい……！ ボク、溶けちゃうよ……！」　センサーの故障を、植物自身の感覚として話してしまいます。</p>
+          </div>
+          <div class="case__block case__block--good">
+            <div class="case__block-title">実際のPlanterAI</div>
+            <p class="case__block-text">「おとといからずっと、のどが渇いてるの…」　確定済みの主訴だけを話し、異常値には触れませんでした。</p>
+          </div>
+        </div>
+        <p class="case__footer">中央値フィルタに残った異常値は、正常値を3回受信したところで押し出されました。ESP32側にも、物理的にありえない値を捨てる処理を加えています。</p>
+      </div>
+
+      <h3 class="subheading" data-reveal>必要なときだけ、LINEで知らせる</h3>
+      <p class="lead" data-reveal>LINE通知は、状態が変わったときに送ります。同じ状態が続く間は繰り返さず、次の通知までは原則として60分空けます。ただし、すぐに対処が必要な状態はその場で知らせます。こちらからLINEで話しかければ、植物の状態を引き継いだまま会話を続けられます。</p>
+
+      <div class="rules" data-reveal-group>
+        <div class="rule" data-reveal-item>
+          <div class="rule__title">状態が変わったときだけ送る</div>
+          <p class="rule__text">決まった時刻に送るのではなく、状態が変わったときにだけ通知します。同じ状態が続く間は送りません。</p>
+        </div>
+        <div class="rule" data-reveal-item>
+          <div class="rule__title">60分のクールダウン</div>
+          <p class="rule__text">通知から次の通知まで、最低60分空けます。水やり直後にセンサー値が揺れても、立て続けには送りません。</p>
+        </div>
+        <div class="rule" data-reveal-item>
+          <div class="rule__title">最後に通知した状態と比べる</div>
+          <p class="rule__text">直前に記録した状態ではなく、最後に通知した状態と比べます。境界付近で判定が行き来しても通知は続きません。ただし、危険域に入ったときはすぐに知らせます。</p>
+        </div>
+        <div class="rule" data-reveal-item>
+          <div class="rule__title">光は不足と過剰で分けて判定する</div>
+          <p class="rule__text">日照不足は1日分の積算値、強すぎる光は瞬時値で判定します。すぐに対処が必要なときだけ、その場で知らせます。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section software-section" id="software-comparison" data-section-reveal>
+      <h2 class="heading" data-reveal>既存製品との比較</h2>
+
+      <p class="lead" data-reveal>表情を表示するLuaは15種類の顔で状態を伝えますが、変化に気づくには人が見にいく必要があります。Xiaomi Smart Flower Potは数値をアプリに表示しますが、植物の側から話しかけることはありません。PlanterAIは、植物を管理する対象としてではなく、話しかけてくる相手として扱います。</p>
+      <div class="compare" data-reveal-group>
+        <div class="compare__row compare__row--head" data-reveal-item>
+          <span></span>
+          <span>Planter<br />AI</span>
+          <span>Lua</span>
+          <span>Xiaomi<br />Pot</span>
+        </div>
+        <div class="compare__row" data-reveal-item>
+          <span>植物の側から話しかける</span>
+          <span class="dot-yes">●</span>
+          <span class="dot-no">–</span>
+          <span class="dot-no">–</span>
+        </div>
+        <div class="compare__row" data-reveal-item>
+          <span>実物の植物と連動</span>
+          <span class="dot-yes">●</span>
+          <span class="dot-yes">●</span>
+          <span class="dot-yes">●</span>
+        </div>
+        <div class="compare__row" data-reveal-item>
+          <span>センサーによる状態把握</span>
+          <span class="dot-yes">●</span>
+          <span class="dot-yes">●</span>
+          <span class="dot-yes">●</span>
+        </div>
+        <div class="compare__row" data-reveal-item>
+          <span>会話表現の多様さ</span>
+          <span class="dot-yes">●</span>
+          <span class="dot-partial">△</span>
+          <span class="dot-no">–</span>
+        </div>
+      </div>
+      <p class="footnote">● 対応　△ 固定パターンのみ　– 非対応。公開情報をもとに比較。</p>
+    </section>
+
+    <footer class="colophon">
+      <span>PlanterAI — 植物のほうから話しかけてくるプランター</span>
+      <span>電気通信大学　U☆PoC 2026</span>
+    </footer>
+
+  </div>
+</div>
+
+</body>
+</html>

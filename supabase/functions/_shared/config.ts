@@ -34,23 +34,23 @@ export interface SensorThresholds {
 
 export interface PlantProfile {
   displayName: string;
-  moisture: SensorThresholds;   // 土壌水分（%）
-  temp: SensorThresholds;       // 気温（℃）
-  light: SensorThresholds;      // 瞬時照度（lux）※過剰側のみ有効
+  moisture: SensorThresholds; // 土壌水分（%）
+  temp: SensorThresholds; // 気温（℃）
+  light: SensorThresholds; // 瞬時照度（lux）※過剰側のみ有効
   lightDaily: SensorThresholds; // 日次積算光量（lux·h）※不足側のみ有効
-  humidity: SensorThresholds;   // 空気湿度（%）※スコアリングは今後実装
+  humidity: SensorThresholds; // 空気湿度（%）※スコアリングは今後実装
 }
 
 // 片側だけを有効にするための番兵値。
 // Infinity は JSON.stringify で null になり scores jsonb を壊すので使わない。
-const NO_LOW = 0;             // これ以下の判定を無効化（luxは0以上なので常に快適扱い）
-const NO_HIGH = 10_000_000;   // 屋内では到達しない値（快晴12h ≒ 1,200,000 lux·h）
+const NO_LOW = 0; // これ以下の判定を無効化（luxは0以上なので常に快適扱い）
+const NO_HIGH = 10_000_000; // 屋内では到達しない値（快晴12h ≒ 1,200,000 lux·h）
 
 // SEN0193（容量式土壌水分センサー）のキャリブレーション値。
 // ESP32の12bit ADC（0〜4095）の生値を水分%に変換するために使う。
 // 2026-07-28 実機実測値に更新（空気中 2845 / 水中 1490）
 export const SOIL_CALIBRATION = {
-  airValue: 2845,   // 完全に乾燥した状態のADC値（大きいほど乾燥）
+  airValue: 2845, // 完全に乾燥した状態のADC値（大きいほど乾燥）
   waterValue: 1490, // 水中のADC値
 };
 
@@ -66,24 +66,40 @@ export const PLANT_PROFILES: Record<string, PlantProfile> = {
   pothos: {
     displayName: "ポトス",
     moisture: {
-      dangerLow: 10,  cautionLow: 20, comfortLow: 40,
-      comfortHigh: 70, cautionHigh: 85, dangerHigh: 95, // 過湿=根腐れリスク
+      dangerLow: 10,
+      cautionLow: 20,
+      comfortLow: 40,
+      comfortHigh: 70,
+      cautionHigh: 85,
+      dangerHigh: 95, // 過湿=根腐れリスク
     },
     temp: {
-      dangerLow: 5,   cautionLow: 12, comfortLow: 18,
-      comfortHigh: 28, cautionHigh: 32, dangerHigh: 38,
+      dangerLow: 5,
+      cautionLow: 12,
+      comfortLow: 18,
+      comfortHigh: 28,
+      cautionHigh: 32,
+      dangerHigh: 38,
     },
     // 過剰側のみ有効（低い側は NO_LOW で無効化）。直射日光は葉焼け
     light: {
-      dangerLow: NO_LOW, cautionLow: NO_LOW, comfortLow: NO_LOW,
-      comfortHigh: 10_000, cautionHigh: 30_000, dangerHigh: 60_000,
+      dangerLow: NO_LOW,
+      cautionLow: NO_LOW,
+      comfortLow: NO_LOW,
+      comfortHigh: 10_000,
+      cautionHigh: 30_000,
+      dangerHigh: 60_000,
     },
     // 不足側のみ有効。comfortLow が「1日の目標積算光量」を兼ねる（唯一の真実）
     // ★v2: カラテアと同じ実測基準（10,000 lux·h）に揃えた仮値。
     //   ポトス個体の実測が貯まったら別途調整すること。
     lightDaily: {
-      dangerLow: 2_000, cautionLow: 5_000, comfortLow: 10_000,
-      comfortHigh: NO_HIGH, cautionHigh: NO_HIGH + 1, dangerHigh: NO_HIGH + 2,
+      dangerLow: 2_000,
+      cautionLow: 5_000,
+      comfortLow: 10_000,
+      comfortHigh: NO_HIGH,
+      cautionHigh: NO_HIGH + 1,
+      dangerHigh: NO_HIGH + 2,
     },
     // 空気湿度（%）。ポトスは乾燥に強いので下限はゆるめ。
     // ★v3: 「湿度高すぎ（多湿）」も発火させる方針に変更（両側有効）。
@@ -92,8 +108,12 @@ export const PLANT_PROFILES: Record<string, PlantProfile> = {
     //   「かなり高湿（90%超〜）が続いている」ことを示す“注意喚起”であり、
     //   カビの断定ではない旨、LLM側のセリフでも断定させないこと。
     humidity: {
-      dangerLow: 15,  cautionLow: 25, comfortLow: 35,
-      comfortHigh: 80, cautionHigh: 90, dangerHigh: 97,
+      dangerLow: 15,
+      cautionLow: 25,
+      comfortLow: 35,
+      comfortHigh: 80,
+      cautionHigh: 90,
+      dangerHigh: 97,
     },
   },
   // カラテア（Calathea / マランタ科）。熱帯雨林の林床植物。
@@ -103,36 +123,56 @@ export const PLANT_PROFILES: Record<string, PlantProfile> = {
     displayName: "カラテア",
     // 乾かさない。ただし過湿も嫌うので快適帯は上にシフトしつつ狭い
     moisture: {
-      dangerLow: 20, cautionLow: 35, comfortLow: 50,
-      comfortHigh: 80, cautionHigh: 90, dangerHigh: 97,
+      dangerLow: 20,
+      cautionLow: 35,
+      comfortLow: 50,
+      comfortHigh: 80,
+      cautionHigh: 90,
+      dangerHigh: 97,
     },
     // 熱帯性のため低温側をポトスより引き上げる（15℃以下で生育停止）
     temp: {
-      dangerLow: 10, cautionLow: 15, comfortLow: 18,
-      comfortHigh: 28, cautionHigh: 32, dangerHigh: 35,
+      dangerLow: 10,
+      cautionLow: 15,
+      comfortLow: 18,
+      comfortHigh: 28,
+      cautionHigh: 32,
+      dangerHigh: 35,
     },
     // 過剰側のみ有効。日没後の「日照不足」誤発火は lightDaily 側に移管したので、
     // ここは低い側を NO_LOW で無効化した（旧 TODO を解消）。
     // ★cautionHigh は over_20k の頻度確認後に 12,000 へ下げるか判断（発展設計 §2.7）
     light: {
-      dangerLow: NO_LOW, cautionLow: NO_LOW, comfortLow: NO_LOW,
-      comfortHigh: 8_000, cautionHigh: 20_000, dangerHigh: 40_000,
+      dangerLow: NO_LOW,
+      cautionLow: NO_LOW,
+      comfortLow: NO_LOW,
+      comfortHigh: 8_000,
+      cautionHigh: 20_000,
+      dangerHigh: 40_000,
     },
     // 不足側のみ有効。comfortLow が「1日の目標積算光量」を兼ねる（唯一の真実）。
     // ★実測（2026-08-10〜23）に基づく確定値（v2）。
     //   日次積算は 647〜4,033（暗所群）と 12,608〜36,724（現在地群）に
     //   3倍の断絶があり、後者の最小値 12,608 の約8割 → comfortLow = 10,000。
     lightDaily: {
-      dangerLow: 2_000, cautionLow: 5_000, comfortLow: 10_000,
-      comfortHigh: NO_HIGH, cautionHigh: NO_HIGH + 1, dangerHigh: NO_HIGH + 2,
+      dangerLow: 2_000,
+      cautionLow: 5_000,
+      comfortLow: 10_000,
+      comfortHigh: NO_HIGH,
+      cautionHigh: NO_HIGH + 1,
+      dangerHigh: NO_HIGH + 2,
     },
     // 60%前後を要求。40%未満で葉先が褐変する（乾燥側が本丸）。
     // ★v3: 多湿側も発火させる方針に統一。ただしカラテアは高湿を好むため、
     //   上限は「近飽和（90%超）が続く」領域だけに限定する（風通し不良の目安）。
     //   多湿=カビの断定ではない（風通しとの複合要因）点は llm.ts の注意書き参照。
     humidity: {
-      dangerLow: 30, cautionLow: 40, comfortLow: 55,
-      comfortHigh: 90, cautionHigh: 96, dangerHigh: 100,
+      dangerLow: 30,
+      cautionLow: 40,
+      comfortLow: 55,
+      comfortHigh: 90,
+      cautionHigh: 96,
+      dangerHigh: 100,
     },
   },
 };

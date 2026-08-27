@@ -6,17 +6,21 @@
 // ============================================================
 
 const LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
+const LINE_TIMEOUT_MS = 8_000;
 
 export async function pushLineMessage(
   lineUserId: string,
   text: string,
 ): Promise<void> {
   const token = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN");
-  if (!token) throw new Error("環境変数 LINE_CHANNEL_ACCESS_TOKEN が設定されていません");
+  if (!token) {
+    throw new Error("環境変数 LINE_CHANNEL_ACCESS_TOKEN が設定されていません");
+  }
 
   const send = async (): Promise<Response> =>
     await fetch(LINE_PUSH_URL, {
       method: "POST",
+      signal: AbortSignal.timeout(LINE_TIMEOUT_MS),
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`,
@@ -49,10 +53,13 @@ export async function replyLineMessage(
   text: string,
 ): Promise<void> {
   const token = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN");
-  if (!token) throw new Error("環境変数 LINE_CHANNEL_ACCESS_TOKEN が設定されていません");
+  if (!token) {
+    throw new Error("環境変数 LINE_CHANNEL_ACCESS_TOKEN が設定されていません");
+  }
 
   const res = await fetch(LINE_REPLY_URL, {
     method: "POST",
+    signal: AbortSignal.timeout(LINE_TIMEOUT_MS),
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,

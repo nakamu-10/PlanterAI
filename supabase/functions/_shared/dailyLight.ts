@@ -37,13 +37,13 @@ export interface DailyLightConfig {
 
 export const DAILY_LIGHT: DailyLightConfig = {
   checkpointHour: 15,
-  checkpointRatio: 0.6,  // 実測で検証済み（達成日の15時最低=目標の1.07倍、不足日の最高=0.40倍）
+  checkpointRatio: 0.6, // 実測で検証済み（達成日の15時最低=目標の1.07倍、不足日の最高=0.40倍）
   deadlineHour: 20,
-  deadlineRatio: 0.9,    // 目標の9割に届けば達成扱い（惜しい日に通知しない不感帯）
-  maxGapMinutes: 20,     // POST間隔10分の2倍
+  deadlineRatio: 0.9, // 目標の9割に届けば達成扱い（惜しい日に通知しない不感帯）
+  maxGapMinutes: 20, // POST間隔10分の2倍
   minCoverage: 0.8,
-  daylightStartHour: 6,  // 実測で 6〜17時のサンプル数は 5.3〜6.2/時（ほぼ満点）
-  daylightEndHour: 18,   // 18時以降は 3.1/時まで落ちるが lux≒0 なので積算に影響しない
+  daylightStartHour: 6, // 実測で 6〜17時のサンプル数は 5.3〜6.2/時（ほぼ満点）
+  daylightEndHour: 18, // 18時以降は 3.1/時まで落ちるが lux≒0 なので積算に影響しない
 };
 
 // ------------------------------------------------------------
@@ -72,11 +72,16 @@ export function jstDateKey(d: Date): string {
 }
 
 /** 今日のチェックポイント枠・締め切り枠の境界時刻 */
-export function dailyLightWindows(now: Date, cfg: DailyLightConfig = DAILY_LIGHT) {
+export function dailyLightWindows(
+  now: Date,
+  cfg: DailyLightConfig = DAILY_LIGHT,
+) {
   const dayStart = jstDayStart(now);
   return {
     dayStart,
-    checkpointStart: new Date(dayStart.getTime() + cfg.checkpointHour * HOUR_MS),
+    checkpointStart: new Date(
+      dayStart.getTime() + cfg.checkpointHour * HOUR_MS,
+    ),
     deadlineStart: new Date(dayStart.getTime() + cfg.deadlineHour * HOUR_MS),
   };
 }
@@ -97,11 +102,11 @@ export interface LuxSample {
 }
 
 export interface LightIntegral {
-  luxHours: number;     // 積算光量（lux·h）
+  luxHours: number; // 積算光量（lux·h）
   coveredHours: number; // 日中帯のうちデータで埋まっていた時間
-  windowHours: number;  // 日中帯の長さ（カバレッジの分母）
-  coverage: number;     // coveredHours / windowHours（0〜1）
-  reliable: boolean;    // 判定に足る欠測率か
+  windowHours: number; // 日中帯の長さ（カバレッジの分母）
+  coverage: number; // coveredHours / windowHours（0〜1）
+  reliable: boolean; // 判定に足る欠測率か
   sampleCount: number;
 }
 
@@ -148,7 +153,10 @@ export function integrateLuxHours(
     // カバレッジは日中帯との重なりぶんだけ計上する
     const segStart = pts[i].t;
     const segEnd = segStart + dt;
-    coveredMs += Math.max(0, Math.min(segEnd, dlEnd) - Math.max(segStart, dlStart));
+    coveredMs += Math.max(
+      0,
+      Math.min(segEnd, dlEnd) - Math.max(segStart, dlStart),
+    );
   }
 
   const coverage = denomMs > 0 ? coveredMs / denomMs : 0;
@@ -178,7 +186,11 @@ function round2(x: number): number {
 // ★「警告していない日は達成しても黙る」のが要点。
 //   警告 → 介入 → 結果確定 という因果があるときだけ回復通知を出す。
 // ------------------------------------------------------------
-export type DailyLightVerdictKind = "none" | "warning" | "shortfall" | "recovered";
+export type DailyLightVerdictKind =
+  | "none"
+  | "warning"
+  | "shortfall"
+  | "recovered";
 
 export interface DailyLightVerdict {
   kind: DailyLightVerdictKind;
@@ -202,11 +214,19 @@ export function judgeDailyLight(args: {
   const { dayStart } = dailyLightWindows(now, cfg);
 
   const empty: LightIntegral = {
-    luxHours: 0, coveredHours: 0, windowHours: 0,
-    coverage: 0, reliable: false, sampleCount: 0,
+    luxHours: 0,
+    coveredHours: 0,
+    windowHours: 0,
+    coverage: 0,
+    reliable: false,
+    sampleCount: 0,
   };
   const none = (reason: string, integral = empty): DailyLightVerdict => ({
-    kind: "none", reason, target, achievedRatio: 0, integral,
+    kind: "none",
+    reason,
+    target,
+    achievedRatio: 0,
+    integral,
   });
 
   if (hour < cfg.checkpointHour) return none("判定時刻ではない");
@@ -214,13 +234,20 @@ export function judgeDailyLight(args: {
 
   const integral = integrateLuxHours(args.samples, dayStart, now, cfg);
   const ratio = integral.luxHours / target;
-  const base = { target, achievedRatio: Math.round(ratio * 1000) / 1000, integral };
+  const base = {
+    target,
+    achievedRatio: Math.round(ratio * 1000) / 1000,
+    integral,
+  };
 
   // ---- 締め切り枠（20時以降） ----
   if (hour >= cfg.deadlineHour) {
     if (args.closedToday) return none("締め切り判定は通知済み", integral);
     if (!integral.reliable) {
-      return none(`欠測が多く判定不能（カバレッジ${integral.coverage}）`, integral);
+      return none(
+        `欠測が多く判定不能（カバレッジ${integral.coverage}）`,
+        integral,
+      );
     }
     if (ratio >= cfg.deadlineRatio) {
       // 目標達成。警告を出した日だけ「間に合ったね」を返す
@@ -228,18 +255,29 @@ export function judgeDailyLight(args: {
         ? { kind: "recovered", reason: "警告後に目標を達成した", ...base }
         : none("目標達成（警告していないので黙る）", integral);
     }
-    return { kind: "shortfall", reason: "今日の積算光量が目標に届かなかった", ...base };
+    return {
+      kind: "shortfall",
+      reason: "今日の積算光量が目標に届かなかった",
+      ...base,
+    };
   }
 
   // ---- チェックポイント枠（15時〜20時未満） ----
   if (args.warnedToday) return none("チェックポイントは通知済み", integral);
   if (!integral.reliable) {
-    return none(`欠測が多く判定不能（カバレッジ${integral.coverage}）`, integral);
+    return none(
+      `欠測が多く判定不能（カバレッジ${integral.coverage}）`,
+      integral,
+    );
   }
   if (ratio >= cfg.checkpointRatio) {
     return none("この時点では順調", integral);
   }
-  return { kind: "warning", reason: "このままでは今日の目標に届かない見込み", ...base };
+  return {
+    kind: "warning",
+    reason: "このままでは今日の目標に届かない見込み",
+    ...base,
+  };
 }
 
 // ------------------------------------------------------------

@@ -13,8 +13,12 @@
 
 import { ComfortScores, FilteredReading } from "./normalize.ts";
 import {
-  Complaint, COMPLAINT_PRIORITY, decideEmotion, Emotion,
-  scoreToUrgency, Urgency,
+  Complaint,
+  COMPLAINT_PRIORITY,
+  decideEmotion,
+  Emotion,
+  scoreToUrgency,
+  Urgency,
 } from "./emotionTable.ts";
 
 // Layer 2の出力（構造化JSON）
@@ -41,13 +45,29 @@ export interface PastEmotionLog {
 function detectComplaints(
   scores: ComfortScores,
   f: FilteredReading,
-  comfortMid: { moisture: number; temp: number; light: number; humidity: number },
-): { complaint: Complaint; urgency: Exclude<Urgency, "none">; score: number }[] {
-  const found: { complaint: Complaint; urgency: Exclude<Urgency, "none">; score: number }[] = [];
+  comfortMid: {
+    moisture: number;
+    temp: number;
+    light: number;
+    humidity: number;
+  },
+): {
+  complaint: Complaint;
+  urgency: Exclude<Urgency, "none">;
+  score: number;
+}[] {
+  const found: {
+    complaint: Complaint;
+    urgency: Exclude<Urgency, "none">;
+    score: number;
+  }[] = [];
 
   const check = (
-    score: number, value: number, mid: number,
-    lowC: Complaint, highC: Complaint,
+    score: number,
+    value: number,
+    mid: number,
+    lowC: Complaint,
+    highC: Complaint,
   ) => {
     const urgency = scoreToUrgency(score);
     if (urgency === "none") return;
@@ -55,10 +75,22 @@ function detectComplaints(
     found.push({ complaint: value < mid ? lowC : highC, urgency, score });
   };
 
-  check(scores.moisture, f.moisture_pct, comfortMid.moisture, "水分不足", "水分過多");
+  check(
+    scores.moisture,
+    f.moisture_pct,
+    comfortMid.moisture,
+    "水分不足",
+    "水分過多",
+  );
   check(scores.temp, f.temp, comfortMid.temp, "温度低すぎ", "温度高すぎ");
   check(scores.light, f.lux, comfortMid.light, "日照不足", "日照過剰");
-  check(scores.humidity, f.humidity_pct, comfortMid.humidity, "湿度低すぎ", "湿度高すぎ");
+  check(
+    scores.humidity,
+    f.humidity_pct,
+    comfortMid.humidity,
+    "湿度低すぎ",
+    "湿度高すぎ",
+  );
 
   return found;
 }
@@ -98,7 +130,12 @@ export function durationLabel(hours: number): string {
 export function evaluateEmotion(
   scores: ComfortScores,
   filtered: FilteredReading,
-  comfortMid: { moisture: number; temp: number; light: number; humidity: number },
+  comfortMid: {
+    moisture: number;
+    temp: number;
+    light: number;
+    humidity: number;
+  },
   pastLogs: PastEmotionLog[],
 ): EmotionState {
   const complaints = detectComplaints(scores, filtered, comfortMid);
@@ -106,15 +143,23 @@ export function evaluateEmotion(
   // 主訴なし → 満足
   if (complaints.length === 0) {
     return {
-      emotion: "満足", complaint: null, urgency: "none",
-      duration_hours: 0, duration_label: "",
+      emotion: "満足",
+      complaint: null,
+      urgency: "none",
+      duration_hours: 0,
+      duration_label: "",
     };
   }
 
   // 複数の主訴がある場合の優先順位ルール:
   //   1. 緊急度が高いものを最優先（high > medium > low）
   //   2. 緊急度が同じなら COMPLAINT_PRIORITY（ダメージの深刻さ）で決める
-  const urgencyRank: Record<Urgency, number> = { high: 3, medium: 2, low: 1, none: 0 };
+  const urgencyRank: Record<Urgency, number> = {
+    high: 3,
+    medium: 2,
+    low: 1,
+    none: 0,
+  };
   complaints.sort((a, b) =>
     urgencyRank[b.urgency] - urgencyRank[a.urgency] ||
     COMPLAINT_PRIORITY[b.complaint] - COMPLAINT_PRIORITY[a.complaint]
@@ -156,7 +201,11 @@ export function hasTransitioned(
 // 感情ベースで見たくなったとき用に定義を残しておく。
 // ------------------------------------------------------------
 export const EMOTION_SEVERITY: Record<string, number> = {
-  "満足": 0, "軽い不満": 1, "不満": 2, "不安": 3, "苛立ち": 4,
+  "満足": 0,
+  "軽い不満": 1,
+  "不満": 2,
+  "不安": 3,
+  "苛立ち": 4,
 };
 
 // ユーザーが最後に受け取った通知の状態（クールダウン判定の基準）
@@ -197,8 +246,8 @@ export function shouldNotify(
   const baseComplaint = lastNotified?.complaint ?? null;
 
   // 1. ユーザーに伝えるべき変化がなければ通知しない
-  const changed =
-    current.emotion !== baseEmotion || current.complaint !== baseComplaint;
+  const changed = current.emotion !== baseEmotion ||
+    current.complaint !== baseComplaint;
   if (!changed) return false;
 
   // 2. 危険域は通知疲労より安全を優先し、クールダウンを無視して即通知
