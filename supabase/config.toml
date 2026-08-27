@@ -79,6 +79,12 @@ verify_jwt = false
 [functions.weekly-summary]
 verify_jwt = false
 
+[functions.app-data]
+verify_jwt = false
+
+[functions.app-chat]
+verify_jwt = false
+
 [db.network_restrictions]
 # Enable management of network restrictions.
 enabled = false
