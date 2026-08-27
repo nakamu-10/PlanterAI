@@ -7,6 +7,7 @@
   },
   "scripts": {
     "check": "npm test && npm run typecheck && npm run build:site && npm run format:check",
+    "generate:qr": "node scripts/generate-qr.mjs",
     "test": "npm run test:logic && npm run test:notify && npm run test:daily-light && npm run test:validation",
     "test:logic": "tsx tests/logic.test.ts",
     "test:notify": "tsx tests/notify.test.ts",
@@ -17,6 +18,9 @@
     "format:check": "deno fmt --check supabase/functions supabase/migrations tests"
   },
   "devDependencies": {
+    "jsqr": "^1.4.0",
+    "pngjs": "^7.0.0",
+    "qrcode": "^1.5.4",
     "tsx": "^4.23.12"
   }
 }
