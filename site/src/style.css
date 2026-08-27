@@ -1,6 +1,6 @@
 /* ---------- reset ---------- */
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; overflow-x: hidden; overscroll-behavior-x: none; }
 body { margin: 0; }
 img { max-width: 100%; display: block; }
 
@@ -47,6 +47,7 @@ body {
   font-family: var(--font-display);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 a { color: var(--on-wash); text-decoration: underline; }
 a:hover { color: var(--green-300); }
