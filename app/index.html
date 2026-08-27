@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ダッシュボード｜PlanterAIアプリ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Noto+Sans+JP:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/src/style.css" />
+<script type="module" src="/src/dashboard.js"></script>
+</head>
+<body>
+
+<nav class="app-nav">
+  <a class="app-nav__brand" href="/index.html">
+    <img src="/images/karami.png" alt="" />
+    PlanterAI
+  </a>
+  <a class="app-nav__link is-active" href="/app/index.html">ダッシュボード</a>
+  <a class="app-nav__link" href="/app/chat.html">チャット</a>
+  <a class="app-nav__link" href="/app/karami.html">カラ美</a>
+</nav>
+
+<div class="app-shell">
+
+  <header class="app-header">
+    <div class="app-header__eyebrow">DASHBOARD</div>
+    <h1><span id="plantName">-</span>（<span id="characterName">-</span>）の様子</h1>
+    <p>センサーが読み取った直近の状態と、これまでの気分の変化を確認できます。</p>
+  </header>
+
+  <section class="app-panel">
+    <h2>いまの快適スコア</h2>
+    <div id="scores">読み込み中…</div>
+  </section>
+
+  <section class="app-panel">
+    <h2>気分の履歴</h2>
+    <ul id="emotionList" class="emotion-list">読み込み中…</ul>
+  </section>
+
+  <section class="app-panel">
+    <h2>設定</h2>
+    <form id="settingsForm">
+      <label class="app-field">
+        <span>植物の名前</span>
+        <input type="text" name="plant_name" maxlength="40" required />
+      </label>
+      <label class="app-field">
+        <span>植物の種類（快適レンジ）</span>
+        <select name="plant_profile">
+          <option value="pothos">ポトス</option>
+          <option value="calathea">カラテア</option>
+        </select>
+      </label>
+      <label class="app-field">
+        <span>性格</span>
+        <select name="character_id">
+          <option value="amaenbo">甘えん坊</option>
+          <option value="tsundere">ツンデレ</option>
+          <option value="keigo">執事風</option>
+        </select>
+      </label>
+      <button class="app-submit" type="submit">保存する</button>
+      <div id="formStatus" class="app-form-status"></div>
+    </form>
+  </section>
+
+  <footer class="app-footer">PlanterAI専用アプリ — 電気通信大学　U☆PoC 2026</footer>
+
+</div>
+
+</body>
+</html>

@@ -285,6 +285,69 @@ a:hover { color: var(--green-300); }
   text-align: center;
 }
 
+/* ---------- TOP page finale ---------- */
+.demo-finale {
+  position: relative;
+  min-height: clamp(720px, 108svh, 900px);
+  margin-top: 32px;
+  padding: clamp(118px, 20svh, 172px) 22px 42px;
+  overflow: hidden;
+  isolation: isolate;
+}
+.demo-finale__copy {
+  position: relative;
+  z-index: 2;
+  width: min(100%, 390px);
+}
+.demo-finale__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-en);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .18em;
+  color: var(--green-300);
+}
+.demo-finale__eyebrow::before {
+  content: '';
+  width: 44px;
+  height: 1px;
+  background: currentColor;
+}
+.demo-finale__title {
+  margin: 22px 0 0;
+  font-size: clamp(30px, 9vw, 40px);
+  font-weight: 900;
+  line-height: 1.38;
+  letter-spacing: -.025em;
+  color: var(--on-wash);
+}
+.demo-finale__text {
+  margin: 22px 0 0;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.9;
+  color: var(--on-wash-soft);
+}
+.demo-finale__planter {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 6px;
+  width: min(94%, 420px);
+  transform: translateX(-50%);
+  transform-origin: 48% 75%;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+.demo-finale__planter img {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 28px 34px rgba(13, 43, 30, .34));
+  user-select: none;
+}
+
 /* ---------- article pages (plain editorial typography, no cards) ---------- */
 .article-head { padding: 110px 22px 10px; text-align: center; }
 .article-head .eyebrow { margin: 0; }
@@ -607,6 +670,8 @@ a:hover { color: var(--green-300); }
 .cta__text { margin: 10px 0 0; font-size: 14.5px; line-height: 1.85; color: var(--on-wash-soft); }
 .cta__tags { margin-top: 18px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; font-family: var(--font-mono); font-size: 11.5px; color: var(--on-wash); }
 .cta__tags span { border: 1px solid var(--panel-border); border-radius: 999px; padding: 7px 12px; }
+.cta__link { display: inline-block; margin-top: 18px; padding: 10px 24px; border-radius: 999px; background: var(--on-wash); color: var(--green-800); text-decoration: none; font-family: var(--font-display); font-weight: 700; font-size: 14px; }
+.cta__link:hover { background: var(--green-300); color: var(--green-900); }
 
 /* ---------- fixed chrome (top bar / menu) ---------- */
 .chrome-top {
@@ -695,4 +760,6 @@ a:hover { color: var(--green-300); }
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   .hero__planter-track, .hero__planter { transform: none !important; opacity: 1 !important; }
+  .demo-finale__copy { opacity: 1 !important; transform: none !important; }
+  .demo-finale__planter { opacity: 1 !important; transform: translateX(-50%) !important; }
 }

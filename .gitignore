@@ -36,6 +36,13 @@ dist/
 # Vercel local metadata
 .vercel/
 
+# Environment variables (device keys, API keys)
+.env
+.env.local
+site/.env*
+app/.env*
+!app/.env.example
+
 # Original iPhone photos (Web用JPEGだけを管理する)
 site/public/images/*.heic
 site/public/images/*.HEIC

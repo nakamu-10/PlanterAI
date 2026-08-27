@@ -12,7 +12,7 @@
     "test:notify": "tsx tests/notify.test.ts",
     "test:daily-light": "tsx tests/dailyLight.test.ts",
     "test:validation": "tsx tests/validation.test.ts",
-    "typecheck": "deno check supabase/functions/ingest-sensor/index.ts supabase/functions/line-webhook/index.ts supabase/functions/weekly-summary/index.ts",
+    "typecheck": "deno check supabase/functions/ingest-sensor/index.ts supabase/functions/line-webhook/index.ts supabase/functions/weekly-summary/index.ts supabase/functions/app-data/index.ts supabase/functions/app-chat/index.ts",
     "build:site": "npm --prefix site run build",
     "format:check": "deno fmt --check supabase/functions supabase/migrations tests"
   },

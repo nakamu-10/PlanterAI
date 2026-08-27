@@ -165,6 +165,57 @@ function setupPlanterScroll() {
   }, 0)
 }
 
+function setupDemoFinale() {
+  const section = document.getElementById('demoFinale')
+  const planter = document.getElementById('demoFinalePlanter')
+  const copy = document.getElementById('demoFinaleCopy')
+  if (!section || !planter || !copy || reduceMotion) return
+
+  gsap.set(planter, {
+    xPercent: -50,
+    x: -54,
+    y: 128,
+    scale: 0.84,
+    rotate: -8,
+    opacity: 0.08,
+  })
+  gsap.set(copy, { y: 34, opacity: 0 })
+
+  gsap.timeline({
+    scrollTrigger: {
+      trigger: section,
+      start: 'top 92%',
+      end: 'bottom 76%',
+      scrub: 0.8,
+      invalidateOnRefresh: true,
+    },
+  })
+    .to(planter, {
+      x: -20,
+      y: 74,
+      scale: 0.9,
+      rotate: -3,
+      opacity: 0.26,
+      duration: 0.42,
+      ease: 'none',
+    })
+    .to(copy, {
+      y: 0,
+      opacity: 1,
+      duration: 0.24,
+      ease: 'power2.out',
+    }, 0.3)
+    .to(planter, {
+      x: 0,
+      y: 0,
+      scale: 1,
+      rotate: 0,
+      opacity: 1,
+      duration: 0.58,
+      ease: 'power2.out',
+    }, 0.42)
+}
+
 function setupReveal() {
   if (reduceMotion) return
 
@@ -309,6 +360,7 @@ runPreloader(() => {
   setupReveal()
   setupChrome()
   setupPlanterScroll()
+  setupDemoFinale()
   playHero()
 
   window.addEventListener('load', () => ScrollTrigger.refresh())
