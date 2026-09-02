@@ -128,5 +128,50 @@ assert("クールダウン中の主訴の横滑り(medium)も見送る",
     CD,
   ) === false);
 
+// --- センサー欠測時: 誤った「回復しました」通知を抑止する ------------------
+// BME280が壊れて温度の主訴が消えただけなのに「満足に戻った」と伝えるのは誤報。
+// ただし黙るのは「欠測したセンサーが原因だった主訴」からの回復だけで、
+// 水やりによる水分不足の回復のように根拠のある回復は従来どおり通知する。
+const BME_DEAD = ["temp", "humidity"]; // BME280が読めていない状態
+
+assert("欠測なし: 温度主訴からの回復は通知する",
+  shouldNotify(
+    state("満足", null, "none"),
+    lastNotified("不満", "温度高すぎ", CD + 5),
+    CD,
+  ) === true);
+
+assert("温湿度が欠測: 温度主訴からの回復は通知しない",
+  shouldNotify(
+    state("満足", null, "none"),
+    lastNotified("不満", "温度高すぎ", CD + 5),
+    CD,
+    BME_DEAD,
+  ) === false);
+
+assert("温湿度が欠測でも: 水やりによる回復は通知する",
+  shouldNotify(
+    state("満足", null, "none"),
+    lastNotified("不満", "水分不足", CD + 5),
+    CD,
+    BME_DEAD,
+  ) === true);
+
+assert("温湿度が欠測: 新たな不調（悪化）は通知する",
+  shouldNotify(
+    state("不満", "水分不足", "medium"),
+    lastNotified("満足", null, CD + 5),
+    CD,
+    BME_DEAD,
+  ) === true);
+
+assert("温湿度が欠測: 危険域はクールダウン中でも即通知",
+  shouldNotify(
+    state("不安", "水分不足", "high"),
+    lastNotified("軽い不満", "水分不足", 5),
+    CD,
+    BME_DEAD,
+  ) === true);
+
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

@@ -13,7 +13,7 @@
 
 import { ComfortScores, FilteredReading } from "./normalize.ts";
 import {
-  Complaint, COMPLAINT_PRIORITY, decideEmotion, Emotion,
+  Complaint, COMPLAINT_PRIORITY, COMPLAINT_SOURCE, decideEmotion, Emotion,
   scoreToUrgency, Urgency,
 } from "./emotionTable.ts";
 
@@ -37,6 +37,11 @@ export interface PastEmotionLog {
 // スコア + フィルタ済み値 → 主訴の候補リスト
 // スコアが80未満（=快適でない）のセンサーごとに、
 // 値が快適レンジの「下側」か「上側」かで主訴を決める
+//
+// ★欠測（Layer 1 が null を返したセンサー）はスキップする。
+//   BME280が壊れて気温・湿度が読めなくても、土壌水分・照度だけで
+//   判定を続行する。読めていない項目について主訴を出さないのが要点で、
+//   「センサー故障を植物の不調として誤って訴える」事故を構造的に防ぐ。
 // ------------------------------------------------------------
 function detectComplaints(
   scores: ComfortScores,
@@ -46,9 +51,11 @@ function detectComplaints(
   const found: { complaint: Complaint; urgency: Exclude<Urgency, "none">; score: number }[] = [];
 
   const check = (
-    score: number, value: number, mid: number,
+    score: number | null, value: number | null, mid: number,
     lowC: Complaint, highC: Complaint,
   ) => {
+    // 欠測（センサーが読めていない）→ 判定しない
+    if (score === null || value === null) return;
     const urgency = scoreToUrgency(score);
     if (urgency === "none") return;
     // 快適レンジの中央より低ければ「不足系」、高ければ「過剰系」
@@ -181,7 +188,8 @@ export interface LastNotifiedState {
 // ルール:
 //   1. 最後に通知した状態と (emotion, complaint) が同じなら通知しない
 //   2. urgency==="high"（危険域）は安全優先でクールダウンを無視し即通知
-//   3. それ以外は、最後の通知から cooldownMinutes 以内なら見送る
+//   3. 欠測中のセンサーが原因だった主訴からの「回復」は送らない
+//   4. それ以外は、最後の通知から cooldownMinutes 以内なら見送る
 //
 // 基準を「最後の通知」に置くのが要点。クールダウン中に状態が悪化しても
 // その変化は捨てられず、クールダウン明けの最初のPOSTで確実に通知される
@@ -191,6 +199,7 @@ export function shouldNotify(
   current: EmotionState,
   lastNotified: LastNotifiedState | null,
   cooldownMinutes: number,
+  missingSensors: readonly string[] = [],
 ): boolean {
   // 最後に通知した状態（一度も通知していなければ「満足」を基準にする）
   const baseEmotion = lastNotified?.emotion ?? "満足";
@@ -200,6 +209,22 @@ export function shouldNotify(
   const changed =
     current.emotion !== baseEmotion || current.complaint !== baseComplaint;
   if (!changed) return false;
+
+  // 1.5 「満足に戻った」通知は、直前に伝えた主訴のセンサーが欠測している
+  //   ときだけ見送る。センサーが壊れて主訴が消えただけで、実際には不調が
+  //   続いているかもしれないため（例: 高温で不満 → BME280故障 → 満足）。
+  //   見えていないものを「元気になりました」と伝えるのは誤報になる。
+  //
+  //   逆に、読めているセンサーの回復（例: 水やりで水分不足が解消）は、
+  //   温湿度が欠測中でも従来どおり通知する。欠測を理由に、根拠のある
+  //   回復報告まで黙ってしまわないための線引き。
+  //   悪化方向（新しい主訴の発生）も欠測中に関係なく通知する。
+  if (
+    current.emotion === "満足" && baseComplaint !== null &&
+    missingSensors.includes(COMPLAINT_SOURCE[baseComplaint as Complaint])
+  ) {
+    return false;
+  }
 
   // 2. 危険域は通知疲労より安全を優先し、クールダウンを無視して即通知
   if (current.urgency === "high") return true;

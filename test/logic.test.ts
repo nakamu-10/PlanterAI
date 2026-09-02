@@ -77,9 +77,10 @@ console.log("--- Layer 1: 湿度スコア ---");
 assert("湿度55%(快適) → 100", toScore(55, profile.humidity) === 100, `got ${toScore(55, profile.humidity)}`);
 assert("湿度25%(乾燥・注意境界) → 50", toScore(25, profile.humidity) === 50, `got ${toScore(25, profile.humidity)}`);
 assert("湿度90%(多湿・注意境界) → 50", toScore(90, profile.humidity) === 50, `got ${toScore(90, profile.humidity)}`);
+const fNormalHumid = applyMedianFilter([], normal).humidity_pct;
 assert("中央値フィルタが湿度も通す",
-  Math.abs(applyMedianFilter([], normal).humidity_pct - 55) < 0.01,
-  `got ${applyMedianFilter([], normal).humidity_pct}`);
+  fNormalHumid !== null && Math.abs(fNormalHumid - 55) < 0.01,
+  `got ${fNormalHumid}`);
 
 console.log("--- Layer 2: 湿度の主訴 ---");
 // 土壌・気温・照度は快適に固定し、湿度だけを動かす
@@ -108,6 +109,83 @@ const fBoth = applyMedianFilter([], bothMild);
 const sBoth = evaluateEmotion(toComfortScores(fBoth, profile), fBoth, comfortMid, []);
 assert("水分やや不足+空気乾燥(同urgency) → 水分不足を優先",
   sBoth.complaint === "水分不足", JSON.stringify(sBoth));
+
+console.log("--- Layer 1: BME280 読み取り失敗の検知 ---");
+// 実機で観測されたBME280の固定ゴミ（チップがスリープに落ちレジスタ初期値を返す）
+const bmeGarbage = { soil_adc: SOIL_OK, temp: 180.1, humidity: 100.0, lux: 2000 };
+const fGarbage = applyMedianFilter([], bmeGarbage);
+assert("固定ゴミ(t=180.1)は欠測として棄却", fGarbage.temp === null, `got ${fGarbage.temp}`);
+assert("固定ゴミ(h=100.0)は欠測として棄却", fGarbage.humidity_pct === null, `got ${fGarbage.humidity_pct}`);
+assert("欠測項目が missing に載る",
+  JSON.stringify(fGarbage.missing) === JSON.stringify(["temp", "humidity"]),
+  JSON.stringify(fGarbage.missing));
+assert("BME欠測でも土壌水分・照度は生き残る",
+  fGarbage.moisture_pct > 0 && fGarbage.lux === 2000,
+  JSON.stringify(fGarbage));
+
+const gScores = toComfortScores(fGarbage, profile);
+assert("欠測スコアは0ではなくnull（危険域と誤認させない）",
+  gScores.temp === null && gScores.humidity === null, JSON.stringify(gScores));
+
+// ファームが「読めなかった」と明示送信（null）してくるケース
+const fNull = applyMedianFilter([], { soil_adc: SOIL_OK, temp: null, humidity: null, lux: 2000 });
+assert("temp/humidity が null でも欠測として扱う",
+  fNull.temp === null && fNull.humidity_pct === null, JSON.stringify(fNull));
+
+// 過去ログがゴミだらけでも、正常値が1件来れば即復帰する
+// （旧実装はゴミを中央値に混ぜていたため、窓5件中3件のきれいな値が必要だった）
+const fRecover = applyMedianFilter(
+  [bmeGarbage, bmeGarbage, bmeGarbage, bmeGarbage],
+  { soil_adc: SOIL_OK, temp: 25.2, humidity: 50.3, lux: 2000 },
+);
+assert("窓がゴミだらけでも正常値1件で即復帰",
+  fRecover.temp === 25.2 && fRecover.humidity_pct === 50.3, JSON.stringify(fRecover));
+
+// 現在の実機の故障状態: BME280未接続で全項目0を返し続ける
+const allZero = { soil_adc: SOIL_OK, temp: 0, humidity: 0, pressure: 0, lux: 2000 };
+const fZero = applyMedianFilter([], allZero);
+assert("全ゼロ(未接続)は欠測として棄却",
+  fZero.temp === null && fZero.humidity_pct === null, JSON.stringify(fZero));
+
+// 気温0℃は妥当範囲(-20〜60)に入るため、値ごとの判定だけでは通ってしまう。
+// 0℃はurgency=highなので、通ると「温度低すぎ・危険」が最優先の主訴になる。
+const sZero = evaluateEmotion(toComfortScores(fZero, profile), fZero, comfortMid, []);
+assert("全ゼロが「温度低すぎ(危険域)」として誤発火しない",
+  sZero.complaint === null && sZero.emotion === "満足", JSON.stringify(sZero));
+
+// 故障が本命の主訴を隠さないこと（0℃のhighは水分不足のmediumより優先されてしまう）
+const dryZero = { soil_adc: 2700, temp: 0, humidity: 0, pressure: 0, lux: 2000 };
+const fDryZero = applyMedianFilter([], dryZero);
+const sDryZero = evaluateEmotion(toComfortScores(fDryZero, profile), fDryZero, comfortMid, []);
+assert("全ゼロ故障が水分不足の主訴を隠さない",
+  sDryZero.complaint === "水分不足", JSON.stringify(sDryZero));
+
+// チップ単位の判定: 湿度だけ壊れていても気温は信用しない
+const halfBroken = { soil_adc: SOIL_OK, temp: 24, humidity: 100.0, lux: 2000 };
+const fHalf = applyMedianFilter([], halfBroken);
+assert("湿度が壊れていれば同じチップの気温も捨てる",
+  fHalf.temp === null && fHalf.humidity_pct === null, JSON.stringify(fHalf));
+
+// 気圧の固定ゴミ(-154.x)からもチップ故障を検出する
+const badPressure = { soil_adc: SOIL_OK, temp: 25.2, humidity: 50.3, pressure: -154.9, lux: 2000 };
+const fBadP = applyMedianFilter([], badPressure);
+assert("気圧が異常ならチップ故障として気温・湿度も捨てる",
+  fBadP.temp === null && fBadP.humidity_pct === null, JSON.stringify(fBadP));
+
+console.log("--- Layer 2: BME280欠測時も判定を続行する ---");
+// 乾燥 + BME280故障 → 温湿度は黙り、土壌水分の主訴は従来どおり出る
+const dryNoBme = { soil_adc: 2700, temp: 180.1, humidity: 100.0, lux: 2000 };
+const fDryNoBme = applyMedianFilter([], dryNoBme);
+const sDryNoBme = evaluateEmotion(toComfortScores(fDryNoBme, profile), fDryNoBme, comfortMid, []);
+assert("BME欠測でも土壌水分から主訴を出せる",
+  sDryNoBme.complaint === "水分不足", JSON.stringify(sDryNoBme));
+
+// 故障ゴミ(180.1℃/100%)が「温度高すぎ」「湿度高すぎ」として誤発火しないこと
+const okNoBme = { soil_adc: SOIL_OK, temp: 180.1, humidity: 100.0, lux: 2000 };
+const fOkNoBme = applyMedianFilter([], okNoBme);
+const sOkNoBme = evaluateEmotion(toComfortScores(fOkNoBme, profile), fOkNoBme, comfortMid, []);
+assert("故障ゴミが温度・湿度の主訴として誤発火しない",
+  sOkNoBme.complaint === null && sOkNoBme.emotion === "満足", JSON.stringify(sOkNoBme));
 
 console.log("--- 状態遷移の検出（通知疲労対策） ---");
 assert("同じ状態の継続は通知しない",

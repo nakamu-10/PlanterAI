@@ -43,6 +43,20 @@ export const COMPLAINT_PRIORITY: Record<Complaint, number> = {
 };
 
 // ------------------------------------------------------------
+// 主訴の由来センサー
+// センサーが欠測しているとき「その主訴は今そもそも判定できるのか」を
+// 知るために使う（emotionEngine.ts の shouldNotify）。
+// ------------------------------------------------------------
+export type SensorSource = "moisture" | "temp" | "light" | "humidity";
+
+export const COMPLAINT_SOURCE: Record<Complaint, SensorSource> = {
+  "水分不足": "moisture", "水分過多": "moisture",
+  "温度低すぎ": "temp", "温度高すぎ": "temp",
+  "日照不足": "light", "日照過剰": "light",
+  "湿度低すぎ": "humidity", "湿度高すぎ": "humidity",
+};
+
+// ------------------------------------------------------------
 // 感情エスカレーション表
 // 緊急度 × 継続時間（時間単位）→ 感情
 // escalationHours: [t1, t2] = t1時間以上で1段階、t2時間以上で2段階エスカレート

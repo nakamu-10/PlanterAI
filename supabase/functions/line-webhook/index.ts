@@ -1,5 +1,10 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { buildReplyPrompt, ConversationEntry, generateMessage } from "../_shared/llm.ts";
+import {
+  buildReplyPrompt,
+  ConversationEntry,
+  describeLlmFailure,
+  generateMessage,
+} from "../_shared/llm.ts";
 import { fallbackMessage } from "../_shared/fallback.ts";
 import { replyLineMessage } from "../_shared/line.ts";
 
@@ -136,14 +141,21 @@ Deno.serve(async (req: Request) => {
       userMessage: userText,
     });
 
-    // 返信経路は Webhook 応答窓があるので interactive（思考オフで最速・打ち切りに強い）。
+    // 返信経路は Webhook 応答窓があるので interactive（思考は minimal）。
     // それでも失敗したら黙って落とさず、テンプレを返して会話を途切れさせない。
     let replyText: string;
+    let replySource: "llm" | "fallback" = "llm";
+    let replyFinishReason = "STOP";
     try {
       replyText = await generateMessage(replyPrompt, "interactive");
     } catch (err) {
       console.error("Gemini生成エラー、テンプレにフォールバック:", err);
-      replyText = fallbackMessage(latestEmotion?.complaint ?? null);
+      replySource = "fallback";
+      replyFinishReason = describeLlmFailure(err);
+      replyText = fallbackMessage(
+        latestEmotion?.complaint ?? null,
+        latestEmotion?.emotion ?? null,
+      );
     }
 
     // 5. LINEに返信
@@ -161,6 +173,8 @@ Deno.serve(async (req: Request) => {
       message: replyText,
       emotion: latestEmotion?.emotion ?? null,
       complaint: latestEmotion?.complaint ?? null,
+      source: replySource,
+      finish_reason: replyFinishReason,
     });
 
     console.log(`[${device.plant_name}] 返信送信:`, replyText);

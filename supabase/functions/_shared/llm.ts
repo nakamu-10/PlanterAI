@@ -125,19 +125,41 @@ const GEMINI_URL =
  * 背景: gemini-3.6-flash では thinkingConfig を指定すると、思考トークンと
  * 出力トークンが maxOutputTokens を共有する。思考が予算を食うと出力が
  * 途中で MAX_TOKENS 打ち切りになり、文の途中で切れたセリフが送られてしまう。
- * → interactive は思考を切って予算を丸ごと出力に回し、打ち切りを構造的に防ぐ。
+ *
+ * ★重要★ thinkingLevel に "none" は存在しない。有効値は
+ * minimal / low / medium / high の4つだけで、"none" を送ると Gemini は
+ * HTTP 400 を返す（= その経路の生成が100%失敗してフォールバックに落ちる）。
+ * 思考は「切る」ことができないので、interactive は最小の minimal に留め、
+ * 思考が食う分を見込んで予算を厚めに取ることで打ち切りを防ぐ。
+ * maxOutputTokens は上限であって予約ではないため、厚くしてもレイテンシも
+ * 課金も実際に生成したトークン分しか増えない。
  */
+export type ThinkingLevel = "minimal" | "low" | "medium" | "high";
+
+export interface LlmConfig {
+  maxOutputTokens: number;
+  thinkingLevel: ThinkingLevel;
+}
+
 export type LlmProfile = "interactive" | "batch";
 
-const LLM_PROFILES: Record<
-  LlmProfile,
-  { maxOutputTokens: number; thinkingLevel: "none" | "low" }
-> = {
-  // LINE返信・センサー遷移通知。Webhook応答窓があるので思考を切って最速化する。
-  // 表現の口語化に推論は不要 → thinking を切っても品質はほぼ落ちない。
-  interactive: { maxOutputTokens: 400, thinkingLevel: "none" },
+export const LLM_PROFILES: Record<LlmProfile, LlmConfig> = {
+  // LINE返信・センサー遷移通知。Webhook応答窓があるので思考は最小にする。
+  // 表現の口語化に深い推論は不要 → minimal でも品質はほぼ落ちない。
+  interactive: { maxOutputTokens: 800, thinkingLevel: "minimal" },
   // 日次ジョブ・週次サマリー。誰も待っていないので予算を厚く取る。
   batch: { maxOutputTokens: 800, thinkingLevel: "low" },
+};
+
+/**
+ * 再試行用の設定。
+ * 1回目と「条件が変わる」ことがリトライの前提なので、思考を最小に落としつつ
+ * 予算を増やす。旧実装は interactive 起点でも interactive に再試行しており、
+ * 1回目と2回目が完全に同一条件になっていた（＝リトライが機能していなかった）。
+ */
+export const LLM_RETRY_CONFIG: LlmConfig = {
+  maxOutputTokens: 1600,
+  thinkingLevel: "minimal",
 };
 
 /**
@@ -155,15 +177,52 @@ export class LlmTruncatedError extends Error {
   }
 }
 
-/** Gemini を1回叩く。打ち切り（MAX_TOKENS等）は例外にする。 */
+/**
+ * Gemini が 2xx 以外を返したときの例外。
+ * status を保持するのは「再試行して意味があるか」を呼び分けるため。
+ * 400（設定ミス）を何度投げ直しても結果は変わらない一方、429/5xx は
+ * 一時的なので1回だけ再試行する価値がある。
+ */
+export class LlmHttpError extends Error {
+  constructor(public status: number, public body: string) {
+    super(`Gemini APIエラー: HTTP ${status} — ${body}`);
+    this.name = "LlmHttpError";
+  }
+  /** 一時障害（レート制限・サーバ側エラー）か */
+  get retryable(): boolean {
+    return this.status === 429 || this.status >= 500;
+  }
+}
+
+/** 2xx なのに本文テキストが取れなかったときの例外 */
+export class LlmEmptyResponseError extends Error {
+  constructor(public raw: string) {
+    super(`Gemini APIの応答からテキストを取得できませんでした: ${raw}`);
+    this.name = "LlmEmptyResponseError";
+  }
+}
+
+/**
+ * 失敗理由を conversation_logs.finish_reason に入れるための短い識別子にする。
+ * 「なぜフォールバックになったか」を後から SQL で数えられるようにするのが目的。
+ */
+export function describeLlmFailure(e: unknown): string {
+  if (e instanceof LlmHttpError) return `HTTP_${e.status}`;
+  if (e instanceof LlmTruncatedError) return e.finishReason;
+  if (e instanceof LlmEmptyResponseError) return "EMPTY";
+  if (e instanceof Error) return e.name || "ERROR";
+  return "ERROR";
+}
+
+/** Gemini を1回叩く。打ち切り（MAX_TOKENS等）・HTTPエラーは例外にする。 */
 async function callGeminiOnce(
   prompt: string,
-  profile: LlmProfile,
+  cfg: LlmConfig,
+  label: string,
 ): Promise<string> {
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) throw new Error("環境変数 GEMINI_API_KEY が設定されていません");
 
-  const cfg = LLM_PROFILES[profile];
   const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -179,28 +238,45 @@ async function callGeminiOnce(
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Gemini APIエラー: HTTP ${res.status} — ${body}`);
+    // ★必ずログに残す★
+    // 旧実装は例外メッセージに載せるだけで console に出していなかったため、
+    // 「100%失敗する設定が入っている」ことに外から気づけなかった。
+    // Edge Function のログ保持は短いので、痕跡は DB 側にも残す（呼び出し元）。
+    console.error(
+      `[llm] HTTP ${res.status} (profile=${label}, thinking=${cfg.thinkingLevel}, maxOutputTokens=${cfg.maxOutputTokens}): ${body.slice(0, 500)}`,
+    );
+    throw new LlmHttpError(res.status, body.slice(0, 500));
   }
 
   const data = await res.json();
   const cand = data?.candidates?.[0];
   const raw: string | undefined = cand?.content?.parts?.[0]?.text;
-  if (!raw) {
-    throw new Error(
-      `Gemini APIの応答からテキストを取得できませんでした: ${JSON.stringify(data)}`,
+
+  // 思考が予算をどれだけ食ったかを観測する。
+  // thoughtsTokenCount が maxOutputTokens に迫っていたら予算不足のサイン。
+  const usage = data?.usageMetadata;
+  if (usage) {
+    console.log(
+      `[llm] usage (profile=${label}): thoughts=${usage.thoughtsTokenCount ?? 0} output=${usage.candidatesTokenCount ?? 0} budget=${cfg.maxOutputTokens} finishReason=${cand?.finishReason ?? "STOP"}`,
     );
+  }
+
+  if (!raw) {
+    const dump = JSON.stringify(data).slice(0, 500);
+    console.error(`[llm] 応答にテキストがありません (profile=${label}): ${dump}`);
+    throw new LlmEmptyResponseError(dump);
   }
   const text = raw.trim();
 
   // --- 対策B: finishReason ガード（打ち切り検知の本命） ---
   // finishReason が無い応答は STOP とみなす（Gemini は通常 STOP を返す）。
   const finish: string = cand?.finishReason ?? "STOP";
-  if (finish === "MAX_TOKENS") {
-    // 予算枯渇で途中で切れた。半端な文字列を返さず打ち切りとして扱う。
-    throw new LlmTruncatedError(text, finish);
-  }
   if (finish !== "STOP") {
-    // SAFETY / RECITATION / OTHER など。正常終了ではないので不完全とみなす。
+    // MAX_TOKENS は予算枯渇、SAFETY/RECITATION/OTHER も正常終了ではない。
+    // いずれも半端な文字列を返さず打ち切りとして扱う。
+    console.error(
+      `[llm] finishReason=${finish} (profile=${label}, budget=${cfg.maxOutputTokens}): "${text}"`,
+    );
     throw new LlmTruncatedError(text, finish);
   }
 
@@ -216,24 +292,32 @@ async function callGeminiOnce(
 
 /**
  * セリフを生成する。
- * 打ち切られた場合は1回だけ interactive（思考オフ）で再生成する。
- * それでも打ち切られたら LlmTruncatedError を投げるので、
- * 呼び出し側で catch してテンプレ（fallbackMessage）にフォールバックすること。
+ * 打ち切り・空応答・一時的なHTTPエラー（429/5xx）のときだけ、
+ * 条件を変えて（LLM_RETRY_CONFIG）1回だけ再生成する。
+ * 400 のような恒久的な失敗は再試行せず即 throw する（何度やっても同じ）。
+ * 最終的に失敗したら呼び出し側で catch してテンプレ（fallbackMessage）に
+ * フォールバックし、その事実を conversation_logs に記録すること。
  */
 export async function generateMessage(
   prompt: string,
   profile: LlmProfile = "batch",
 ): Promise<string> {
   try {
-    return await callGeminiOnce(prompt, profile);
+    return await callGeminiOnce(prompt, LLM_PROFILES[profile], profile);
   } catch (e) {
-    if (e instanceof LlmTruncatedError) {
-      console.warn(`[llm] 1回目が不完全、思考を切って再生成します: ${e.message}`);
-      // リトライは interactive（thinking: none）で予算を全部出力に回す。
-      // 同じ profile で再試行しても同じ失敗を繰り返しやすいため。
-      return await callGeminiOnce(prompt, "interactive");
+    const retryable = e instanceof LlmTruncatedError ||
+      e instanceof LlmEmptyResponseError ||
+      (e instanceof LlmHttpError && e.retryable);
+    if (!retryable) throw e;
+
+    console.warn(
+      `[llm] 1回目が失敗、条件を変えて再生成します (${describeLlmFailure(e)}): ${(e as Error).message}`,
+    );
+    // レート制限・サーバ側エラーは間を空けないと同じ結果になりやすい
+    if (e instanceof LlmHttpError) {
+      await new Promise((r) => setTimeout(r, 500));
     }
-    throw e;
+    return await callGeminiOnce(prompt, LLM_RETRY_CONFIG, "retry");
   }
 }
 

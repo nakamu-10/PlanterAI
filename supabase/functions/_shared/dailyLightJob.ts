@@ -10,7 +10,12 @@ import { PLANT_PROFILES } from "./config.ts";
 import { toScore } from "./normalize.ts";
 import { decideEmotion, scoreToUrgency, Urgency } from "./emotionTable.ts";
 import type { EmotionState } from "./emotionEngine.ts";
-import { buildPrompt, ConversationEntry, generateMessage } from "./llm.ts";
+import {
+  buildPrompt,
+  ConversationEntry,
+  describeLlmFailure,
+  generateMessage,
+} from "./llm.ts";
 import { fallbackMessage } from "./fallback.ts";
 import { pushLineMessage } from "./line.ts";
 import {
@@ -118,11 +123,15 @@ export async function runDailyLightCheck(
   // 日次ジョブは誰も待っていないので batch プロファイル（予算厚め）。
   // 打ち切りでリトライも失敗したら、半端な文を出さずテンプレに逃がす。
   let message: string;
+  let source: "llm" | "fallback" = "llm";
+  let finishReason = "STOP";
   try {
     message = await generateMessage(prompt, "batch");
   } catch (e) {
     console.error("[dailyLight] セリフ生成に失敗、テンプレにフォールバック:", e);
-    message = fallbackMessage(state.complaint);
+    source = "fallback";
+    finishReason = describeLlmFailure(e);
+    message = fallbackMessage(state.complaint, state.emotion);
   }
 
   // ---- 6. 送信 & 記録 ----
@@ -155,6 +164,8 @@ export async function runDailyLightCheck(
     message,
     emotion: state.emotion,
     complaint: "日照不足",
+    source,
+    finish_reason: finishReason,
   });
 
   return verdict;
