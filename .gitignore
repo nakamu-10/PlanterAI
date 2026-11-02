@@ -46,3 +46,12 @@ app/.env*
 # Original iPhone photos (Web用JPEGだけを管理する)
 site/public/images/*.heic
 site/public/images/*.HEIC
+
+# Python
+__pycache__/
+
+# 参考資料（他チームのポスター。手元のみ）
+references/
+
+# ESP32 ファームウェアの接続設定（Wi-Fi パスワード・デバイスキー）
+hardware/firmware/**/secrets.h
