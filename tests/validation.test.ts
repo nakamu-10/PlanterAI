@@ -16,18 +16,38 @@ function assert(name: string, condition: boolean) {
 const normal = { soil_adc: 2100, temp: 24, humidity: 55, lux: 2000 };
 
 assert("正常なセンサー値を受理する", validateRawReading(normal).ok);
-assert(
-  "気温180.1℃を拒否する",
-  !validateRawReading({ ...normal, temp: 180.1 }).ok,
-);
+{
+  const r = validateRawReading({ ...normal, temp: 180.1 });
+  assert(
+    "気温180.1℃は欠測（null）として受理する",
+    r.ok && r.reading.temp === null && r.reading.soil_adc === 2100,
+  );
+}
+{
+  const r = validateRawReading({ soil_adc: 2100, temp: null, lux: 2000 });
+  assert(
+    "BME280が欠測（null・欠落）でも土壌水分と照度は受理する",
+    r.ok && r.reading.temp === null && r.reading.humidity === null,
+  );
+}
+{
+  const r = validateRawReading({ ...normal, pressure: -154.3 });
+  assert(
+    "気圧の異常値は欠測（null）として受理する",
+    r.ok && r.reading.pressure === null,
+  );
+}
 assert(
   "湿度100%は受理する",
   validateRawReading({ ...normal, humidity: 100 }).ok,
 );
-assert(
-  "湿度100%超を拒否する",
-  !validateRawReading({ ...normal, humidity: 100.1 }).ok,
-);
+{
+  const r = validateRawReading({ ...normal, humidity: 100.1 });
+  assert(
+    "湿度100%超は欠測（null）として受理する",
+    r.ok && r.reading.humidity === null,
+  );
+}
 assert(
   "負の照度を拒否する",
   !validateRawReading({ ...normal, lux: -1 }).ok,
@@ -37,7 +57,7 @@ assert(
   !validateRawReading({ ...normal, soil_adc: 4096 }).ok,
 );
 assert(
-  "必須項目の欠落を拒否する",
+  "必須項目（照度）の欠落を拒否する",
   !validateRawReading({ soil_adc: 2100, temp: 24, humidity: 55 }).ok,
 );
 assert(

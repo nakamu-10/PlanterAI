@@ -3,7 +3,7 @@
 //
 // パイプライン:
 //   1. x-device-key ヘッダーでデバイスを認証
-//   2. Layer 1: 中央値フィルタ + 快適スコア化（normalize.ts）
+//   2. Layer 1: 異常値・欠測の棄却 + 中央値フィルタ + 快適スコア化（normalize.ts）
 //   3. Layer 2: ルールベース感情判定（emotionEngine.ts）
 //   4. 前回の状態と比較し、遷移していれば通知対象とする
 //   5. 遷移時のみ Layer 3: Gemini Flash でセリフ生成 → LINE通知
@@ -31,6 +31,7 @@ import {
 import {
   buildPrompt,
   ConversationEntry,
+  describeLlmFailure,
   enforceMessageLength,
   generateMessage,
 } from "../_shared/llm.ts";
@@ -111,6 +112,10 @@ Deno.serve(async (req: Request) => {
       return json({ error: "JSONの解析に失敗しました" }, 400);
     }
 
+    // 必須は土壌水分と照度だけ。気温・湿度（BME280）は欠測を許容する。
+    // BME280は間欠的に読み取り失敗するが、そのたびにPOST全体を400で
+    // 落とすと土壌水分・照度まで捨ててしまう（水切れを見逃す）。
+    // BME280の値が壊れているかの判定は Layer 1（normalize.ts）に一本化してある。
     const validation = validateRawReading(parsed);
     if (!validation.ok) return json({ error: validation.error }, 400);
     const current: RawReading = validation.reading;
@@ -138,6 +143,16 @@ Deno.serve(async (req: Request) => {
       r.raw as RawReading
     );
     const filtered = applyMedianFilter(history, current);
+
+    // 欠測（センサー読み取り失敗）の記録。該当センサーの主訴は判定されず、
+    // 残りのセンサーだけで判定が続行される（normalize.ts / emotionEngine.ts）。
+    const degraded = filtered.missing.length > 0;
+    if (degraded) {
+      console.warn(
+        `[${device.id}] センサー欠測: ${filtered.missing.join(", ")} ` +
+          `— 該当項目の主訴は判定せず、残りのセンサーで続行します`,
+      );
+    }
 
     const comfortMid = {
       moisture: (profile.moisture.comfortLow + profile.moisture.comfortHigh) /
@@ -178,10 +193,13 @@ Deno.serve(async (req: Request) => {
       | null;
 
     const state = evaluateEmotion(scores, filtered, comfortMid, pastLogs);
+    // 欠測センサーが原因だった主訴からの「回復しました」通知だけ抑止する
+    // （水やりによる水分不足の回復など、読めているセンサーの回復は通知する）
     let willNotify = shouldNotify(
       state,
       lastNotified,
       NOTIFY_COOLDOWN_MINUTES,
+      filtered.missing,
     );
 
     // ------------------------------------------------------
@@ -246,19 +264,25 @@ Deno.serve(async (req: Request) => {
           relationshipSummary: summaryRows?.[0]?.summary ?? null,
         });
 
-        // 遷移通知は即時性が高いので interactive（思考オフで最速・打ち切りに強い）。
-        // 生成が打ち切り等で失敗しても、遷移通知を落とさずテンプレで送る。
+        // 遷移通知は即時性が高いので interactive（思考は minimal で最速寄り）。
+        // 生成が失敗しても、遷移通知を落とさずテンプレで送る。
+        // どちらで送ったかは conversation_logs に残す（Edge Functionのログは
+        // 無料プランだと1日で消えるため、痕跡をDB側に持たせる）。
+        let source: "llm" | "fallback" = "llm";
+        let finishReason = "STOP";
         try {
           message = enforceMessageLength(
             await generateMessage(prompt, "interactive"),
             60,
           );
         } catch (genErr) {
-          console.warn(
+          console.error(
             `[${device.id}] セリフ生成に失敗、テンプレにフォールバック:`,
             genErr,
           );
-          message = fallbackMessage(state.complaint);
+          source = "fallback";
+          finishReason = describeLlmFailure(genErr);
+          message = fallbackMessage(state.complaint, state.emotion);
         }
         await pushLineMessage(device.line_user_id, message);
         notified = true;
@@ -285,6 +309,8 @@ Deno.serve(async (req: Request) => {
           message,
           emotion: state.emotion,
           complaint: state.complaint,
+          source,
+          finish_reason: finishReason,
         });
         if (convoInsertError) {
           // LINE送信済みなので再送はせず、状態ログの保存を優先する。
@@ -345,6 +371,7 @@ Deno.serve(async (req: Request) => {
       ok: true,
       scores,
       state,
+      missing: filtered.missing, // 欠測センサー（空配列＝全センサー正常）
       will_notify: willNotify,
       notified,
       message,

@@ -13,6 +13,7 @@ import type { EmotionState } from "./emotionEngine.ts";
 import {
   buildPrompt,
   ConversationEntry,
+  describeLlmFailure,
   enforceMessageLength,
   generateMessage,
 } from "./llm.ts";
@@ -160,6 +161,8 @@ export async function runDailyLightCheck(
   // 日次ジョブは誰も待っていないので batch プロファイル（予算厚め）。
   // 打ち切りでリトライも失敗したら、半端な文を出さずテンプレに逃がす。
   let message: string;
+  let source: "llm" | "fallback" = "llm";
+  let finishReason = "STOP";
   try {
     message = enforceMessageLength(await generateMessage(prompt, "batch"), 60);
   } catch (e) {
@@ -167,7 +170,9 @@ export async function runDailyLightCheck(
       "[dailyLight] セリフ生成に失敗、テンプレにフォールバック:",
       e,
     );
-    message = fallbackMessage(state.complaint);
+    source = "fallback";
+    finishReason = describeLlmFailure(e);
+    message = fallbackMessage(state.complaint, state.emotion);
   }
 
   // ---- 6. 送信 & 記録 ----
@@ -236,6 +241,8 @@ export async function runDailyLightCheck(
       message,
       emotion: state.emotion,
       complaint: "日照不足",
+      source,
+      finish_reason: finishReason,
     });
   if (convoInsertError) {
     console.error("[dailyLight] 会話ログの保存に失敗:", convoInsertError);

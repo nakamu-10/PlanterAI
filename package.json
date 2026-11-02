@@ -8,11 +8,12 @@
   "scripts": {
     "check": "npm test && npm run typecheck && npm run build:site && npm run format:check",
     "generate:qr": "node scripts/generate-qr.mjs",
-    "test": "npm run test:logic && npm run test:notify && npm run test:daily-light && npm run test:validation",
+    "test": "npm run test:logic && npm run test:notify && npm run test:daily-light && npm run test:validation && npm run test:llm",
     "test:logic": "tsx tests/logic.test.ts",
     "test:notify": "tsx tests/notify.test.ts",
     "test:daily-light": "tsx tests/dailyLight.test.ts",
     "test:validation": "tsx tests/validation.test.ts",
+    "test:llm": "tsx tests/llm.test.ts",
     "typecheck": "deno check supabase/functions/ingest-sensor/index.ts supabase/functions/line-webhook/index.ts supabase/functions/weekly-summary/index.ts supabase/functions/app-data/index.ts supabase/functions/app-chat/index.ts",
     "build:site": "npm --prefix site run build",
     "format:check": "deno fmt --check supabase/functions supabase/migrations tests"
