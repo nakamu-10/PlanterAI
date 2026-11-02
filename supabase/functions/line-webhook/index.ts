@@ -1,6 +1,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
   buildReplyPrompt,
+  describeLlmFailure,
   enforceMessageLength,
   generateMessage,
 } from "../_shared/llm.ts";
@@ -151,7 +152,12 @@ async function processEvent(event: LineEvent): Promise<void> {
     userMessage: userText,
   });
 
+  // 返信経路は Webhook 応答窓があるので interactive（思考は minimal）。
+  // それでも失敗したら黙って落とさず、テンプレを返して会話を途切れさせない。
+  // どちらで返したかは conversation_logs に残す（フォールバック率の集計用）。
   let replyText: string;
+  let replySource: "llm" | "fallback" = "llm";
+  let replyFinishReason = "STOP";
   try {
     replyText = enforceMessageLength(
       await generateMessage(replyPrompt, "interactive"),
@@ -159,7 +165,12 @@ async function processEvent(event: LineEvent): Promise<void> {
     );
   } catch (err) {
     console.error("Gemini生成エラー。テンプレへ切り替えます:", err);
-    replyText = fallbackMessage(latestEmotion?.complaint ?? null);
+    replySource = "fallback";
+    replyFinishReason = describeLlmFailure(err);
+    replyText = fallbackMessage(
+      latestEmotion?.complaint ?? null,
+      latestEmotion?.emotion ?? null,
+    );
   }
 
   await replyLineMessage(replyToken, replyText);
@@ -175,6 +186,9 @@ async function processEvent(event: LineEvent): Promise<void> {
       device_id: device.id,
       role: "user",
       message: userText,
+      // 飼い主の発言。source を入れておかないと、記録開始前の古い行（source=null）と
+      // 区別がつかず、フォールバック率の集計にノイズが乗る。
+      source: "user",
       created_at: userCreatedAt.toISOString(),
     },
     {
@@ -183,6 +197,8 @@ async function processEvent(event: LineEvent): Promise<void> {
       message: replyText,
       emotion: latestEmotion?.emotion ?? null,
       complaint: latestEmotion?.complaint ?? null,
+      source: replySource,
+      finish_reason: replyFinishReason,
       created_at: plantCreatedAt.toISOString(),
     },
   ]);

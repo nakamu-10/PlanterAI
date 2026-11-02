@@ -31,6 +31,19 @@ function validateNumber(
   return null;
 }
 
+// BME280（気温・湿度・気圧）は間欠的に読み取りに失敗する。そのたびに
+// POST 全体を拒否すると、土壌水分・照度まで捨てて水切れを見逃すので、
+// 欠落・null・数値でない・物理範囲外の値は 400 にせず null（欠測）として受け取る。
+// 故障時の固定値（全項目0、h=100.0 など）の判定は normalize.ts の isBme280Ok が担う。
+function bme280Value(
+  input: Record<string, unknown>,
+  key: "temp" | "humidity" | "pressure",
+): number | null {
+  return validateNumber(input, key, true) === null
+    ? input[key] as number
+    : null;
+}
+
 export function validateRawReading(input: unknown): ValidationResult {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     return {
@@ -40,25 +53,23 @@ export function validateRawReading(input: unknown): ValidationResult {
   }
 
   const record = input as Record<string, unknown>;
-  for (const key of ["soil_adc", "temp", "humidity", "lux"] as const) {
+  for (const key of ["soil_adc", "lux"] as const) {
     const error = validateNumber(record, key, true);
     if (error) return { ok: false, error };
   }
-  for (const key of ["pressure", "soil_temp"] as const) {
-    const error = validateNumber(record, key, false);
-    if (error) return { ok: false, error };
-  }
+  const soilTempError = validateNumber(record, "soil_temp", false);
+  if (soilTempError) return { ok: false, error: soilTempError };
 
   return {
     ok: true,
     reading: {
       soil_adc: record.soil_adc as number,
-      temp: record.temp as number,
-      humidity: record.humidity as number,
+      temp: bme280Value(record, "temp"),
+      humidity: bme280Value(record, "humidity"),
       lux: record.lux as number,
       ...(record.pressure === undefined
         ? {}
-        : { pressure: record.pressure as number }),
+        : { pressure: bme280Value(record, "pressure") }),
       ...(record.soil_temp === undefined
         ? {}
         : { soil_temp: record.soil_temp as number }),

@@ -9,6 +9,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
   buildReplyPrompt,
+  describeLlmFailure,
   enforceMessageLength,
   generateMessage,
 } from "../_shared/llm.ts";
@@ -135,7 +136,10 @@ Deno.serve(async (req: Request) => {
       userMessage: userText,
     });
 
+    // どちらで返したかは conversation_logs に残す（フォールバック率の集計用）
     let replyText: string;
+    let replySource: "llm" | "fallback" = "llm";
+    let replyFinishReason = "STOP";
     try {
       replyText = enforceMessageLength(
         await generateMessage(replyPrompt, "interactive"),
@@ -143,7 +147,12 @@ Deno.serve(async (req: Request) => {
       );
     } catch (err) {
       console.error("Gemini生成エラー。テンプレへ切り替えます:", err);
-      replyText = fallbackMessage(latestEmotion?.complaint ?? null);
+      replySource = "fallback";
+      replyFinishReason = describeLlmFailure(err);
+      replyText = fallbackMessage(
+        latestEmotion?.complaint ?? null,
+        latestEmotion?.emotion ?? null,
+      );
     }
 
     const userCreatedAt = new Date();
@@ -154,6 +163,7 @@ Deno.serve(async (req: Request) => {
           device_id: device.id,
           role: "user",
           message: userText,
+          source: "user",
           created_at: userCreatedAt.toISOString(),
         },
         {
@@ -162,6 +172,8 @@ Deno.serve(async (req: Request) => {
           message: replyText,
           emotion: latestEmotion?.emotion ?? null,
           complaint: latestEmotion?.complaint ?? null,
+          source: replySource,
+          finish_reason: replyFinishReason,
           created_at: plantCreatedAt.toISOString(),
         },
       ]);
