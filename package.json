@@ -6,8 +6,7 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
-    "check": "npm test && npm run typecheck && npm run build:site && npm run format:check",
-    "generate:qr": "node scripts/generate-qr.mjs",
+    "check": "npm test && npm run typecheck && npm run lint && npm run format:check && npm run build:site",
     "test": "npm run test:logic && npm run test:notify && npm run test:daily-light && npm run test:validation && npm run test:llm",
     "test:logic": "tsx tests/logic.test.ts",
     "test:notify": "tsx tests/notify.test.ts",
@@ -15,11 +14,17 @@
     "test:validation": "tsx tests/validation.test.ts",
     "test:llm": "tsx tests/llm.test.ts",
     "typecheck": "deno check supabase/functions/ingest-sensor/index.ts supabase/functions/line-webhook/index.ts supabase/functions/weekly-summary/index.ts supabase/functions/app-data/index.ts supabase/functions/app-chat/index.ts",
+    "lint": "deno lint",
+    "format": "deno fmt",
+    "format:check": "deno fmt --check",
     "build:site": "npm --prefix site run build",
-    "format:check": "deno fmt --check supabase/functions supabase/migrations tests"
+    "build:app": "npm --prefix app run build",
+    "generate:qr": "node scripts/generate-qr.mjs",
+    "prepare": "lefthook install"
   },
   "devDependencies": {
     "jsqr": "^1.4.0",
+    "lefthook": "2.2.2",
     "pngjs": "^7.0.0",
     "qrcode": "^1.5.4",
     "tsx": "^4.23.12"

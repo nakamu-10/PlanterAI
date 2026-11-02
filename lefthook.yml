@@ -1,0 +1,23 @@
+# 秘密の検査 → 整形 → lint の順に流したいので、parallel にせず jobs の順番で固定する
+pre-commit:
+  jobs:
+    # 秘密が混ざっていたら、整形より先に止める。gitleaks が無ければ飛ばし、CI で調べる
+    - name: secrets
+      run: |
+        if ! command -v gitleaks >/dev/null; then echo "gitleaksが無いので飛ばす（CIで調べる）"; exit 0; fi
+        gitleaks git --pre-commit --staged --redact --no-banner
+    # deno が PATH に無くても動くように npx 経由で呼ぶ
+    - name: format
+      glob: "*.{ts,js,mjs,json,md,css,html,yml,yaml}"
+      exclude:
+        - "**/package-lock.json"
+        - "deno.lock"
+        - "archive/**"
+      run: npx -y deno fmt {staged_files}
+      stage_fixed: true
+    - name: lint
+      glob: "*.{ts,js,mjs}"
+      exclude:
+        - "archive/**"
+      run: npx -y deno lint --fix {staged_files}
+      stage_fixed: true

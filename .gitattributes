@@ -1,0 +1,2 @@
+# deno fmt は LF だけを認めるので、Windows でも LF でチェックアウトする
+* text=auto eol=lf

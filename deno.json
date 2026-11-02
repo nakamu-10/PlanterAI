@@ -1,3 +1,20 @@
 {
-  "nodeModulesDir": "auto"
+  "nodeModulesDir": "auto",
+  "fmt": {
+    "exclude": [
+      "**/node_modules/",
+      "**/dist/",
+      "**/package-lock.json",
+      "deno.lock",
+      "archive/",
+      "references/",
+      "supabase/.temp/"
+    ]
+  },
+  "lint": {
+    "exclude": ["**/node_modules/", "**/dist/", "archive/", "references/"],
+    "rules": {
+      "exclude": ["no-import-prefix", "no-window", "no-window-prefix"]
+    }
+  }
 }
