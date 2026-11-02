@@ -2,14 +2,18 @@
 
 電気通信大学 **U☆PoC**（ユーザ志向アイディア実証コンテスト）応募作品。
 
-生成AIで人格を持つIoTプランター。土壌湿度・温度・照度・空気湿度のセンサーデータをもとに、植物が擬人化キャラクターとして LINE で自発的に話しかけ、こちらの返信にも応える育成支援システム。単なる数値の可視化ではなく「感情の可視化」を目指す。
+生成AIで人格を持つIoTプランター。土壌湿度・温度・照度・空気湿度のセンサーデータをもとに、植物が擬人化キャラクターとして
+LINE
+で自発的に話しかけ、こちらの返信にも応える育成支援システム。単なる数値の可視化ではなく「感情の可視化」を目指す。
 
 - メンバー：中村耕介（代表）、地引宙翔
 - 提案書：`docs/proposal/PlanterAI.tex` → `PlanterAI.pdf`
 
 ## Webサイト
 
-6ページ構成の公式サイトは `site/` にある。Viteでローカル起動と静的ビルドを行い、ルートの `vercel.json` からVercelへデプロイする。
+6ページ構成の公式サイトは `site/`
+にある。Viteでローカル起動と静的ビルドを行い、ルートの `vercel.json`
+からVercelへデプロイする。
 
 公開URL：[https://planter-ai-zeta.vercel.app/](https://planter-ai-zeta.vercel.app/)
 
@@ -19,7 +23,8 @@ npm ci
 npm run dev
 ```
 
-本番用の静的ファイルは `npm run build` で `site/dist/` に生成される。`node_modules/` と `dist/` は生成物のためGitでは管理しない。
+本番用の静的ファイルは `npm run build` で `site/dist/`
+に生成される。`node_modules/` と `dist/` は生成物のためGitでは管理しない。
 
 ## システム構成
 
@@ -39,17 +44,27 @@ npm run dev
                                           （pg_cron で週次の関係性サマリー生成）
 ```
 
-サーバーサイドは **Supabase Edge Functions（Deno / TypeScript）** で完結している。
+サーバーサイドは **Supabase Edge Functions（Deno / TypeScript）**
+で完結している。
 
 ## 処理パイプライン（3レイヤー構成）
 
-センサー値からセリフ生成までを3層に分け、LLM にはセリフ生成のみを担わせることでハルシネーションを抑える。
+センサー値からセリフ生成までを3層に分け、LLM
+にはセリフ生成のみを担わせることでハルシネーションを抑える。
 
-1. **Layer 1｜正規化**（`normalize.ts`）— 直近5サンプルの**中央値フィルタ**でノイズを除去し、植物プロファイルの快適レンジに照らして 0〜100 の快適スコアへ変換。
-2. **Layer 2｜感情判定**（`emotionEngine.ts` / `emotionTable.ts`）— スコアの緊急度と継続時間から、ルールベースで感情（満足／軽い不満／不満／不安／苛立ち）と主訴を判定。日照不足は瞬時値では誤発火するため、積算光量による**日次判定**（`dailyLight.ts` / `dailyLightJob.ts`、1日最大2回）に分離。
-3. **Layer 3｜セリフ生成**（`llm.ts`）— **状態が遷移したときだけ** Gemini Flash でキャラ口調のセリフを生成し LINE 通知。生成失敗時はテンプレ（`fallback.ts`）にフォールバックして通知を落とさない。
+1. **Layer 1｜正規化**（`normalize.ts`）—
+   直近5サンプルの**中央値フィルタ**でノイズを除去し、植物プロファイルの快適レンジに照らして
+   0〜100 の快適スコアへ変換。
+2. **Layer 2｜感情判定**（`emotionEngine.ts` / `emotionTable.ts`）—
+   スコアの緊急度と継続時間から、ルールベースで感情（満足／軽い不満／不満／不安／苛立ち）と主訴を判定。日照不足は瞬時値では誤発火するため、積算光量による**日次判定**（`dailyLight.ts`
+   / `dailyLightJob.ts`、1日最大2回）に分離。
+3. **Layer 3｜セリフ生成**（`llm.ts`）— **状態が遷移したときだけ** Gemini Flash
+   でキャラ口調のセリフを生成し LINE
+   通知。生成失敗時はテンプレ（`fallback.ts`）にフォールバックして通知を落とさない。
 
-**通知の抑制**：境界付近での状態の往復（チャタリング）による LINE 乱発を防ぐため、直近通知から `NOTIFY_COOLDOWN_MINUTES`（既定60分）は原則再通知しない。ただし危険域（urgency=high）はクールダウンを無視して即通知する（`shouldNotify`）。
+**通知の抑制**：境界付近での状態の往復（チャタリング）による LINE
+乱発を防ぐため、直近通知から
+`NOTIFY_COOLDOWN_MINUTES`（既定60分）は原則再通知しない。ただし危険域（urgency=high）はクールダウンを無視して即通知する（`shouldNotify`）。
 
 ## ディレクトリ構成
 
@@ -73,24 +88,30 @@ archive/legacy-site/    旧シングルページLP
 
 ## 設定ポイント
 
-- **植物プロファイル**（`_shared/config.ts`）：植物種ごとの快適／注意／危険レンジ。現在は `pothos`（ポトス）と `calathea`（カラテア）を定義。`devices.plant_profile` で切り替える。照度は非対称に扱い、瞬時値 lux で「日照過剰（葉焼け）」を、積算 lux·h で「日照不足」を判定する。
-- **キャラクター**（`_shared/llm.ts`）：`amaenbo`（甘えん坊）／`tsundere`（ツンデレ）／`keigo`（執事風）。`devices.character_id` で切り替える。
-- **土壌キャリブレーション**（`_shared/config.ts`）：`SOIL_CALIBRATION` に SEN0193 の実測 ADC 値（空気中／水中）を設定。
+- **植物プロファイル**（`_shared/config.ts`）：植物種ごとの快適／注意／危険レンジ。現在は
+  `pothos`（ポトス）と `calathea`（カラテア）を定義。`devices.plant_profile`
+  で切り替える。照度は非対称に扱い、瞬時値 lux で「日照過剰（葉焼け）」を、積算
+  lux·h で「日照不足」を判定する。
+- **キャラクター**（`_shared/llm.ts`）：`amaenbo`（甘えん坊）／`tsundere`（ツンデレ）／`keigo`（執事風）。`devices.character_id`
+  で切り替える。
+- **土壌キャリブレーション**（`_shared/config.ts`）：`SOIL_CALIBRATION` に
+  SEN0193 の実測 ADC 値（空気中／水中）を設定。
 
 ## 技術スタック
 
-| レイヤー | 技術 |
-|----------|------|
-| マイコン | ESP32 + 土壌湿度・温度・照度・湿度センサー |
-| サーバー | Supabase Edge Functions（Deno / TypeScript） |
-| LLM | Gemini Flash |
-| 通知 | LINE Messaging API（プッシュ通知 + Webhook双方向チャット） |
-| DB | Supabase（PostgreSQL、RLS全拒否 + service_roleでアクセス） |
-| バッチ | pg_cron（週次サマリー） |
+| レイヤー | 技術                                                       |
+| -------- | ---------------------------------------------------------- |
+| マイコン | ESP32 + 土壌湿度・温度・照度・湿度センサー                 |
+| サーバー | Supabase Edge Functions（Deno / TypeScript）               |
+| LLM      | Gemini Flash                                               |
+| 通知     | LINE Messaging API（プッシュ通知 + Webhook双方向チャット） |
+| DB       | Supabase（PostgreSQL、RLS全拒否 + service_roleでアクセス） |
+| バッチ   | pg_cron（週次サマリー）                                    |
 
 ## セットアップ
 
-前提：[Supabase CLI](https://supabase.com/docs/guides/cli)、Node.js（テスト用）、LINE公式アカウント、Gemini API キー。
+前提：[Supabase CLI](https://supabase.com/docs/guides/cli)、Node.js（テスト用）、LINE公式アカウント、Gemini
+API キー。
 
 ```sh
 # 1. DBスキーマを反映
@@ -112,9 +133,10 @@ supabase secrets set \
 # （SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY は自動で注入される）
 ```
 
-> **`_shared` を変更したら、それを import している function を全部再デプロイする。**
-> Supabase は `_shared` を function ごとにバンドルするため、共有ライブラリのように自動追随しない。
-> 片方だけ古い `_shared` を抱えたままになり、同じコードのはずなのに挙動が割れる
+> **`_shared` を変更したら、それを import している function
+> を全部再デプロイする。** Supabase は `_shared` を function
+> ごとにバンドルするため、共有ライブラリのように自動追随しない。 片方だけ古い
+> `_shared` を抱えたままになり、同じコードのはずなのに挙動が割れる
 > （実例は「PlanterAI 定型文フォールバック多発 修正記録（2026-09-02）」）。
 
 ### デバイス登録
@@ -126,7 +148,8 @@ insert into devices (device_key, plant_name, character_id, line_user_id)
 values ('ここに長いランダム文字列', 'ポト助', 'amaenbo', 'あなたのLINE User ID');
 ```
 
-LINE User ID は LINE Developers の「チャネル基本設定」→「あなたのユーザーID」（`U` で始まる文字列）。
+LINE User ID は LINE Developers
+の「チャネル基本設定」→「あなたのユーザーID」（`U` で始まる文字列）。
 **LINE公式アカウントを自分の LINE で友だち追加しておかないと通知が届かない。**
 
 ## ローカルで動かす
@@ -160,8 +183,8 @@ curl -X POST http://127.0.0.1:54321/functions/v1/ingest-sensor \
   -d '{"soil_adc":2700,"temp":24,"humidity":40,"pressure":1012,"lux":2000}'
 ```
 
-中央値フィルタ（直近5件）があるため、**乾燥値は3回以上連続で POST しないと反映されない**。
-瞬間的なバグ値を無視する仕様どおりの動き。
+中央値フィルタ（直近5件）があるため、**乾燥値は3回以上連続で POST
+しないと反映されない**。 瞬間的なバグ値を無視する仕様どおりの動き。
 
 本番 URL でも同じ POST で確認できる。
 
@@ -172,7 +195,8 @@ curl -X POST https://<プロジェクトID>.supabase.co/functions/v1/ingest-sens
   -d '{"soil_adc":2700,"temp":24,"humidity":40,"pressure":1012,"lux":2000}'
 ```
 
-ESP32 側はこの URL に `HTTPClient` で POST するだけ（`x-device-key` ヘッダーを忘れずに）。
+ESP32 側はこの URL に `HTTPClient` で POST するだけ（`x-device-key`
+ヘッダーを忘れずに）。
 
 ## 週次サマリーの自動実行（pg_cron）
 
@@ -210,19 +234,20 @@ npm ci
 npm run check
 ```
 
-`npm run check`はテスト、Edge Functionsの型検査、Webサイトの本番ビルド、Denoのフォーマット確認をまとめて実行する。テストだけを行う場合は`npm test`を使う。
+`npm run check`はテスト、Edge
+Functionsの型検査、Webサイトの本番ビルド、Denoのフォーマット確認をまとめて実行する。テストだけを行う場合は`npm test`を使う。
 
 ## トラブルシューティング
 
-| 症状 | 原因と対処 |
-|---|---|
-| 401 デバイスが登録されていません | `devices` に insert したか、`device_key` のタイプミスを確認 |
-| LINEが届かない | 公式アカウントを友だち追加したか／`line_user_id` が正しいか（`U` で始まる） |
-| 同じセリフばかり届く | LLM生成が失敗してテンプレに落ちている。下の SQL でフォールバック率を確認する |
-| Geminiエラー | `supabase secrets list` でキー登録を確認。ログは Dashboard → Edge Functions → Logs（無料プランは保持1日） |
-| 乾燥させたのに満足のまま | 中央値フィルタの仕様。同じ値を3回以上 POST する |
-| 通知が来ない（2回目以降） | 同じ状態が続く間は通知しない仕様。クールダウンは既定60分（危険域は無視して即通知） |
-| 直したのに挙動が変わらない | `_shared` を使う function を全部再デプロイしたか確認（バンドルされるため） |
+| 症状                             | 原因と対処                                                                                                |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 401 デバイスが登録されていません | `devices` に insert したか、`device_key` のタイプミスを確認                                               |
+| LINEが届かない                   | 公式アカウントを友だち追加したか／`line_user_id` が正しいか（`U` で始まる）                               |
+| 同じセリフばかり届く             | LLM生成が失敗してテンプレに落ちている。下の SQL でフォールバック率を確認する                              |
+| Geminiエラー                     | `supabase secrets list` でキー登録を確認。ログは Dashboard → Edge Functions → Logs（無料プランは保持1日） |
+| 乾燥させたのに満足のまま         | 中央値フィルタの仕様。同じ値を3回以上 POST する                                                           |
+| 通知が来ない（2回目以降）        | 同じ状態が続く間は通知しない仕様。クールダウンは既定60分（危険域は無視して即通知）                        |
+| 直したのに挙動が変わらない       | `_shared` を使う function を全部再デプロイしたか確認（バンドルされるため）                                |
 
 ```sql
 -- 直近1日の生成経路。('fallback', ...) が並んでいたらLLM生成が失敗している
@@ -237,7 +262,8 @@ select source, finish_reason, count(*)
 
 - ESP32 送信間隔10分 → 関数実行 144回/日（Gemini 呼び出しは状態遷移時のみ）
 - 状態遷移 1〜3回/日 → **Gemini Flash 月30〜90回**（無料枠内）
-- **LINE 月30〜90通** → 無料プラン（月200通）内。双方向チャットの返信もここに乗る
+- **LINE 月30〜90通** →
+  無料プラン（月200通）内。双方向チャットの返信もここに乗る
 - Supabase 無料プランの Edge Functions 実行数（月50万回）にも余裕
 
 ## 提案書ビルド
