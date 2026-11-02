@@ -1,7 +1,7 @@
 # ドキュメント
 
 - `proposal/`：U☆PoC応募提案書のLaTeXソースと図版
-- `slides/poster/`：展示ポスター
+- `slides/poster/`：展示ポスター（ver3 は `poster_ver3_gen.js` で `poster_assets/` から生成）
 - `slides/presentation/`：発表用スライド
 - `qr/`：公開サイトのTOPへ誘導するQRコード
 
