@@ -34,9 +34,16 @@ const loading = document.getElementById("karamiLoading");
 const bubble = document.getElementById("karamiBubble");
 const stateLabel = document.getElementById("karamiState");
 
-// ?emotion=不安 のように指定すると、その気分に固定する（デモの練習用）
-const forcedEmotion = new URLSearchParams(location.search).get("emotion");
+// ?emotion=不安 や ?moisture=20（土の水分の快適度 0〜100）を付けると、
+// その状態に固定する（デモの練習用）。片方だけでもよい
+const params = new URLSearchParams(location.search);
+const forcedEmotion = params.get("emotion");
+const forcedMoisture = params.has("moisture")
+  ? Number(params.get("moisture"))
+  : null;
+const isForced = forcedEmotion !== null || forcedMoisture !== null;
 let currentEmotion = forcedEmotion ?? "満足";
+let currentMoisture = forcedMoisture;
 let bubbleTimeout = null;
 let karami3d = null;
 
@@ -121,7 +128,10 @@ function setup2d() {
 async function setup3d() {
   karami3d = await createKarami(stage);
   loading.remove();
-  karami3d.setEmotion(currentEmotion);
+  karami3d.setMood({
+    emotion: currentEmotion,
+    moistureScore: currentMoisture,
+  });
   // ?debug を付けると、コンソールから karami.cheer() などで動きを試せる（デモの練習用）
   if (new URLSearchParams(location.search).has("debug")) {
     window.karami = karami3d;
@@ -145,19 +155,33 @@ async function setup3d() {
   });
 }
 
+function describeState(complaint) {
+  const mood = complaint
+    ? `いまの気分：${currentEmotion}（${complaint}）`
+    : `いまの気分：${currentEmotion}`;
+  const water = currentMoisture === null
+    ? ""
+    : `　土の水分：${Math.round(currentMoisture)}/100`;
+  return mood + water + (isForced ? "（固定）" : "");
+}
+
 async function refreshState() {
-  if (forcedEmotion) {
-    stateLabel.textContent = `いまの気分：${forcedEmotion}（固定）`;
+  if (isForced) {
+    stateLabel.textContent = describeState(null);
     return;
   }
   try {
     const data = await fetchDashboard();
     const latest = data.emotion_history?.[0];
     currentEmotion = latest?.emotion ?? "満足";
-    karami3d?.setEmotion(currentEmotion);
-    stateLabel.textContent = latest?.complaint
-      ? `いまの気分：${currentEmotion}（${latest.complaint}）`
-      : `いまの気分：${currentEmotion}`;
+    // 葉のしおれは、気分ではなく最新の土の水分で決める
+    const moisture = data.latest_sensor?.scores?.moisture;
+    currentMoisture = typeof moisture === "number" ? moisture : null;
+    karami3d?.setMood({
+      emotion: currentEmotion,
+      moistureScore: currentMoisture,
+    });
+    stateLabel.textContent = describeState(latest?.complaint);
   } catch (err) {
     console.error(err);
     stateLabel.textContent = "状態を取得できませんでした";
