@@ -30,6 +30,7 @@ const REACTIONS = {
 
 const stage = document.getElementById("karamiStage");
 const img = document.getElementById("karamiImg");
+const loading = document.getElementById("karamiLoading");
 const bubble = document.getElementById("karamiBubble");
 const stateLabel = document.getElementById("karamiState");
 
@@ -50,6 +51,8 @@ function showReaction(kind) {
 
 // ---- 3D が使えないときの 2D 版 ----
 function setup2d() {
+  loading.remove();
+  img.hidden = false;
   const idleTween = gsap.to(img, {
     y: -10,
     rotate: 1.5,
@@ -117,8 +120,12 @@ function setup2d() {
 // ---- 3D 版：短く押して離す＝つつく、ドラッグ＝なでる ----
 async function setup3d() {
   karami3d = await createKarami(stage);
-  img.hidden = true;
+  loading.remove();
   karami3d.setEmotion(currentEmotion);
+  // ?debug を付けると、コンソールから karami.cheer() などで動きを試せる（デモの練習用）
+  if (new URLSearchParams(location.search).has("debug")) {
+    window.karami = karami3d;
+  }
 
   let downAt = null;
   karami3d.canvas.addEventListener("pointerdown", (e) => {

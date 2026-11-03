@@ -55,3 +55,6 @@ references/
 
 # ESP32 ファームウェアの接続設定（Wi-Fi パスワード・デバイスキー）
 hardware/firmware/**/secrets.h
+
+# Blender の自動バックアップ
+*.blend1

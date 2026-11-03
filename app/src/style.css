@@ -303,6 +303,13 @@ a:hover {
   margin-top: 12px;
   touch-action: none;
 }
+.karami-loading {
+  color: var(--on-wash-ghost);
+  font-size: 13px;
+}
+.karami-stage__img[hidden] {
+  display: none;
+}
 .karami-stage__img {
   width: 220px;
   cursor: grab;
