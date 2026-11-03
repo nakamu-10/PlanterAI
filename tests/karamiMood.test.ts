@@ -1,0 +1,59 @@
+import {
+  isRecovery,
+  moodLevels,
+  wiltFromMoistureScore,
+} from "../app/src/mood.js";
+
+let pass = 0;
+let fail = 0;
+
+function assert(name: string, condition: boolean) {
+  if (condition) {
+    pass++;
+    console.log(`PASS ${name}`);
+  } else {
+    fail++;
+    console.log(`FAIL ${name}`);
+  }
+}
+
+assert(
+  "水分が快適（80以上）なら葉はしおれない",
+  wiltFromMoistureScore(80) === 0,
+);
+assert("水分100でもしおれない", wiltFromMoistureScore(100) === 0);
+assert("水分0で葉は最大までしおれる", wiltFromMoistureScore(0) === 1);
+assert("水分40で半分しおれる", wiltFromMoistureScore(40) === 0.5);
+assert("範囲外の値は0〜1に収める", wiltFromMoistureScore(-20) === 1);
+assert("水分が分からなければ null", wiltFromMoistureScore(null) === null);
+assert("数値でなければ null", wiltFromMoistureScore(Number.NaN) === null);
+
+{
+  const m = moodLevels({ emotion: "満足", moistureScore: 10 });
+  assert(
+    "気分がよくても、乾いていれば葉はしおれる",
+    m.body === 0 && m.leaves > 0.8,
+  );
+}
+{
+  const m = moodLevels({ emotion: "苛立ち", moistureScore: 90 });
+  assert(
+    "水が足りていれば、不機嫌でも葉はしおれない",
+    m.leaves === 0 && m.body === 0.85,
+  );
+}
+{
+  const m = moodLevels({ emotion: "不満" });
+  assert("水分が分からないときは、葉も気分に合わせる", m.leaves === 0.5);
+}
+assert(
+  "知らない気分は元気として扱う",
+  moodLevels({ emotion: "謎" }).body === 0,
+);
+
+assert("しおれ0.9→0.1は水やりとみなす", isRecovery(0.9, 0.1));
+assert("しおれ0.5→0.3は水やりとみなさない", !isRecovery(0.5, 0.3));
+assert("しおれが進んだときは喜ばない", !isRecovery(0.1, 0.9));
+
+console.log(`\n結果: ${pass} passed, ${fail} failed`);
+if (fail > 0) process.exit(1);

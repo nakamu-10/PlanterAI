@@ -1,21 +1,13 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { isRecovery, moodLevels } from "./mood.js";
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/karami.glb`;
 
-// 気分ごとのしおれ具合（0=元気、1=ぐったり）。土の水分と連動させるまでの仮の対応
-const WILT_BY_EMOTION = {
-  "満足": 0,
-  "軽い不満": 0.25,
-  "不満": 0.5,
-  "不安": 0.7,
-  "苛立ち": 0.85,
-};
+// 葉とマントの骨。しおれの動きのうち、ここだけ土の水分で動かす
+const isLeafTrack = (track) => /^(leaf|cape)_/.test(track.name);
 
-// しおれ具合がこれ以上よくなったら「元気になった」とみなして喜ぶ（水やりの場面）
-const RECOVERY_STEP = 0.3;
-
-// 動きは Blender で作り、glb に入れてある（app/models-src/karami.blend）
+// 動きは Blender で作り、glb に入れてある（app/models-src/karami.blend）。
 // 待機（Idle）としおれ（Wilt）は常に流して混ぜ、ほかは1回だけ流す
 export async function createKarami(container) {
   // 読み込みに失敗したら、画面に何も足さずに投げる（呼び出し側が 2D 版に切り替える）
@@ -40,24 +32,41 @@ export async function createKarami(container) {
   scene.add(model);
 
   const mixer = new THREE.AnimationMixer(model);
-  const clip = (name) => {
+  const findClip = (name) => {
     const found = THREE.AnimationClip.findByName(gltf.animations, name);
     if (!found) throw new Error(`アニメーション ${name} が glb にありません`);
-    return mixer.clipAction(found);
+    return found;
   };
-  const idle = clip("Idle").play();
-  const wiltLoop = clip("Wilt").play();
+  // 1本の動きを、葉・マントの部分とそれ以外に分けて流す
+  const split = (name) => {
+    const clip = findClip(name);
+    const part = (suffix, keep) =>
+      mixer.clipAction(
+        new THREE.AnimationClip(
+          `${name}_${suffix}`,
+          clip.duration,
+          clip.tracks.filter(keep),
+        ),
+      ).play();
+    return {
+      leaves: part("leaves", isLeafTrack),
+      body: part("body", (t) => !isLeafTrack(t)),
+    };
+  };
+  const idle = split("Idle");
+  const wiltLoop = split("Wilt");
   const oneShots = {
-    joy: clip("Joy"),
-    surprise: clip("Surprise"),
-    pet: clip("Pet"),
+    joy: mixer.clipAction(findClip("Joy")),
+    surprise: mixer.clipAction(findClip("Surprise")),
+    pet: mixer.clipAction(findClip("Pet")),
   };
   for (const action of Object.values(oneShots)) {
     action.setLoop(THREE.LoopOnce, 1);
   }
 
-  let wilt = 0;
-  let targetWilt = 0;
+  // 葉（土の水分）と体（気分）を別々に、目標へなめらかに近づける
+  const level = { leaves: 0, body: 0 };
+  const target = { leaves: 0, body: 0 };
   let current = null;
   const clock = new THREE.Clock();
 
@@ -87,14 +96,16 @@ export async function createKarami(container) {
   renderer.setAnimationLoop(() => {
     // 描画の間隔が端末によって違うので、経過時間で近づける（約1秒で8割）
     const dt = Math.min(clock.getDelta(), 0.5);
-    wilt += (targetWilt - wilt) * (1 - Math.exp(-dt * 1.6));
-
+    const k = 1 - Math.exp(-dt * 1.6);
     // 1回だけの動きを流している間は、待機としおれを弱める
     const shot = current ? current.getEffectiveWeight() : 0;
-    idle.setEffectiveWeight((1 - wilt) * (1 - shot));
-    wiltLoop.setEffectiveWeight(wilt * (1 - shot));
-    // しおれているほど、ゆっくり動く
-    idle.timeScale = wiltLoop.timeScale = 1 - 0.5 * wilt;
+    for (const part of ["leaves", "body"]) {
+      level[part] += (target[part] - level[part]) * k;
+      idle[part].setEffectiveWeight((1 - level[part]) * (1 - shot));
+      wiltLoop[part].setEffectiveWeight(level[part] * (1 - shot));
+      // しおれているほど、ゆっくり動く
+      idle[part].timeScale = wiltLoop[part].timeScale = 1 - 0.5 * level[part];
+    }
 
     mixer.update(dt);
     renderer.render(scene, camera);
@@ -102,10 +113,12 @@ export async function createKarami(container) {
 
   return {
     canvas: renderer.domElement,
-    setEmotion(emotion) {
-      const next = WILT_BY_EMOTION[emotion] ?? 0;
-      if (targetWilt - next >= RECOVERY_STEP) playOnce("joy");
-      targetWilt = next;
+    // mood: { emotion: 気分の名前, moistureScore: 土の水分の快適度（0〜100、なければ null） }
+    setMood(mood) {
+      const next = moodLevels(mood);
+      if (isRecovery(target.leaves, next.leaves)) playOnce("joy");
+      target.leaves = next.leaves;
+      target.body = next.body;
     },
     poke: () => playOnce("surprise"),
     pet: () => playOnce("pet"),
