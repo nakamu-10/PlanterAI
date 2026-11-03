@@ -84,7 +84,10 @@ export async function runDailyLightCheck(
   if (sensorErr) throw sensorErr;
 
   const samples: LuxSample[] = (sensorRows ?? [])
-    .map((r) => ({ at: r.created_at, lux: Number((r.raw as any)?.lux) }))
+    .map((r) => ({
+      at: r.created_at,
+      lux: Number((r.raw as { lux?: unknown } | null)?.lux),
+    }))
     .filter((s) => Number.isFinite(s.lux));
 
   // ---- 3. 判定 ----
@@ -127,7 +130,10 @@ export async function runDailyLightCheck(
 
   // ---- 4. 感情状態の組み立て ----
   const shortDayKeys = logs
-    .filter((l) => (l.scores as any)?.daily_light?.kind === "shortfall")
+    .filter((l) =>
+      (l.scores as { daily_light?: { kind?: string } } | null)?.daily_light
+        ?.kind === "shortfall"
+    )
     .map((l) => jstDateKey(new Date(l.created_at)));
   const consecutiveDays = countConsecutiveShortDays(shortDayKeys, now);
 
