@@ -119,6 +119,10 @@ async function setup3d() {
   karami3d = await createKarami(stage);
   img.hidden = true;
   karami3d.setEmotion(currentEmotion);
+  // ?debug を付けると、コンソールから karami.cheer() などで動きを試せる（デモの練習用）
+  if (new URLSearchParams(location.search).has("debug")) {
+    window.karami = karami3d;
+  }
 
   let downAt = null;
   karami3d.canvas.addEventListener("pointerdown", (e) => {
