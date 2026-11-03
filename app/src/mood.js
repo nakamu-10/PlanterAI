@@ -9,6 +9,9 @@ export const DROOP_BY_EMOTION = {
   "苛立ち": 0.85,
 };
 
+// この元気のなさから涙を流す（不安・苛立ち）
+export const TEARS_FROM = 0.7;
+
 // 葉のしおれ具合がこれ以上よくなったら「水をもらった」とみなして喜ぶ
 export const RECOVERY_STEP = 0.3;
 
@@ -19,11 +22,12 @@ export function wiltFromMoistureScore(score) {
   return Math.min(Math.max((80 - score) / 80, 0), 1);
 }
 
-// 葉は土の水分、体（顔・頭）は気分で決める。水分が分からないときは、葉も気分に合わせる
+// 葉は土の水分、体（顔・頭）と涙は気分で決める。水分が分からないときは、葉も気分に合わせる
 export function moodLevels({ emotion, moistureScore = null }) {
   const body = DROOP_BY_EMOTION[emotion] ?? 0;
   const leaves = wiltFromMoistureScore(moistureScore) ?? body;
-  return { leaves, body };
+  const tears = body >= TEARS_FROM ? 1 : 0;
+  return { leaves, body, tears };
 }
 
 export function isRecovery(previousLeaves, nextLeaves) {

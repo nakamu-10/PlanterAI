@@ -6,6 +6,11 @@ const MODEL_URL = `${import.meta.env.BASE_URL}models/karami.glb`;
 
 // 葉とマントの骨。しおれの動きのうち、ここだけ土の水分で動かす
 const isLeafTrack = (track) => /^(leaf|cape)_/.test(track.name);
+// 涙の骨。glb の書き出しで全部の動きに止まったままのトラックが入るので、
+// 涙の動きは Cry からだけ取り、ほかの動きからは外す（混ぜると流れる距離が縮む）
+const isTearTrack = (track) => /^(cry|tear)_/.test(track.name);
+const keepTracks = (clip, keep) =>
+  new THREE.AnimationClip(clip.name, clip.duration, clip.tracks.filter(keep));
 
 // 動きは Blender で作り、glb に入れてある（app/models-src/karami.blend）。
 // 待機（Idle）としおれ（Wilt）は常に流して混ぜ、ほかは1回だけ流す
@@ -35,6 +40,13 @@ export async function createKarami(container) {
   const findClip = (name) => {
     const found = THREE.AnimationClip.findByName(gltf.animations, name);
     if (!found) throw new Error(`アニメーション ${name} が glb にありません`);
+    return name === "Cry"
+      ? keepTracks(found, (t) => /^tear_/.test(t.name))
+      : keepTracks(found, (t) => !isTearTrack(t));
+  };
+  const findBone = (name) => {
+    const found = model.getObjectByName(name);
+    if (!found) throw new Error(`骨 ${name} が glb にありません`);
     return found;
   };
   // 1本の動きを、葉・マントの部分とそれ以外に分けて流す
@@ -63,10 +75,13 @@ export async function createKarami(container) {
   for (const action of Object.values(oneShots)) {
     action.setLoop(THREE.LoopOnce, 1);
   }
+  // 涙は常に流しておき、目のうるみごと骨 cry_* の大きさで出し入れする
+  mixer.clipAction(findClip("Cry")).play();
+  const cryBones = [findBone("cry_L"), findBone("cry_R")];
 
-  // 葉（土の水分）と体（気分）を別々に、目標へなめらかに近づける
-  const level = { leaves: 0, body: 0 };
-  const target = { leaves: 0, body: 0 };
+  // 葉（土の水分）・体（気分）・涙を別々に、目標へなめらかに近づける
+  const level = { leaves: 0, body: 0, tears: 0 };
+  const target = { leaves: 0, body: 0, tears: 0 };
   let current = null;
   const clock = new THREE.Clock();
 
@@ -108,6 +123,10 @@ export async function createKarami(container) {
     }
 
     mixer.update(dt);
+    // 1回だけの動き（喜ぶなど）の間は涙を引っ込める。0 にすると向きが壊れるので小さく残す
+    level.tears += (target.tears - level.tears) * k;
+    const tearSize = Math.max(level.tears * (1 - shot), 0.001);
+    for (const bone of cryBones) bone.scale.setScalar(tearSize);
     renderer.render(scene, camera);
   });
 
@@ -119,6 +138,7 @@ export async function createKarami(container) {
       if (isRecovery(target.leaves, next.leaves)) playOnce("joy");
       target.leaves = next.leaves;
       target.body = next.body;
+      target.tears = next.tears;
     },
     poke: () => playOnce("surprise"),
     pet: () => playOnce("pet"),
