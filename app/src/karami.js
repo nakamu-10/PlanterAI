@@ -1,6 +1,7 @@
 import { gsap } from 'gsap'
 import { Draggable } from 'gsap/Draggable'
 import { fetchDashboard } from './api.js'
+import { createKarami } from './karami3d.js'
 
 gsap.registerPlugin(Draggable)
 
@@ -27,24 +28,16 @@ const REACTIONS = {
   },
 }
 
+const stage = document.getElementById('karamiStage')
 const img = document.getElementById('karamiImg')
 const bubble = document.getElementById('karamiBubble')
 const stateLabel = document.getElementById('karamiState')
 
-let currentEmotion = '満足'
-let idleTween = null
+// ?emotion=不安 のように指定すると、その気分に固定する（デモの練習用）
+const forcedEmotion = new URLSearchParams(location.search).get('emotion')
+let currentEmotion = forcedEmotion ?? '満足'
 let bubbleTimeout = null
-
-function startIdle() {
-  idleTween = gsap.to(img, {
-    y: -10,
-    rotate: 1.5,
-    duration: 2.6,
-    ease: 'sine.inOut',
-    repeat: -1,
-    yoyo: true,
-  })
-}
+let karami3d = null
 
 function showReaction(kind) {
   const pool = REACTIONS[currentEmotion]?.[kind] ?? REACTIONS['満足'][kind]
@@ -55,49 +48,90 @@ function showReaction(kind) {
   bubbleTimeout = setTimeout(() => bubble.classList.remove('is-visible'), 2200)
 }
 
-function poke() {
-  gsap.timeline()
-    .to(img, { scaleY: 0.85, scaleX: 1.08, duration: 0.12, ease: 'power2.out' })
-    .to(img, { scaleY: 1.15, scaleX: 0.94, duration: 0.14, ease: 'power2.out' })
-    .to(img, { scaleY: 1, scaleX: 1, duration: 0.3, ease: 'back.out(3)' })
-  showReaction('poke')
-}
+// ---- 3D が使えないときの 2D 版 ----
+function setup2d() {
+  const idleTween = gsap.to(img, {
+    y: -10,
+    rotate: 1.5,
+    duration: 2.6,
+    ease: 'sine.inOut',
+    repeat: -1,
+    yoyo: true,
+  })
 
-function pet() {
-  gsap.timeline()
-    .to(img, { rotate: -6, duration: 0.18, ease: 'sine.inOut' })
-    .to(img, { rotate: 6, duration: 0.32, ease: 'sine.inOut', repeat: 2, yoyo: true })
-    .to(img, { rotate: 1.5, duration: 0.2, ease: 'sine.inOut' })
-  showReaction('pet')
-}
+  function poke() {
+    gsap.timeline()
+      .to(img, { scaleY: 0.85, scaleX: 1.08, duration: 0.12, ease: 'power2.out' })
+      .to(img, { scaleY: 1.15, scaleX: 0.94, duration: 0.14, ease: 'power2.out' })
+      .to(img, { scaleY: 1, scaleX: 1, duration: 0.3, ease: 'back.out(3)' })
+    showReaction('poke')
+  }
 
-Draggable.create(img, {
-  type: 'x,y',
-  bounds: { minX: -50, maxX: 50, minY: -50, maxY: 50 },
-  onPress() {
-    idleTween?.pause()
-  },
-  onDragEnd() {
-    const distance = Math.hypot(this.x, this.y)
-    gsap.to(img, { x: 0, y: 0, duration: 0.5, ease: 'elastic.out(1, 0.5)' })
-    if (distance > 10) {
-      pet()
-    } else {
+  function pet() {
+    gsap.timeline()
+      .to(img, { rotate: -6, duration: 0.18, ease: 'sine.inOut' })
+      .to(img, { rotate: 6, duration: 0.32, ease: 'sine.inOut', repeat: 2, yoyo: true })
+      .to(img, { rotate: 1.5, duration: 0.2, ease: 'sine.inOut' })
+    showReaction('pet')
+  }
+
+  Draggable.create(img, {
+    type: 'x,y',
+    bounds: { minX: -50, maxX: 50, minY: -50, maxY: 50 },
+    onPress() {
+      idleTween.pause()
+    },
+    onDragEnd() {
+      const distance = Math.hypot(this.x, this.y)
+      gsap.to(img, { x: 0, y: 0, duration: 0.5, ease: 'elastic.out(1, 0.5)' })
+      if (distance > 10) {
+        pet()
+      } else {
+        poke()
+      }
+      idleTween.resume()
+    },
+    onClick() {
       poke()
+      idleTween.resume()
+    },
+  })
+}
+
+// ---- 3D 版：短く押して離す＝つつく、ドラッグ＝なでる ----
+async function setup3d() {
+  karami3d = await createKarami(stage)
+  img.hidden = true
+  karami3d.setEmotion(currentEmotion)
+
+  let downAt = null
+  karami3d.canvas.addEventListener('pointerdown', (e) => {
+    downAt = { x: e.clientX, y: e.clientY }
+  })
+  karami3d.canvas.addEventListener('pointerup', (e) => {
+    if (!downAt) return
+    const distance = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y)
+    downAt = null
+    if (distance > 10) {
+      karami3d.pet()
+      showReaction('pet')
+    } else {
+      karami3d.poke()
+      showReaction('poke')
     }
-    idleTween?.resume()
-  },
-  onClick() {
-    poke()
-    idleTween?.resume()
-  },
-})
+  })
+}
 
 async function refreshState() {
+  if (forcedEmotion) {
+    stateLabel.textContent = `いまの気分：${forcedEmotion}（固定）`
+    return
+  }
   try {
     const data = await fetchDashboard()
     const latest = data.emotion_history?.[0]
     currentEmotion = latest?.emotion ?? '満足'
+    karami3d?.setEmotion(currentEmotion)
     stateLabel.textContent = latest?.complaint
       ? `いまの気分：${currentEmotion}（${latest.complaint}）`
       : `いまの気分：${currentEmotion}`
@@ -107,6 +141,9 @@ async function refreshState() {
   }
 }
 
-startIdle()
+setup3d().catch((err) => {
+  console.error('3Dモデルを表示できないので、画像で表示します:', err)
+  setup2d()
+})
 refreshState()
 setInterval(refreshState, 60_000)

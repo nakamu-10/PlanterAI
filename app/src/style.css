@@ -267,6 +267,15 @@ a:hover { color: var(--green-300); }
   -webkit-user-drag: none;
 }
 .karami-stage__img:active { cursor: grabbing; }
+.karami-stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+.karami-stage canvas:active { cursor: grabbing; }
+.karami-stage .karami-bubble { z-index: 1; }
 
 .karami-bubble {
   position: absolute;
