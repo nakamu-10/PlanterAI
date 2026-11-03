@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(hardware/firmware/**/secrets.h)",
+      "Bash(git push *--force*)",
+      "Bash(git push -f *)",
+      "Bash(git push * -f)",
+      "Bash(git push * -f *)",
+      "Bash(git commit *--no-verify*)",
+      "Bash(git commit -n *)",
+      "Bash(git commit * -n)",
+      "Bash(git commit * -n *)"
+    ],
+    "ask": [
+      "Bash(npm install *)",
+      "Bash(npm i *)",
+      "Bash(git push *)",
+      "Bash(*supabase db push*)",
+      "Bash(*supabase db reset*)",
+      "Bash(*supabase migration repair*)",
+      "Bash(*supabase functions deploy*)",
+      "Bash(*supabase secrets set*)"
+    ],
+    "allow": [
+      "Read(**/.env.example)",
+      "Bash(npm test)",
+      "Bash(npm run check)",
+      "Bash(npm run test*)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run lint)",
+      "Bash(npm run format*)",
+      "Bash(npx -y deno fmt *)",
+      "Bash(npx -y deno lint *)",
+      "Bash(npx -y deno check *)"
+    ]
+  }
+}

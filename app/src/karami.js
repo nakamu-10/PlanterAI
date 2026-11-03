@@ -1,51 +1,51 @@
-import { gsap } from 'gsap'
-import { Draggable } from 'gsap/Draggable'
-import { fetchDashboard } from './api.js'
-import { createKarami } from './karami3d.js'
+import { gsap } from "gsap";
+import { Draggable } from "gsap/Draggable";
+import { fetchDashboard } from "./api.js";
+import { createKarami } from "./karami3d.js";
 
-gsap.registerPlugin(Draggable)
+gsap.registerPlugin(Draggable);
 
 const REACTIONS = {
-  '満足': {
-    poke: ['わっ、なに？', 'ふふ、くすぐったいよ', 'げんきだよ〜'],
-    pet: ['気持ちいい…もっとして', 'ふにゃ〜', 'ありがとう、うれしいな'],
+  "満足": {
+    poke: ["わっ、なに？", "ふふ、くすぐったいよ", "げんきだよ〜"],
+    pet: ["気持ちいい…もっとして", "ふにゃ〜", "ありがとう、うれしいな"],
   },
-  '軽い不満': {
-    poke: ['んー、ちょっとかまってほしい気分', 'つんつんしないでよ、もう'],
-    pet: ['……まあ、悪くないけど', 'ちょっとだけ、元気出た'],
+  "軽い不満": {
+    poke: ["んー、ちょっとかまってほしい気分", "つんつんしないでよ、もう"],
+    pet: ["……まあ、悪くないけど", "ちょっとだけ、元気出た"],
   },
-  '不満': {
-    poke: ['もう、いい加減にして', 'それより早く助けてよ'],
-    pet: ['……少し落ち着いた、かも', 'なでなで、ありがとう'],
+  "不満": {
+    poke: ["もう、いい加減にして", "それより早く助けてよ"],
+    pet: ["……少し落ち着いた、かも", "なでなで、ありがとう"],
   },
-  '不安': {
-    poke: ['どうしよう、大丈夫かな……', 'ねえ、そばにいて'],
-    pet: ['ちょっと安心した……', 'そばにいてくれると心強いよ'],
+  "不安": {
+    poke: ["どうしよう、大丈夫かな……", "ねえ、そばにいて"],
+    pet: ["ちょっと安心した……", "そばにいてくれると心強いよ"],
   },
-  '苛立ち': {
-    poke: ['もう限界かも……早くなんとかして', 'つらいよ、ほんとに'],
-    pet: ['……ありがとう、少し楽になった', 'お願い、早く様子見てね'],
+  "苛立ち": {
+    poke: ["もう限界かも……早くなんとかして", "つらいよ、ほんとに"],
+    pet: ["……ありがとう、少し楽になった", "お願い、早く様子見てね"],
   },
-}
+};
 
-const stage = document.getElementById('karamiStage')
-const img = document.getElementById('karamiImg')
-const bubble = document.getElementById('karamiBubble')
-const stateLabel = document.getElementById('karamiState')
+const stage = document.getElementById("karamiStage");
+const img = document.getElementById("karamiImg");
+const bubble = document.getElementById("karamiBubble");
+const stateLabel = document.getElementById("karamiState");
 
 // ?emotion=不安 のように指定すると、その気分に固定する（デモの練習用）
-const forcedEmotion = new URLSearchParams(location.search).get('emotion')
-let currentEmotion = forcedEmotion ?? '満足'
-let bubbleTimeout = null
-let karami3d = null
+const forcedEmotion = new URLSearchParams(location.search).get("emotion");
+let currentEmotion = forcedEmotion ?? "満足";
+let bubbleTimeout = null;
+let karami3d = null;
 
 function showReaction(kind) {
-  const pool = REACTIONS[currentEmotion]?.[kind] ?? REACTIONS['満足'][kind]
-  const line = pool[Math.floor(Math.random() * pool.length)]
-  bubble.textContent = line
-  bubble.classList.add('is-visible')
-  clearTimeout(bubbleTimeout)
-  bubbleTimeout = setTimeout(() => bubble.classList.remove('is-visible'), 2200)
+  const pool = REACTIONS[currentEmotion]?.[kind] ?? REACTIONS["満足"][kind];
+  const line = pool[Math.floor(Math.random() * pool.length)];
+  bubble.textContent = line;
+  bubble.classList.add("is-visible");
+  clearTimeout(bubbleTimeout);
+  bubbleTimeout = setTimeout(() => bubble.classList.remove("is-visible"), 2200);
 }
 
 // ---- 3D が使えないときの 2D 版 ----
@@ -54,96 +54,112 @@ function setup2d() {
     y: -10,
     rotate: 1.5,
     duration: 2.6,
-    ease: 'sine.inOut',
+    ease: "sine.inOut",
     repeat: -1,
     yoyo: true,
-  })
+  });
 
   function poke() {
     gsap.timeline()
-      .to(img, { scaleY: 0.85, scaleX: 1.08, duration: 0.12, ease: 'power2.out' })
-      .to(img, { scaleY: 1.15, scaleX: 0.94, duration: 0.14, ease: 'power2.out' })
-      .to(img, { scaleY: 1, scaleX: 1, duration: 0.3, ease: 'back.out(3)' })
-    showReaction('poke')
+      .to(img, {
+        scaleY: 0.85,
+        scaleX: 1.08,
+        duration: 0.12,
+        ease: "power2.out",
+      })
+      .to(img, {
+        scaleY: 1.15,
+        scaleX: 0.94,
+        duration: 0.14,
+        ease: "power2.out",
+      })
+      .to(img, { scaleY: 1, scaleX: 1, duration: 0.3, ease: "back.out(3)" });
+    showReaction("poke");
   }
 
   function pet() {
     gsap.timeline()
-      .to(img, { rotate: -6, duration: 0.18, ease: 'sine.inOut' })
-      .to(img, { rotate: 6, duration: 0.32, ease: 'sine.inOut', repeat: 2, yoyo: true })
-      .to(img, { rotate: 1.5, duration: 0.2, ease: 'sine.inOut' })
-    showReaction('pet')
+      .to(img, { rotate: -6, duration: 0.18, ease: "sine.inOut" })
+      .to(img, {
+        rotate: 6,
+        duration: 0.32,
+        ease: "sine.inOut",
+        repeat: 2,
+        yoyo: true,
+      })
+      .to(img, { rotate: 1.5, duration: 0.2, ease: "sine.inOut" });
+    showReaction("pet");
   }
 
   Draggable.create(img, {
-    type: 'x,y',
+    type: "x,y",
     bounds: { minX: -50, maxX: 50, minY: -50, maxY: 50 },
     onPress() {
-      idleTween.pause()
+      idleTween.pause();
     },
     onDragEnd() {
-      const distance = Math.hypot(this.x, this.y)
-      gsap.to(img, { x: 0, y: 0, duration: 0.5, ease: 'elastic.out(1, 0.5)' })
+      const distance = Math.hypot(this.x, this.y);
+      gsap.to(img, { x: 0, y: 0, duration: 0.5, ease: "elastic.out(1, 0.5)" });
       if (distance > 10) {
-        pet()
+        pet();
       } else {
-        poke()
+        poke();
       }
-      idleTween.resume()
+      idleTween.resume();
     },
     onClick() {
-      poke()
-      idleTween.resume()
+      poke();
+      idleTween.resume();
     },
-  })
+  });
 }
 
 // ---- 3D 版：短く押して離す＝つつく、ドラッグ＝なでる ----
 async function setup3d() {
-  karami3d = await createKarami(stage)
-  img.hidden = true
-  karami3d.setEmotion(currentEmotion)
+  karami3d = await createKarami(stage);
+  img.hidden = true;
+  karami3d.setEmotion(currentEmotion);
 
-  let downAt = null
-  karami3d.canvas.addEventListener('pointerdown', (e) => {
-    downAt = { x: e.clientX, y: e.clientY }
-  })
-  karami3d.canvas.addEventListener('pointerup', (e) => {
-    if (!downAt) return
-    const distance = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y)
-    downAt = null
+  let downAt = null;
+  karami3d.canvas.addEventListener("pointerdown", (e) => {
+    downAt = { x: e.clientX, y: e.clientY };
+  });
+  karami3d.canvas.addEventListener("pointerup", (e) => {
+    if (!downAt) return;
+    const distance = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
+    downAt = null;
     if (distance > 10) {
-      karami3d.pet()
-      showReaction('pet')
+      karami3d.pet();
+      showReaction("pet");
     } else {
-      karami3d.poke()
-      showReaction('poke')
+      karami3d.poke();
+      showReaction("poke");
     }
-  })
+  });
 }
 
 async function refreshState() {
   if (forcedEmotion) {
-    stateLabel.textContent = `いまの気分：${forcedEmotion}（固定）`
-    return
+    stateLabel.textContent = `いまの気分：${forcedEmotion}（固定）`;
+    return;
   }
   try {
-    const data = await fetchDashboard()
-    const latest = data.emotion_history?.[0]
-    currentEmotion = latest?.emotion ?? '満足'
-    karami3d?.setEmotion(currentEmotion)
+    const data = await fetchDashboard();
+    const latest = data.emotion_history?.[0];
+    currentEmotion = latest?.emotion ?? "満足";
+    karami3d?.setEmotion(currentEmotion);
     stateLabel.textContent = latest?.complaint
       ? `いまの気分：${currentEmotion}（${latest.complaint}）`
-      : `いまの気分：${currentEmotion}`
+      : `いまの気分：${currentEmotion}`;
   } catch (err) {
-    console.error(err)
-    stateLabel.textContent = '状態を取得できませんでした'
+    console.error(err);
+    stateLabel.textContent = "状態を取得できませんでした";
   }
 }
 
 setup3d().catch((err) => {
-  console.error('3Dモデルを表示できないので、画像で表示します:', err)
-  setup2d()
-})
-refreshState()
-setInterval(refreshState, 60_000)
+  console.error("3Dモデルを表示できないので、画像で表示します:", err);
+  setup2d();
+});
+refreshState();
+setInterval(refreshState, 60_000);

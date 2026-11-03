@@ -4,14 +4,14 @@ PlanterAIの公式サイト。Viteで6つのHTMLページをまとめてビル�
 
 ## ページ
 
-| ファイル | 内容 |
-|---|---|
-| `index.html` | TOP |
-| `software.html` | ソフトウェア |
-| `hardware.html` | ハードウェア |
-| `karami.html` | カラ美について |
-| `team.html` | 製作者情報 |
-| `roadmap.html` | 今後の展望 |
+| ファイル        | 内容           |
+| --------------- | -------------- |
+| `index.html`    | TOP            |
+| `software.html` | ソフトウェア   |
+| `hardware.html` | ハードウェア   |
+| `karami.html`   | カラ美について |
+| `team.html`     | 製作者情報     |
+| `roadmap.html`  | 今後の展望     |
 
 共通のスタイルと動作は `src/`、画像は `public/images/` で管理する。
 

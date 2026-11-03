@@ -1,8 +1,19 @@
 /* ---------- reset ---------- */
-* { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; overflow-x: hidden; overscroll-behavior-x: none; }
-body { margin: 0; }
-img { max-width: 100%; display: block; }
+* {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+body {
+  margin: 0;
+}
+img {
+  max-width: 100%;
+  display: block;
+}
 
 /* ---------- tokens (site/src/style.cssと共通) ---------- */
 :root {
@@ -44,8 +55,12 @@ body {
   overscroll-behavior-x: none;
 }
 
-a { color: var(--on-wash); }
-a:hover { color: var(--green-300); }
+a {
+  color: var(--on-wash);
+}
+a:hover {
+  color: var(--green-300);
+}
 
 /* ---------- shell ---------- */
 .app-shell {
@@ -77,7 +92,10 @@ a:hover { color: var(--green-300); }
   font-weight: 700;
   font-size: 15px;
 }
-.app-nav__brand img { width: 26px; height: 26px; }
+.app-nav__brand img {
+  width: 26px;
+  height: 26px;
+}
 
 .app-nav__link {
   padding: 6px 10px;
@@ -130,7 +148,9 @@ a:hover { color: var(--green-300); }
 }
 
 /* ---------- scores ---------- */
-.score-row + .score-row { margin-top: 12px; }
+.score-row + .score-row {
+  margin-top: 12px;
+}
 .score-row__top {
   display: flex;
   justify-content: space-between;
@@ -161,12 +181,26 @@ a:hover { color: var(--green-300); }
   flex-direction: column;
   gap: 8px;
 }
-.emotion-list li { border-bottom: 1px solid rgba(22, 33, 28, .08); padding-bottom: 8px; }
-.emotion-list li:last-child { border-bottom: none; padding-bottom: 0; }
+.emotion-list li {
+  border-bottom: 1px solid rgba(22, 33, 28, .08);
+  padding-bottom: 8px;
+}
+.emotion-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
 
 /* ---------- settings form ---------- */
-.app-field { display: block; margin-top: 14px; font-size: 13px; color: var(--ink-faint); }
-.app-field span { display: block; margin-bottom: 6px; }
+.app-field {
+  display: block;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+.app-field span {
+  display: block;
+  margin-bottom: 6px;
+}
 .app-field input,
 .app-field select {
   width: 100%;
@@ -189,8 +223,15 @@ a:hover { color: var(--green-300); }
   font-size: 14px;
   cursor: pointer;
 }
-.app-submit:hover { background: var(--green-800); }
-.app-form-status { margin-top: 10px; font-size: 13px; color: var(--green-800); min-height: 1.2em; }
+.app-submit:hover {
+  background: var(--green-800);
+}
+.app-form-status {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--green-800);
+  min-height: 1.2em;
+}
 
 /* ---------- chat ---------- */
 .chat-list {
@@ -237,7 +278,9 @@ a:hover { color: var(--green-300); }
   font-family: var(--font-jp);
   font-size: 14px;
 }
-.chat-form input::placeholder { color: var(--on-wash-ghost); }
+.chat-form input::placeholder {
+  color: var(--on-wash-ghost);
+}
 .chat-form button {
   padding: 0 20px;
   border: none;
@@ -266,7 +309,9 @@ a:hover { color: var(--green-300); }
   user-select: none;
   -webkit-user-drag: none;
 }
-.karami-stage__img:active { cursor: grabbing; }
+.karami-stage__img:active {
+  cursor: grabbing;
+}
 .karami-stage canvas {
   position: absolute;
   inset: 0;
@@ -274,8 +319,12 @@ a:hover { color: var(--green-300); }
   height: 100%;
   cursor: grab;
 }
-.karami-stage canvas:active { cursor: grabbing; }
-.karami-stage .karami-bubble { z-index: 1; }
+.karami-stage canvas:active {
+  cursor: grabbing;
+}
+.karami-stage .karami-bubble {
+  z-index: 1;
+}
 
 .karami-bubble {
   position: absolute;
@@ -293,7 +342,9 @@ a:hover { color: var(--green-300); }
   pointer-events: none;
   transition: opacity .25s ease;
 }
-.karami-bubble.is-visible { opacity: 1; }
+.karami-bubble.is-visible {
+  opacity: 1;
+}
 
 .karami-hint {
   text-align: center;
