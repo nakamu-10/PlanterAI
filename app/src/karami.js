@@ -131,7 +131,7 @@ function setup2d() {
   });
 }
 
-// ---- 3D 版：短く押して離す＝つつく、ドラッグ＝なでる ----
+// ---- 3D 版：短く押して離す＝つつく、頭をドラッグ＝なでる、体をドラッグ＝回す ----
 async function setup3d() {
   karami3d = await createKarami(stage);
   loading.remove();
@@ -144,21 +144,46 @@ async function setup3d() {
     window.karami = karami3d;
   }
 
-  let downAt = null;
-  karami3d.canvas.addEventListener("pointerdown", (e) => {
-    downAt = { x: e.clientX, y: e.clientY };
+  const canvas = karami3d.canvas;
+  let press = null;
+  canvas.addEventListener("pointerdown", (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    press = {
+      startX: e.clientX,
+      startY: e.clientY,
+      lastX: e.clientX,
+      onHead: karami3d.isAboveHead(e.clientY),
+      mode: null, // 10px 以上動いたら "pet" か "turn" に決める
+    };
   });
-  karami3d.canvas.addEventListener("pointerup", (e) => {
-    if (!downAt) return;
-    const distance = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
-    downAt = null;
-    if (distance > 10) {
+  canvas.addEventListener("pointermove", (e) => {
+    if (!press) return;
+    if (
+      press.mode === null &&
+      Math.hypot(e.clientX - press.startX, e.clientY - press.startY) > 10
+    ) {
+      press.mode = press.onHead ? "pet" : "turn";
+    }
+    if (press.mode === "turn") karami3d.turn(e.clientX - press.lastX);
+    press.lastX = e.clientX;
+  });
+  const release = () => {
+    if (!press) return;
+    if (press.mode === "pet") {
       karami3d.pet();
       showReaction("pet");
+    } else if (press.mode === "turn") {
+      karami3d.endTurn();
     } else {
       karami3d.poke();
       showReaction("poke");
     }
+    press = null;
+  };
+  canvas.addEventListener("pointerup", release);
+  canvas.addEventListener("pointercancel", () => {
+    karami3d.endTurn();
+    press = null;
   });
 }
 
