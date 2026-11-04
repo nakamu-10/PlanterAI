@@ -157,8 +157,12 @@ async function setup3d() {
   const canvas = karami3d.canvas;
   let press = null;
   canvas.addEventListener("pointerdown", (e) => {
+    // 見学会で何人も同時に触るので、2本目以降の指と左ボタン以外は無視する
+    // （座標が混ざって激しく回ったり、離したことに気づけなくなったりする）
+    if (press || !e.isPrimary || e.button !== 0) return;
     canvas.setPointerCapture(e.pointerId);
     press = {
+      pointerId: e.pointerId,
       startX: e.clientX,
       startY: e.clientY,
       lastX: e.clientX,
@@ -174,41 +178,34 @@ async function setup3d() {
     };
   });
   canvas.addEventListener("pointermove", (e) => {
-    if (!press) return;
-    if (
-      press.mode === null &&
-      Math.hypot(e.clientX - press.startX, e.clientY - press.startY) > 10
-    ) {
-      press.mode = press.onHead ? "pet" : "turn";
+    if (press?.pointerId !== e.pointerId) return;
+    const dx = e.clientX - press.startX;
+    const dy = e.clientY - press.startY;
+    if (press.mode === null && Math.hypot(dx, dy) > 10) {
+      // 体でも、縦になでたときはなでる
+      press.mode = press.onHead || Math.abs(dy) > Math.abs(dx) ? "pet" : "turn";
     }
     if (press.mode === "turn") karami3d.turn(e.clientX - press.lastX);
     if (press.mode === "lift") karami3d.moveHeld(e.clientX, e.clientY);
     press.lastX = e.clientX;
   });
-  const release = () => {
-    if (!press) return;
+  const release = (e, cancelled) => {
+    if (press?.pointerId !== e.pointerId) return;
     clearTimeout(press.liftTimer);
+    karami3d.endTurn();
     if (press.mode === "lift") {
       karami3d.drop();
-    } else if (press.mode === "pet") {
+    } else if (!cancelled && press.mode === "pet") {
       karami3d.pet();
       showReaction("pet");
-    } else if (press.mode === "turn") {
-      karami3d.endTurn();
-    } else {
+    } else if (!cancelled && press.mode === null) {
       karami3d.poke();
       showReaction("poke");
     }
     press = null;
   };
-  canvas.addEventListener("pointerup", release);
-  canvas.addEventListener("pointercancel", () => {
-    if (!press) return;
-    clearTimeout(press.liftTimer);
-    karami3d.endTurn();
-    karami3d.drop();
-    press = null;
-  });
+  canvas.addEventListener("pointerup", (e) => release(e, false));
+  canvas.addEventListener("pointercancel", (e) => release(e, true));
 }
 
 function describeState(complaint) {
