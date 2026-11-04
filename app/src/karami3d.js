@@ -12,6 +12,9 @@ const isTearTrack = (track) => /^(cry|tear)_/.test(track.name);
 const keepTracks = (clip, name, keep) =>
   new THREE.AnimationClip(name, clip.duration, clip.tracks.filter(keep));
 
+// 持ち上げられる高さ（足元の高さ）。カメラの写す範囲に合わせる
+const MAX_LIFT = 0.35;
+
 // 動きは Blender で作り、glb に入れてある（app/models-src/karami.blend）。
 // 待機（Idle）としおれ（Wilt）は常に流して混ぜ、ほかは1回だけ流す
 export async function createKarami(container) {
@@ -57,6 +60,8 @@ export async function createKarami(container) {
     // 終わったら最後の姿勢で止め、重みを下げきるまで残す
     action.clampWhenFinished = true;
   }
+  // 持ち上げている間だけ、くり返し流す
+  const struggle = playBody("Struggle");
   // 涙は常に流しておき、目のうるみごと骨 cry_* の大きさで出し入れする
   mixer.clipAction(keepTracks(findClip("Cry"), "Cry", isTearTrack)).play();
   const cryBones = [findNode("cry_L"), findNode("cry_R")];
@@ -68,9 +73,10 @@ export async function createKarami(container) {
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 20);
-  camera.position.set(0, 0.55, 2.3);
-  camera.lookAt(0, 0.47, 0);
+  // 頭の上を空けておき、持ち上げても画面からはみ出さないようにする
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 20);
+  camera.position.set(0, 0.72, 2.6);
+  camera.lookAt(0, 0.6, 0);
 
   scene.add(new THREE.HemisphereLight(0xffffff, 0xb8d8a8, 2.2));
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
@@ -93,12 +99,29 @@ export async function createKarami(container) {
   let turning = false;
   let sinceTurn = 0;
 
-  function playOnce(name) {
-    const action = oneShots[name];
+  // 持ち上げ。指の位置は、カラ美の立つ面（z=0）の上の点に直して追う
+  const stand = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+  const raycaster = new THREE.Raycaster();
+  let held = null; // { grip: つかんだ点（足元から）, target: 指の位置 }
+  let swing = 0; // 指を横に動かしたときの、ぶら下がった体の振れ
+  let fallSpeed = 0;
+
+  function toStand(clientX, clientY) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const pointer = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    raycaster.setFromCamera(pointer, camera);
+    return raycaster.ray.intersectPlane(stand, new THREE.Vector3());
+  }
+
+  function play(action) {
     if (current && current !== action) current.stop();
     current = action;
     action.reset().play();
   }
+  const playOnce = (name) => play(oneShots[name]);
 
   function resize() {
     const { clientWidth: w, clientHeight: h } = container;
@@ -114,10 +137,11 @@ export async function createKarami(container) {
     const dt = Math.min(clock.getDelta(), 0.5);
     const k = 1 - Math.exp(-dt * 1.6);
     // 1回だけの動きを流している間は、待機としおれを弱める（約0.1秒で入れ替わる）
-    const playing = current !== null && !current.paused;
+    const playing = current !== null &&
+      (current === struggle ? held !== null : !current.paused);
     shot += ((playing ? 1 : 0) - shot) * (1 - Math.exp(-dt * 20));
     current?.setEffectiveWeight(shot);
-    if (current?.paused && shot < 0.001) {
+    if (!playing && shot < 0.001 && current) {
       current.stop();
       current = null;
     }
@@ -136,6 +160,39 @@ export async function createKarami(container) {
       yaw += (front - yaw) * (1 - Math.exp(-dt * 3));
     }
     model.rotation.y = yaw;
+
+    if (held) {
+      // 指に遅れてついてくる。横に速く動かすほど、体が後ろへ振れる
+      const toward = 1 - Math.exp(-dt * 12);
+      const lastX = held.at.x;
+      held.at.lerp(held.target, toward);
+      const pull = THREE.MathUtils.clamp(
+        ((held.at.x - lastX) / dt) * 0.25,
+        -0.6,
+        0.6,
+      );
+      swing += (-pull - swing) * (1 - Math.exp(-dt * 6));
+      // つかんだ点が指の位置に来るよう、振れた分だけ足元をずらす
+      const { x, y } = held.grip;
+      model.position.set(
+        held.at.x - (x * Math.cos(swing) - y * Math.sin(swing)),
+        held.at.y - (x * Math.sin(swing) + y * Math.cos(swing)),
+        0,
+      );
+    } else if (model.position.y > 0) {
+      fallSpeed += 6 * dt;
+      model.position.y = Math.max(model.position.y - fallSpeed * dt, 0);
+      swing *= Math.exp(-dt * 4);
+      if (model.position.y === 0) {
+        fallSpeed = 0;
+        playOnce("surprise");
+      }
+    } else {
+      // 着地したら、ステージの真ん中へ戻る
+      model.position.x *= Math.exp(-dt * 2);
+      swing *= Math.exp(-dt * 6);
+    }
+    model.rotation.z = swing;
 
     mixer.update(dt);
     // 1回だけの動き（喜ぶなど）の間は涙を引っ込める。0 にすると向きが壊れるので小さく残す
@@ -173,6 +230,32 @@ export async function createKarami(container) {
     },
     endTurn() {
       turning = false;
+    },
+    // 長押しでつかむ。つかんだ点が指についてきて、少し持ち上がる
+    grab(clientX, clientY) {
+      const point = toStand(clientX, clientY);
+      if (!point) return;
+      const grip = point.clone().sub(model.position);
+      held = {
+        grip,
+        at: point.clone(),
+        target: point.clone().add(new THREE.Vector3(0, 0.08, 0)),
+      };
+      play(struggle);
+    },
+    moveHeld(clientX, clientY) {
+      const point = toStand(clientX, clientY);
+      if (!held || !point) return;
+      // 足が床より下に行かず、頭が画面の上からはみ出さない高さに収める
+      point.y = THREE.MathUtils.clamp(
+        point.y,
+        held.grip.y + 0.02,
+        held.grip.y + MAX_LIFT,
+      );
+      held.target.copy(point);
+    },
+    drop() {
+      held = null;
     },
     poke: () => playOnce("surprise"),
     pet: () => playOnce("pet"),

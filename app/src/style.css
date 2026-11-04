@@ -295,7 +295,7 @@ a:hover {
 /* ---------- karami stage ---------- */
 .karami-stage {
   position: relative;
-  height: 46vh;
+  height: 56vh;
   min-height: 320px;
   display: flex;
   align-items: center;
