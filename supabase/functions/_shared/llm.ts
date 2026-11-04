@@ -128,10 +128,13 @@ export function buildPrompt(opts: {
 継続時間: ${opts.state.duration_label}（${opts.state.duration_hours}時間）
 緊急度: ${opts.state.urgency}`
     : `感情: 満足（不調がおさまって、快適な状態に戻った）`;
-  // 何で元気になったかが分かるのは、水やりを検出したときだけ
-  const eventDesc = opts.justWatered
-    ? "飼い主に水をもらった"
-    : "なし（なぜ良くなったかは分からない）";
+  // 何で元気になったかが分かるのは、水やりを検出したときだけ。
+  // 不調のときに「良くなった」と書くと回復したようなセリフになるので、行ごと出さない
+  const eventLine = opts.justWatered
+    ? "\n直前の出来事: 飼い主に水をもらった"
+    : opts.state.complaint
+    ? ""
+    : "\n直前の出来事: なし（なぜ良くなったかは分からない）";
 
   return `${character.persona}
 あなたの名前は「${opts.plantName}」です。
@@ -143,8 +146,7 @@ ${JSON.stringify(opts.relationshipSummary)}
 ${historyText}
 
 # あなたの現在の状態（センサーによる確定情報）
-${stateDesc}
-直前の出来事: ${eventDesc}
+${stateDesc}${eventLine}
 
 # 最近のあなたの発言（新しい順）
 ${recentPlantMessages(opts.recentConversation)}
@@ -217,7 +219,8 @@ export const LLM_RETRY_CONFIG: LlmConfig = {
  * 文が完結しているとみなす末尾。プロンプトで句読点で終えるよう指示しているので、
  * それ以外で終わる文は途中で切れたとみなす（STOP なのに「お水を少し」で終わった例がある）。
  */
-const SENTENCE_END = /[。．！!？?…♪〜~)）」』]$/u;
+const SENTENCE_END = /[。．.！!？?…♪♡〜～~ーっ)）」』]$/u;
+export const endsSentence = (text: string) => SENTENCE_END.test(text);
 
 export class LlmTruncatedError extends Error {
   constructor(public partial: string, public finishReason: string) {
@@ -271,6 +274,7 @@ async function callGeminiOnce(
   cfg: LlmConfig,
   label: string,
   timeoutMs: number,
+  checkSentenceEnd: boolean,
 ): Promise<string> {
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) throw new Error("環境変数 GEMINI_API_KEY が設定されていません");
@@ -345,7 +349,7 @@ async function callGeminiOnce(
 
   // --- 対策C-1: 文末バリデーション ---
   // STOP でも文の途中で終わることがあるので、打ち切りとして作り直させる
-  if (!SENTENCE_END.test(text)) {
+  if (checkSentenceEnd && !endsSentence(text)) {
     console.error(`[llm] STOPだが文が途中で終わっています: "${text}"`);
     throw new LlmTruncatedError(text, "INCOMPLETE");
   }
@@ -360,10 +364,12 @@ async function callGeminiOnce(
  * 400 のような恒久的な失敗は再試行せず即 throw する（何度やっても同じ）。
  * 最終的に失敗したら呼び出し側で catch してテンプレ（fallbackMessage）に
  * フォールバックし、その事実を conversation_logs に記録すること。
+ * 句読点で終える指示をしていないプロンプト（週次サマリー）は、文末を確かめない。
  */
 export async function generateMessage(
   prompt: string,
   profile: LlmProfile = "batch",
+  { checkSentenceEnd = true } = {},
 ): Promise<string> {
   // 返信・遷移通知（interactive）は応答の速さを優先し、バッチは長めに待つ。
   // 再試行も起点のプロファイルと同じ時間で打ち切る。
@@ -374,6 +380,7 @@ export async function generateMessage(
       LLM_PROFILES[profile],
       profile,
       timeoutMs,
+      checkSentenceEnd,
     );
   } catch (e) {
     const retryable = e instanceof LlmTruncatedError ||
@@ -390,7 +397,13 @@ export async function generateMessage(
     if (e instanceof LlmHttpError) {
       await new Promise((r) => setTimeout(r, 500));
     }
-    return await callGeminiOnce(prompt, LLM_RETRY_CONFIG, "retry", timeoutMs);
+    return await callGeminiOnce(
+      prompt,
+      LLM_RETRY_CONFIG,
+      "retry",
+      timeoutMs,
+      checkSentenceEnd,
+    );
   }
 }
 
