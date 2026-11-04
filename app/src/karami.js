@@ -155,6 +155,8 @@ async function setup3d() {
   }
 
   const canvas = karami3d.canvas;
+  // Android の長押しメニューも出さない
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   let press = null;
   canvas.addEventListener("pointerdown", (e) => {
     // 見学会で何人も同時に触るので、2本目以降の指と左ボタン以外は無視する

@@ -302,6 +302,10 @@ a:hover {
   justify-content: center;
   margin-top: 12px;
   touch-action: none;
+  /* 長押しで持ち上げるので、iPhone の文字選択や長押しメニューを出さない */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 .karami-loading {
   color: var(--on-wash-ghost);
