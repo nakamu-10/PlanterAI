@@ -46,6 +46,14 @@ assert(
   "1点だけの外れ値に引っぱられない（直前の点は中央値で見る）",
   detectWatering([reading(20), reading(70), reading(20)], reading(30)) === null,
 );
+assert(
+  "接触不良で一瞬 0 が届いても、水やりとみなさない",
+  detectWatering(dry, { soil_adc: 0, lux: 500 } as RawReading) === null,
+);
+assert(
+  "水中に近い値（水をたっぷりやった）は水やりとみなす",
+  detectWatering(dry, { soil_adc: 1450, lux: 500 } as RawReading) !== null,
+);
 assert("換算の前提（ADC 1490 で 100%）", soilAdcToPercent(1490) === 100);
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
