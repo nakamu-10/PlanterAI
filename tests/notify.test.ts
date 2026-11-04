@@ -9,6 +9,7 @@
 // ============================================================
 import { NOTIFY_COOLDOWN_MINUTES } from "../supabase/functions/_shared/config.ts";
 import {
+  cooldownFor,
   EmotionState,
   LastNotifiedState,
   shouldNotify,
@@ -92,14 +93,19 @@ assert(
   ) === false,
 );
 
-// 回復方向の往復: 軽い不満 → 満足。5分前に通知済み → 抑制
+// 満足に戻った（水やりなど）: 5分前に不調を通知済みでも、すぐ伝える
 assert(
-  "回復方向の往復(軽い不満→満足)も抑制",
+  "満足に戻ったら、クールダウン中でも通知する",
   shouldNotify(
     state("満足", null, "none"),
     lastNotified("軽い不満", "水分不足", 5),
     CD,
-  ) === false,
+  ) === true,
+);
+assert(
+  "満足に戻ったときだけ、DB 側のクールダウンも 0 にする",
+  cooldownFor(state("満足", null, "none"), CD) === 0 &&
+    cooldownFor(state("軽い不満", "水分不足", "low"), CD) === CD,
 );
 
 // 境界ちょうど手前（50分前 < 60分）→ まだ抑制される

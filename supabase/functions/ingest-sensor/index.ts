@@ -23,6 +23,7 @@ import {
 import { applyMedianFilter, toComfortScores } from "../_shared/normalize.ts";
 import type { RawReading } from "../_shared/normalize.ts";
 import {
+  cooldownFor,
   evaluateEmotion,
   LastNotifiedState,
   PastEmotionLog,
@@ -231,7 +232,7 @@ Deno.serve(async (req: Request) => {
           p_device_id: device.id,
           p_signature: notificationSignature,
           p_urgency: state.urgency,
-          p_cooldown_minutes: NOTIFY_COOLDOWN_MINUTES,
+          p_cooldown_minutes: cooldownFor(state, NOTIFY_COOLDOWN_MINUTES),
         },
       );
       if (claimError) throw claimError;
