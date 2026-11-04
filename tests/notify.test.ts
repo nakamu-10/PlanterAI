@@ -12,6 +12,7 @@ import {
   cooldownFor,
   EmotionState,
   LastNotifiedState,
+  notificationBaseline,
   shouldNotify,
 } from "../supabase/functions/_shared/emotionEngine.ts";
 
@@ -134,6 +135,55 @@ assert(
     CD,
   ) === true,
 );
+
+// 3倍にするのは、主訴が変わって、しかも悪化していないときだけ
+assert(
+  "同じ不調の悪化は、ふつうのクールダウンで通知する",
+  cooldownFor(
+    state("不満", "水分不足", "medium"),
+    lastNotified("軽い不満", "水分不足", 70),
+    CD,
+  ) === CD,
+);
+assert(
+  "前より強い感情の別の不調は、ふつうのクールダウンで通知する",
+  cooldownFor(
+    state("不満", "水分過多", "medium"),
+    lastNotified("軽い不満", "湿度低すぎ", 70),
+    CD,
+  ) === CD,
+);
+assert(
+  "同じ強さの別の不調は、3倍待つ",
+  cooldownFor(
+    state("軽い不満", "水分不足", "low"),
+    lastNotified("軽い不満", "湿度低すぎ", 70),
+    CD,
+  ) === CD * 3,
+);
+
+// 日照の通知: 状態は比べないが、クールダウンには数える
+{
+  const sensor = lastNotified("軽い不満", "湿度低すぎ", 240);
+  const base = notificationBaseline(sensor, iso(5));
+  assert(
+    "日照の通知の後でも、比べる状態はセンサーの通知のまま",
+    base?.emotion === "軽い不満" && base.complaint === "湿度低すぎ",
+  );
+  assert(
+    "日照の通知の5分後は、センサーの通知を待たせる",
+    shouldNotify(state("不満", "水分不足", "medium"), base, CD) === false,
+  );
+  const onlyDaylight = notificationBaseline(null, iso(5));
+  assert(
+    "センサーの通知がまだなければ、満足を基準にする",
+    onlyDaylight?.emotion === "満足" && onlyDaylight.complaint === null,
+  );
+  assert(
+    "通知が1度もなければ、基準なし",
+    notificationBaseline(null, null) === null,
+  );
+}
 
 // 境界ちょうど手前（50分前 < 60分）→ まだ抑制される
 assert(

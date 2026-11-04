@@ -18,6 +18,7 @@ import {
   COMPLAINT_SOURCE,
   decideEmotion,
   Emotion,
+  EMOTION_LADDER,
   scoreToUrgency,
   Urgency,
 } from "./emotionTable.ts";
@@ -223,6 +224,21 @@ export interface LastNotifiedState {
   created_at: string; // ISO文字列
 }
 
+// 比べる状態は、センサーの通知（日照の日次判定を除いた最後の通知）から取る。
+// クールダウンは、日照も含めた最後の通知から数える。日照の通知の数分後に
+// センサーの通知がもう1通届かないようにするため
+export function notificationBaseline(
+  lastSensorNotified: LastNotifiedState | null,
+  lastNotifiedAt: string | null,
+): LastNotifiedState | null {
+  if (lastNotifiedAt === null) return lastSensorNotified;
+  return {
+    emotion: lastSensorNotified?.emotion ?? "満足",
+    complaint: lastSensorNotified?.complaint ?? null,
+    created_at: lastNotifiedAt,
+  };
+}
+
 // ------------------------------------------------------------
 // 通知すべきか（クールダウン付き）
 //
@@ -240,7 +256,7 @@ export interface LastNotifiedState {
 //   2. urgency==="high"（危険域）は安全優先でクールダウンを無視し即通知
 //   3. 欠測中のセンサーが原因だった主訴からの「回復」は送らない
 //   4. 満足に戻ったときは、クールダウンを待たずに通知する（cooldownFor）
-//   5. 不調を伝えた後の別の不調は、クールダウンの3倍あける（cooldownFor）
+//   5. 不調を伝えた後の別の不調は、悪化していなければクールダウンの3倍あける（cooldownFor）
 //   6. それ以外は、最後の通知から cooldownMinutes 以内なら見送る
 //
 // 基準を「最後の通知」に置くのが要点。クールダウン中に状態が悪化しても
@@ -248,7 +264,8 @@ export interface LastNotifiedState {
 // （＝「悪化を取りこぼす」ことがない）。
 // ------------------------------------------------------------
 // 不調を伝えたあと、まだ満足に戻らないうちに出た別の不調（乾燥 → 水分不足 など）は、
-// クールダウンをこの倍だけあける。同じ日に何度もお願いが届くのを防ぐ
+// クールダウンをこの倍だけあける。同じ日に何度もお願いが届くのを防ぐ。
+// 同じ不調の悪化や、前より強い感情の不調は、ふつうのクールダウンで伝える
 const REPEAT_COOLDOWN_FACTOR = 3;
 
 // 満足に戻ったこと（水やりのお礼など）は、クールダウンを待たずに伝える。
@@ -260,7 +277,14 @@ export function cooldownFor(
   cooldownMinutes: number,
 ): number {
   if (current.emotion === "満足") return 0;
-  if (lastNotified?.complaint) return cooldownMinutes * REPEAT_COOLDOWN_FACTOR;
+  const otherComplaint = lastNotified?.complaint != null &&
+    current.complaint !== lastNotified.complaint;
+  const worse = lastNotified != null &&
+    EMOTION_LADDER.indexOf(current.emotion) >
+      EMOTION_LADDER.indexOf(lastNotified.emotion as Emotion);
+  if (otherComplaint && !worse) {
+    return cooldownMinutes * REPEAT_COOLDOWN_FACTOR;
+  }
   return cooldownMinutes;
 }
 

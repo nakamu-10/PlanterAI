@@ -27,6 +27,7 @@ import {
   cooldownFor,
   evaluateEmotion,
   LastNotifiedState,
+  notificationBaseline,
   PastEmotionLog,
   shouldNotify,
 } from "../_shared/emotionEngine.ts";
@@ -183,21 +184,27 @@ Deno.serve(async (req: Request) => {
     // 最後に「実際に通知した」感情ログ（クールダウン判定の基準）。
     // 直前の記録行ではなく、ユーザーが最後に受け取った通知を基準にすることで、
     // 境界付近での状態の往復による LINE 乱発を頭打ちにする（shouldNotify参照）。
-    // 日照の日次判定（dailyLightJob）の通知は含めない。含めると、その日の光の
-    // 予報・結果を「今の状態」と取り違え、今が明るいだけで「明るい場所に
-    // 移してくれてありがとう」と回復の通知を送ってしまう。
-    const { data: lastNotifiedRows, error: lastNotifiedError } = await supabase
-      .from("emotion_logs")
-      .select("emotion, complaint, created_at")
-      .eq("device_id", device.id)
-      .eq("notified", true)
-      .is("scores->daily_light", null)
-      .order("created_at", { ascending: false })
-      .limit(1);
-    if (lastNotifiedError) throw lastNotifiedError;
-    const lastNotified = (lastNotifiedRows?.[0] ?? null) as
-      | LastNotifiedState
-      | null;
+    // 比べる状態には、日照の日次判定（dailyLightJob）の通知を使わない。使うと、
+    // その日の光の予報・結果を「今の状態」と取り違え、今が明るいだけで「明るい
+    // 場所に移してくれてありがとう」と回復の通知を送ってしまう。
+    const lastNotifiedQuery = () =>
+      supabase
+        .from("emotion_logs")
+        .select("emotion, complaint, created_at")
+        .eq("device_id", device.id)
+        .eq("notified", true)
+        .order("created_at", { ascending: false })
+        .limit(1);
+    const [lastSensorResult, lastAnyResult] = await Promise.all([
+      lastNotifiedQuery().is("scores->daily_light", null),
+      lastNotifiedQuery(),
+    ]);
+    if (lastSensorResult.error) throw lastSensorResult.error;
+    if (lastAnyResult.error) throw lastAnyResult.error;
+    const lastNotified = notificationBaseline(
+      (lastSensorResult.data?.[0] ?? null) as LastNotifiedState | null,
+      lastAnyResult.data?.[0]?.created_at ?? null,
+    );
 
     const state = evaluateEmotion(scores, filtered, comfortMid, pastLogs);
     // 欠測センサーが原因だった主訴からの「回復しました」通知だけ抑止する
