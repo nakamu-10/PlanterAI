@@ -42,14 +42,21 @@ const forcedMoisture = params.has("moisture")
   ? Number(params.get("moisture"))
   : null;
 const isForced = forcedEmotion !== null || forcedMoisture !== null;
+// ?demo を付けると、状態を5秒おきに取りに行く（センサーもデモモードで5秒おきに送る）
+const REFRESH_MS = params.has("demo") ? 5_000 : 60_000;
 let currentEmotion = forcedEmotion ?? "満足";
 let currentMoisture = forcedMoisture;
 let bubbleTimeout = null;
 let karami3d = null;
+// 最後に見た水やりの時刻。開いたときの記録には喜ばず、その後の水やりにだけ喜ぶ
+let lastWateringAt;
 
 function showReaction(kind) {
   const pool = REACTIONS[currentEmotion]?.[kind] ?? REACTIONS["満足"][kind];
-  const line = pool[Math.floor(Math.random() * pool.length)];
+  showBubble(pool[Math.floor(Math.random() * pool.length)]);
+}
+
+function showBubble(line) {
   bubble.textContent = line;
   bubble.classList.add("is-visible");
   clearTimeout(bubbleTimeout);
@@ -182,6 +189,13 @@ async function refreshState() {
       moistureScore: currentMoisture,
     });
     stateLabel.textContent = describeState(latest?.complaint);
+
+    const wateringAt = data.latest_watering?.created_at ?? null;
+    if (lastWateringAt !== undefined && wateringAt !== lastWateringAt) {
+      karami3d?.cheer();
+      showBubble("お水ありがとう！");
+    }
+    lastWateringAt = wateringAt;
   } catch (err) {
     console.error(err);
     stateLabel.textContent = "状態を取得できませんでした";
@@ -193,4 +207,4 @@ setup3d().catch((err) => {
   setup2d();
 });
 refreshState();
-setInterval(refreshState, 60_000);
+setInterval(refreshState, REFRESH_MS);

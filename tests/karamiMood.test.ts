@@ -1,8 +1,4 @@
-import {
-  isRecovery,
-  moodLevels,
-  wiltFromMoistureScore,
-} from "../app/src/mood.js";
+import { moodLevels, wiltFromMoistureScore } from "../app/src/mood.js";
 
 let pass = 0;
 let fail = 0;
@@ -64,10 +60,6 @@ assert(
     m.body === 0 && m.leaves === 0 && m.tears === 0,
   );
 }
-
-assert("しおれ0.9→0.1は水やりとみなす", isRecovery(0.9, 0.1));
-assert("しおれ0.5→0.3は水やりとみなさない", !isRecovery(0.5, 0.3));
-assert("しおれが進んだときは喜ばない", !isRecovery(0.1, 0.9));
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

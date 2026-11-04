@@ -180,6 +180,14 @@ export const PLANT_PROFILES: Record<string, PlantProfile> = {
 // 中央値フィルタで参照する直近サンプル数（今回の値を含む）
 export const MEDIAN_WINDOW = 5;
 
+// 土の水分がこれだけ（%ポイント）上がったら、水やりとみなす。
+// 水をやると数十ポイント上がり、乾いていく途中の揺れは数ポイントに収まる
+export const WATERING_RISE_PCT = 15;
+
+// 水やりを検出してから、この時間は次の水やりとして数えない。
+// 中央値が追いつくまでの数点で、同じ水やりを何度も記録しないため
+export const WATERING_DEDUP_MINUTES = 10;
+
 // 会話履歴のスライディングウィンドウ件数
 export const CONVERSATION_WINDOW = 7;
 
