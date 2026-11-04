@@ -14,6 +14,7 @@
 //      emotion だけ変わる再通知のとき、旧実装は毎回まったく同じ文字列を送っていた。
 // ============================================================
 import {
+  buildPrompt,
   describeLlmFailure,
   LLM_PROFILES,
   LLM_RETRY_CONFIG,
@@ -171,6 +172,32 @@ assert(
 // 主訴が違えば文面も違う（取り違えの検知）
 const strongLines = COMPLAINTS.map((c) => fallbackMessage(c, "苛立ち"));
 assert("主訴ごとに文面が一意", new Set(strongLines).size === COMPLAINTS.length);
+
+console.log("--- プロンプト ---");
+// 水やりの直後は、何で元気になったかを書く（お礼として伝えるため）
+{
+  const base = {
+    plantName: "カラ美",
+    characterId: "amaenbo",
+    state: {
+      emotion: "満足" as Emotion,
+      complaint: null,
+      urgency: "none",
+      duration_hours: 0,
+      duration_label: "",
+    } as Parameters<typeof buildPrompt>[0]["state"],
+    recentConversation: [],
+    relationshipSummary: null,
+  };
+  assert(
+    "水やりの直後は、プロンプトに水をもらったと書く",
+    buildPrompt({ ...base, justWatered: true }).includes("水をもらった"),
+  );
+  assert(
+    "水やりがなければ書かない",
+    !buildPrompt(base).includes("水をもらった"),
+  );
+}
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

@@ -89,6 +89,7 @@ export function buildPrompt(opts: {
   state: EmotionState;
   recentConversation: ConversationEntry[]; // 新しい順で渡してOK（内部で古い順に並べ替え）
   relationshipSummary: string | null;
+  justWatered?: boolean; // 直前に水やりを検出したか
 }): string {
   const character = CHARACTERS[opts.characterId] ?? CHARACTERS.amaenbo;
 
@@ -107,6 +108,10 @@ export function buildPrompt(opts: {
 継続時間: ${opts.state.duration_label}（${opts.state.duration_hours}時間）
 緊急度: ${opts.state.urgency}`
     : `感情: 満足（快適な状態に戻った）`;
+  // 何で元気になったかが分かると、お礼として伝えられる
+  const wateredDesc = opts.justWatered
+    ? "\n直前の出来事: 飼い主に水をもらった"
+    : "";
 
   return `${character.persona}
 あなたの名前は「${opts.plantName}」です。
@@ -118,7 +123,7 @@ ${JSON.stringify(opts.relationshipSummary)}
 ${historyText}
 
 # あなたの現在の状態（センサーによる確定情報）
-${stateDesc}
+${stateDesc}${wateredDesc}
 
 # 指示
 - 上記の状態を、あなたの性格・口調で飼い主に伝えるLINEメッセージを1通だけ書いてください。

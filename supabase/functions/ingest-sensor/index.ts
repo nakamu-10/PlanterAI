@@ -19,6 +19,7 @@ import {
   MEDIAN_WINDOW,
   NOTIFY_COOLDOWN_MINUTES,
   PLANT_PROFILES,
+  WATERING_DEDUP_MINUTES,
 } from "../_shared/config.ts";
 import { applyMedianFilter, toComfortScores } from "../_shared/normalize.ts";
 import type { RawReading } from "../_shared/normalize.ts";
@@ -40,6 +41,7 @@ import { fallbackMessage } from "../_shared/fallback.ts";
 import { pushLineMessage } from "../_shared/line.ts";
 import { runDailyLightCheck } from "../_shared/dailyLightJob.ts";
 import { validateRawReading } from "../_shared/validation.ts";
+import { detectWatering } from "../_shared/watering.ts";
 
 const supabase = createClient(
   requiredEnv("SUPABASE_URL"),
@@ -216,6 +218,31 @@ Deno.serve(async (req: Request) => {
     if (sensorInsertError) throw sensorInsertError;
 
     // ------------------------------------------------------
+    // 5.5 水やりの検出。同じ水やりを、中央値が追いつくまで何度も数えない
+    // ------------------------------------------------------
+    const dedupSince = new Date(Date.now() - WATERING_DEDUP_MINUTES * 60000);
+    const { data: recentWateringRows, error: recentWateringError } =
+      await supabase
+        .from("watering_events")
+        .select("id")
+        .eq("device_id", device.id)
+        .gte("created_at", dedupSince.toISOString())
+        .limit(1);
+    if (recentWateringError) throw recentWateringError;
+    const recentlyWatered = (recentWateringRows ?? []).length > 0;
+    const watering = recentlyWatered ? null : detectWatering(history, current);
+    if (watering) {
+      const { error: wateringInsertError } = await supabase
+        .from("watering_events")
+        .insert({
+          device_id: device.id,
+          moisture_before: watering.before,
+          moisture_after: watering.after,
+        });
+      if (wateringInsertError) throw wateringInsertError;
+    }
+
+    // ------------------------------------------------------
     // 6. 遷移時のみ Layer 3: LLM生成 → LINE通知
     // ------------------------------------------------------
     let message: string | null = null;
@@ -263,6 +290,7 @@ Deno.serve(async (req: Request) => {
           state,
           recentConversation: (convoRows ?? []) as ConversationEntry[],
           relationshipSummary: summaryRows?.[0]?.summary ?? null,
+          justWatered: recentlyWatered || watering !== null,
         });
 
         // 遷移通知は即時性が高いので interactive（思考は minimal で最速寄り）。
@@ -373,6 +401,7 @@ Deno.serve(async (req: Request) => {
       scores,
       state,
       missing: filtered.missing, // 欠測センサー（空配列＝全センサー正常）
+      watering, // 今回の点で水やりを検出したら { before, after }
       will_notify: willNotify,
       notified,
       message,
