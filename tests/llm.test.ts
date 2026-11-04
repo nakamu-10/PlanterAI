@@ -197,6 +197,30 @@ console.log("--- プロンプト ---");
     "水やりがなければ書かない",
     !buildPrompt(base).includes("水をもらった"),
   );
+  // 日が差しただけで「移動してくれてありがとう」と言っていた
+  assert(
+    "書かれていない飼い主の行動にお礼を言わせない",
+    buildPrompt(base).includes("決めつけたりしてはいけません"),
+  );
+  // 「〜ボク最高に幸せなの」が何通も続いていた
+  const plantSaid = (message: string, minutesAgo: number) => ({
+    role: "plant" as const,
+    message,
+    created_at: new Date(Date.now() - minutesAgo * 60000).toISOString(),
+  });
+  const conversation = [1, 2, 3, 4, 5, 6].map((i) =>
+    plantSaid(`発言${i}。`, i * 10)
+  );
+  const prompt = buildPrompt({ ...base, recentConversation: conversation });
+  assert(
+    "最近の自分の発言を5通まで見せ、同じ文末を避けさせる",
+    prompt.includes("「発言1。」") && prompt.includes("「発言5。」") &&
+      !prompt.includes("「発言6。」"),
+  );
+  assert(
+    "文を句読点で終えさせる",
+    prompt.includes("「。」「！」「？」のどれかで終えて"),
+  );
 }
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
