@@ -3,7 +3,7 @@ import jsQR from "jsqr";
 import { PNG } from "pngjs";
 import QRCode from "qrcode";
 
-const targetURL = process.argv[2] ?? "https://planter-ai-zeta.vercel.app/";
+const targetURL = process.argv[2] ?? "https://planterai.vercel.app/";
 const outputPath = process.argv[3] ?? "docs/qr/PlanterAI_QR.png";
 
 await QRCode.toFile(outputPath, targetURL, {
