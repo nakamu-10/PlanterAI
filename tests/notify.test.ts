@@ -15,7 +15,8 @@ import {
   shouldNotify,
 } from "../supabase/functions/_shared/emotionEngine.ts";
 
-let pass = 0, fail = 0;
+let pass = 0,
+  fail = 0;
 function assert(name: string, cond: boolean, detail = "") {
   if (cond) {
     pass++;
@@ -104,8 +105,34 @@ assert(
 );
 assert(
   "満足に戻ったときだけ、DB 側のクールダウンも 0 にする",
-  cooldownFor(state("満足", null, "none"), CD) === 0 &&
-    cooldownFor(state("軽い不満", "水分不足", "low"), CD) === CD,
+  cooldownFor(
+        state("満足", null, "none"),
+        lastNotified("不満", "水分不足", 5),
+        CD,
+      ) === 0 &&
+    cooldownFor(
+        state("軽い不満", "水分不足", "low"),
+        lastNotified("満足", null, 5),
+        CD,
+      ) === CD,
+);
+
+// 不調を伝えたあとの別の不調（10/31 に乾燥と水分不足が交互に4通届いた）
+assert(
+  "不調のあとの別の不調は、クールダウン明け(65分前)でも待つ",
+  shouldNotify(
+    state("軽い不満", "水分不足", "low"),
+    lastNotified("軽い不満", "湿度低すぎ", 65),
+    CD,
+  ) === false,
+);
+assert(
+  "不調のあとの別の不調も、クールダウンの3倍たてば通知する",
+  shouldNotify(
+    state("軽い不満", "水分不足", "low"),
+    lastNotified("軽い不満", "湿度低すぎ", CD * 3 + 5),
+    CD,
+  ) === true,
 );
 
 // 境界ちょうど手前（50分前 < 60分）→ まだ抑制される

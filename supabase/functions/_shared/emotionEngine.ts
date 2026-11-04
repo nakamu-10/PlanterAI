@@ -240,20 +240,28 @@ export interface LastNotifiedState {
 //   2. urgency==="high"（危険域）は安全優先でクールダウンを無視し即通知
 //   3. 欠測中のセンサーが原因だった主訴からの「回復」は送らない
 //   4. 満足に戻ったときは、クールダウンを待たずに通知する（cooldownFor）
-//   5. それ以外は、最後の通知から cooldownMinutes 以内なら見送る
+//   5. 不調を伝えた後の別の不調は、クールダウンの3倍あける（cooldownFor）
+//   6. それ以外は、最後の通知から cooldownMinutes 以内なら見送る
 //
 // 基準を「最後の通知」に置くのが要点。クールダウン中に状態が悪化しても
 // その変化は捨てられず、クールダウン明けの最初のPOSTで確実に通知される
 // （＝「悪化を取りこぼす」ことがない）。
 // ------------------------------------------------------------
+// 不調を伝えたあと、まだ満足に戻らないうちに出た別の不調（乾燥 → 水分不足 など）は、
+// クールダウンをこの倍だけあける。同じ日に何度もお願いが届くのを防ぐ
+const REPEAT_COOLDOWN_FACTOR = 3;
+
 // 満足に戻ったこと（水やりのお礼など）は、クールダウンを待たずに伝える。
 // 境界で状態が往復しても、回復を伝えた後の悪化はクールダウンで止まるので、
 // 通知はクールダウン1回あたり「悪化」と「回復」の2通までに収まる
 export function cooldownFor(
   current: EmotionState,
+  lastNotified: LastNotifiedState | null,
   cooldownMinutes: number,
 ): number {
-  return current.emotion === "満足" ? 0 : cooldownMinutes;
+  if (current.emotion === "満足") return 0;
+  if (lastNotified?.complaint) return cooldownMinutes * REPEAT_COOLDOWN_FACTOR;
+  return cooldownMinutes;
 }
 
 export function shouldNotify(
@@ -294,7 +302,9 @@ export function shouldNotify(
   if (lastNotified) {
     const elapsedMin =
       (Date.now() - new Date(lastNotified.created_at).getTime()) / 60000;
-    if (elapsedMin < cooldownFor(current, cooldownMinutes)) return false;
+    if (elapsedMin < cooldownFor(current, lastNotified, cooldownMinutes)) {
+      return false;
+    }
   }
 
   return true;

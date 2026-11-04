@@ -183,11 +183,15 @@ Deno.serve(async (req: Request) => {
     // 最後に「実際に通知した」感情ログ（クールダウン判定の基準）。
     // 直前の記録行ではなく、ユーザーが最後に受け取った通知を基準にすることで、
     // 境界付近での状態の往復による LINE 乱発を頭打ちにする（shouldNotify参照）。
+    // 日照の日次判定（dailyLightJob）の通知は含めない。含めると、その日の光の
+    // 予報・結果を「今の状態」と取り違え、今が明るいだけで「明るい場所に
+    // 移してくれてありがとう」と回復の通知を送ってしまう。
     const { data: lastNotifiedRows, error: lastNotifiedError } = await supabase
       .from("emotion_logs")
       .select("emotion, complaint, created_at")
       .eq("device_id", device.id)
       .eq("notified", true)
+      .is("scores->daily_light", null)
       .order("created_at", { ascending: false })
       .limit(1);
     if (lastNotifiedError) throw lastNotifiedError;
@@ -259,7 +263,11 @@ Deno.serve(async (req: Request) => {
           p_device_id: device.id,
           p_signature: notificationSignature,
           p_urgency: state.urgency,
-          p_cooldown_minutes: cooldownFor(state, NOTIFY_COOLDOWN_MINUTES),
+          p_cooldown_minutes: cooldownFor(
+            state,
+            lastNotified,
+            NOTIFY_COOLDOWN_MINUTES,
+          ),
         },
       );
       if (claimError) throw claimError;
