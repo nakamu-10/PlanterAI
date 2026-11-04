@@ -65,10 +65,10 @@
 // ============================================================
 #include "secrets.h"
 
-// 送信間隔。テスト中は60秒、実運用は10分（600000）に戻す
-// const unsigned long POST_INTERVAL_MS = 60UL * 1000;
-const unsigned long POST_INTERVAL_MS = 600UL * 1000;   // 10分
-// static const unsigned long POST_INTERVAL_MS = 5UL * 1000;   // デモ用: 5秒
+// 送信間隔。ふだんは10分おき。デモ（撮影・見学会）では DEMO_MODE を true にして
+// 書き込むと5秒おきに送り、水やりが十数秒で LINE とアプリに出る
+const bool DEMO_MODE = false;
+const unsigned long POST_INTERVAL_MS = DEMO_MODE ? 5UL * 1000 : 600UL * 1000;
 
 // ============================================================
 // ★v3 堅牢化パラメータ
