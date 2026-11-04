@@ -54,31 +54,40 @@ async function authenticate(req: Request): Promise<Device | null> {
 }
 
 async function handleDashboard(device: Device): Promise<Response> {
-  const [sensorResult, emotionResult, summaryResult] = await Promise.all([
-    supabase
-      .from("sensor_logs")
-      .select("raw, filtered, scores, created_at")
-      .eq("device_id", device.id)
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("emotion_logs")
-      .select("emotion, complaint, urgency, duration_hours, created_at")
-      .eq("device_id", device.id)
-      .order("created_at", { ascending: false })
-      .limit(20),
-    supabase
-      .from("relationship_summaries")
-      .select("summary")
-      .eq("device_id", device.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  const [sensorResult, emotionResult, summaryResult, wateringResult] =
+    await Promise.all([
+      supabase
+        .from("sensor_logs")
+        .select("raw, filtered, scores, created_at")
+        .eq("device_id", device.id)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("emotion_logs")
+        .select("emotion, complaint, urgency, duration_hours, created_at")
+        .eq("device_id", device.id)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabase
+        .from("relationship_summaries")
+        .select("summary")
+        .eq("device_id", device.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("watering_events")
+        .select("moisture_before, moisture_after, created_at")
+        .eq("device_id", device.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
   if (sensorResult.error) throw sensorResult.error;
   if (emotionResult.error) throw emotionResult.error;
   if (summaryResult.error) throw summaryResult.error;
+  if (wateringResult.error) throw wateringResult.error;
 
   const sensorHistory = sensorResult.data ?? [];
   const emotionHistory = emotionResult.data ?? [];
@@ -93,6 +102,7 @@ async function handleDashboard(device: Device): Promise<Response> {
     sensor_history: sensorHistory,
     emotion_history: emotionHistory,
     relationship_summary: summaryResult.data?.summary ?? null,
+    latest_watering: wateringResult.data ?? null,
   });
 }
 

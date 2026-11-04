@@ -9,9 +9,6 @@ export const DROOP_BY_EMOTION = {
   "苛立ち": 0.85,
 };
 
-// 葉のしおれ具合がこれ以上よくなったら「水をもらった」とみなして喜ぶ
-export const RECOVERY_STEP = 0.3;
-
 // 土の水分の快適度（0〜100）から、葉のしおれ具合（0〜1）を出す。
 // 80 以上は快適（通知の判定 scoreToUrgency と同じ区切り）で、0 で最大までしおれる
 export function wiltFromMoistureScore(score) {
@@ -24,8 +21,4 @@ export function moodLevels({ emotion, moistureScore = null }) {
   const body = DROOP_BY_EMOTION[emotion] ?? 0;
   const leaves = wiltFromMoistureScore(moistureScore) ?? body;
   return { leaves, body };
-}
-
-export function isRecovery(previousLeaves, nextLeaves) {
-  return previousLeaves - nextLeaves >= RECOVERY_STEP;
 }

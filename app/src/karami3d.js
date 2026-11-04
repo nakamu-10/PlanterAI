@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { isRecovery, moodLevels } from "./mood.js";
+import { moodLevels } from "./mood.js";
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/karami.glb`;
 
@@ -116,7 +116,6 @@ export async function createKarami(container) {
     // mood: { emotion: 気分の名前, moistureScore: 土の水分の快適度（0〜100、なければ null） }
     setMood(mood) {
       const next = moodLevels(mood);
-      if (isRecovery(target.leaves, next.leaves)) playOnce("joy");
       target.leaves = next.leaves;
       target.body = next.body;
     },
