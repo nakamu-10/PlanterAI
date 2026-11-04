@@ -15,7 +15,7 @@ LINE
 にある。Viteでローカル起動と静的ビルドを行い、ルートの `vercel.json`
 からVercelへデプロイする。
 
-公開URL：[https://planter-ai-zeta.vercel.app/](https://planter-ai-zeta.vercel.app/)
+公開URL：[https://planterai.vercel.app/](https://planterai.vercel.app/)
 
 ```sh
 cd site
