@@ -57,6 +57,13 @@ assert(
   "知らない気分は元気として扱う",
   moodLevels({ emotion: "謎" }).body === 0,
 );
+{
+  const m = moodLevels({ emotion: "constructor" });
+  assert(
+    "どのオブジェクトにもあるキーも、知らない気分として扱う",
+    m.body === 0 && m.leaves === 0 && m.tears === 0,
+  );
+}
 
 assert("しおれ0.9→0.1は水やりとみなす", isRecovery(0.9, 0.1));
 assert("しおれ0.5→0.3は水やりとみなさない", !isRecovery(0.5, 0.3));

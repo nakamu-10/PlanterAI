@@ -24,7 +24,10 @@ export function wiltFromMoistureScore(score) {
 
 // 葉は土の水分、体（顔・頭）と涙は気分で決める。水分が分からないときは、葉も気分に合わせる
 export function moodLevels({ emotion, moistureScore = null }) {
-  const body = DROOP_BY_EMOTION[emotion] ?? 0;
+  // constructor などの、どのオブジェクトにもあるキーを拾わないように hasOwn で引く
+  const body = Object.hasOwn(DROOP_BY_EMOTION, emotion)
+    ? DROOP_BY_EMOTION[emotion]
+    : 0;
   const leaves = wiltFromMoistureScore(moistureScore) ?? body;
   const tears = body >= TEARS_FROM ? 1 : 0;
   return { leaves, body, tears };
