@@ -1,4 +1,3 @@
-// ============================================================
 // dailyLight.ts — Layer 2b: 日照不足の日次判定（純ロジック / I/Oなし）
 //
 // なぜ emotionEngine.ts と分けるのか:
@@ -10,12 +9,9 @@
 //
 // このファイルは Deno にも Supabase にも依存しない純関数のみ。
 // I/O は dailyLightJob.ts が担当する（tsx でそのままテストできる）。
-// ============================================================
 
-// ------------------------------------------------------------
 // 設定（全植物共通のスケジュール・堅牢性パラメータ）
 // 植物ごとに変わる「目標積算光量」は config.ts の lightDaily.comfortLow
-// ------------------------------------------------------------
 export interface DailyLightConfig {
   /** 途中経過をチェックする時刻（JST）。まだ移動して間に合う時間帯を選ぶ */
   checkpointHour: number;
@@ -46,10 +42,8 @@ export const DAILY_LIGHT: DailyLightConfig = {
   daylightEndHour: 18, // 18時以降は 3.1/時まで落ちるが lux≒0 なので積算に影響しない
 };
 
-// ------------------------------------------------------------
 // JST ユーティリティ
 // Edge Functions は UTC で動くので、「1日」の境界を自前で持つ必要がある。
-// ------------------------------------------------------------
 const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -86,16 +80,14 @@ export function dailyLightWindows(
   };
 }
 
-// ------------------------------------------------------------
 // 積算光量の計算（台形則）
 //
 // 面積 = Σ (lux_i + lux_{i+1}) / 2 × Δt
 //
-// ★Δtに上限を設けるのが肝。POSTが3時間落ちた直後に明るい値が1件来ると、
+// Δtに上限を設けるのが肝。POSTが3時間落ちた直後に明るい値が1件来ると、
 //   その1サンプルが3時間分の面積として計上され積算が跳ね上がる。
 //   Δtをクランプすると同時に「カバレッジ」も下がるので、
 //   面積の過小評価と信頼性フラグが自動的に連動する。
-// ------------------------------------------------------------
 export interface LuxSample {
   at: string | Date; // ISO文字列 or Date
   lux: number;
@@ -120,7 +112,7 @@ export function integrateLuxHours(
   const endMs = windowEnd.getTime();
   const maxGapMs = cfg.maxGapMinutes * 60 * 1000;
 
-  // ★カバレッジの分母は「窓と日中帯の重なり」に限定する。
+  // カバレッジの分母は「窓と日中帯の重なり」に限定する。
   //   夜間はPOSTが落ちがち（実測: 18〜5時は 1.4〜4.7件/時）だが、
   //   その時間帯の lux はほぼ0なので積算光量には影響しない。
   //   24時間を分母にすると、日中が健全な日まで判定不能になってしまう。
@@ -175,7 +167,6 @@ function round2(x: number): number {
   return Math.round(x * 100) / 100;
 }
 
-// ------------------------------------------------------------
 // 判定
 //
 //   kind = "warning"   … 15時: このままだと今日は足りなさそう（まだ間に合う）
@@ -183,9 +174,8 @@ function round2(x: number): number {
 //   kind = "recovered" … 20時: 警告後に飼い主が動かしてくれて目標達成
 //   kind = "none"      … 通知しない（理由は reason に入る）
 //
-// ★「警告していない日は達成しても黙る」のが要点。
+// 「警告していない日は達成しても黙る」のが要点。
 //   警告 → 介入 → 結果確定 という因果があるときだけ回復通知を出す。
-// ------------------------------------------------------------
 export type DailyLightVerdictKind =
   | "none"
   | "warning"
@@ -240,7 +230,7 @@ export function judgeDailyLight(args: {
     integral,
   };
 
-  // ---- 締め切り枠（20時以降） ----
+  // 締め切り枠（20時以降）
   if (hour >= cfg.deadlineHour) {
     if (args.closedToday) return none("締め切り判定は通知済み", integral);
     if (!integral.reliable) {
@@ -262,7 +252,7 @@ export function judgeDailyLight(args: {
     };
   }
 
-  // ---- チェックポイント枠（15時〜20時未満） ----
+  // チェックポイント枠（15時〜20時未満）
   if (args.warnedToday) return none("チェックポイントは通知済み", integral);
   if (!integral.reliable) {
     return none(
@@ -280,10 +270,8 @@ export function judgeDailyLight(args: {
   };
 }
 
-// ------------------------------------------------------------
 // 連続不足日数のカウント（昨日から遡る）
 // emotionTable.ts の継続時間軸にそのまま乗せるために時間へ換算する
-// ------------------------------------------------------------
 export function countConsecutiveShortDays(
   shortfallDateKeys: string[], // 過去に shortfall を出したJST日付（重複可）
   now: Date,

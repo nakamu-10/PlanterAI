@@ -1,4 +1,3 @@
-// ============================================================
 // ingest-sensor — ESP32からのセンサーPOSTを受けるメイン関数
 //
 // パイプライン:
@@ -11,7 +10,6 @@
 //
 // 認証: ESP32はSupabaseのJWTを持たないため、x-device-key で
 //       devices テーブルを照合する自前認証（--no-verify-jwt でデプロイ）
-// ============================================================
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
@@ -78,9 +76,7 @@ Deno.serve(async (req: Request) => {
       return json({ error: "POSTメソッドのみ対応しています" }, 405);
     }
 
-    // ------------------------------------------------------
     // 1. デバイス認証
-    // ------------------------------------------------------
     const deviceKey = req.headers.get("x-device-key");
     if (!deviceKey) {
       return json({ error: "x-device-key ヘッダーがありません" }, 401);
@@ -100,9 +96,7 @@ Deno.serve(async (req: Request) => {
       return json({ error: "デバイスが登録されていません" }, 401);
     }
 
-    // ------------------------------------------------------
     // 2. リクエストボディの検証
-    // ------------------------------------------------------
     const contentLength = Number(req.headers.get("content-length") ?? 0);
     if (Number.isFinite(contentLength) && contentLength > 16_384) {
       return json({ error: "リクエストボディが大きすぎます" }, 413);
@@ -131,9 +125,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // ------------------------------------------------------
     // 3. Layer 1: 中央値フィルタ + 快適スコア
-    // ------------------------------------------------------
     const { data: historyRows, error: historyError } = await supabase
       .from("sensor_logs")
       .select("raw")
@@ -167,9 +159,7 @@ Deno.serve(async (req: Request) => {
     };
     const scores = toComfortScores(filtered, profile);
 
-    // ------------------------------------------------------
     // 4. Layer 2: 感情判定 + 状態遷移の検出
-    // ------------------------------------------------------
     const { data: pastLogRows, error: pastLogError } = await supabase
       .from("emotion_logs")
       .select("emotion, complaint, created_at")
@@ -205,9 +195,7 @@ Deno.serve(async (req: Request) => {
       filtered.missing,
     );
 
-    // ------------------------------------------------------
     // 5. sensor_logs へ記録（常に）
-    // ------------------------------------------------------
     const { error: sensorInsertError } = await supabase.from("sensor_logs")
       .insert({
         device_id: device.id,
@@ -217,9 +205,7 @@ Deno.serve(async (req: Request) => {
       });
     if (sensorInsertError) throw sensorInsertError;
 
-    // ------------------------------------------------------
     // 5.5 水やりの検出。同じ水やりを、中央値が追いつくまで何度も数えない
-    // ------------------------------------------------------
     const dedupSince = new Date(Date.now() - WATERING_DEDUP_MINUTES * 60000);
     const { data: recentWateringRows, error: recentWateringError } =
       await supabase
@@ -242,9 +228,7 @@ Deno.serve(async (req: Request) => {
       if (wateringInsertError) throw wateringInsertError;
     }
 
-    // ------------------------------------------------------
     // 6. 遷移時のみ Layer 3: LLM生成 → LINE通知
-    // ------------------------------------------------------
     let message: string | null = null;
     let notified = false;
     const notificationSignature = JSON.stringify([
@@ -369,9 +353,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // ------------------------------------------------------
     // 7. emotion_logs へ記録（常に）
-    // ------------------------------------------------------
     const { error: emotionInsertError } = await supabase.from("emotion_logs")
       .insert({
         device_id: device.id,
@@ -384,12 +366,10 @@ Deno.serve(async (req: Request) => {
       });
     if (emotionInsertError) throw emotionInsertError;
 
-    // ------------------------------------------------------
     // 8. Layer 2b: 日照不足の日次判定（積算光量方式）
     // 毎サイクル呼ぶが、15時より前はDBを叩かずに即returnする。
     // sensor_logs の insert より後に置くこと（今回のサンプルを積算に含めるため）。
     // 失敗しても通常の通知パイプラインは止めない。
-    // ------------------------------------------------------
     try {
       await runDailyLightCheck(supabase, device);
     } catch (err) {

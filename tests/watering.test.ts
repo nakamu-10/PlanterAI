@@ -1,7 +1,5 @@
-// ============================================================
 // 水やりの検出（detectWatering）の検証
 // 実行: npx tsx tests/watering.test.ts
-// ============================================================
 import { soilAdcToPercent } from "../supabase/functions/_shared/config.ts";
 import type { RawReading } from "../supabase/functions/_shared/normalize.ts";
 import { detectWatering } from "../supabase/functions/_shared/watering.ts";

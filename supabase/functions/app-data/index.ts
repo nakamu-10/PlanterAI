@@ -1,9 +1,7 @@
-// ============================================================
 // app-data — 専用Webアプリ用のダッシュボード取得・設定更新API
 //
 // 認証: ingest-sensor と同じ x-device-key ヘッダー方式
 //       （--no-verify-jwt でデプロイ）
-// ============================================================
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PLANT_PROFILES } from "../_shared/config.ts";

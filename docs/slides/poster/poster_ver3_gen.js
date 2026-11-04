@@ -9,7 +9,7 @@ const s = p.addSlide();
 const OUT = [];
 const plain = (t) => t.replace(/\*\*/g, "");
 
-// ---- palette (CUD-safe, same as ver1) ----
+// palette (CUD-safe, same as ver1)
 const DARK = "1E4A38", GREEN = "03AF7A", ORANGE = "F6AA00";
 const INK = "1A1A1A",
   SUB = "44514B",
@@ -18,7 +18,7 @@ const INK = "1A1A1A",
   WARM = "FDF1D8";
 const F = "Meiryo";
 
-// ---- geometry ----
+// geometry
 const M = 1.25;
 const GUT = 0.95;
 const CW = (W - M * 2 - GUT) / 2;
@@ -35,7 +35,7 @@ OUT.push(
   "†1, †2  電気通信大学 情報理工学域 II類　／　連絡先：planterai-contact@example.ac.jp",
 );
 
-// ================= header =================
+// header
 s.addShape(p.ShapeType.rect, {
   x: 0,
   y: 0,
@@ -124,7 +124,7 @@ s.addText("実機デモ動画", {
   align: "center",
 });
 
-// ================= helpers =================
+// helpers
 function head(n, title, x, y) {
   OUT.push(
     "\n\n" + "=".repeat(60) + "\n" + n + ". " + title + "\n" + "=".repeat(60) +
@@ -213,10 +213,10 @@ function caption(t, x, y, w, h) {
   });
 }
 
-// ================= LEFT COLUMN =================
+// LEFT COLUMN
 let y = HDR + 0.85;
 
-// --- 1 背景 ---
+// 1 背景
 y = head(1, "気づいたときには、もう手遅れ", LX, y);
 para(
   "観葉植物への一世帯当たりの支出は、2020年から2022年にかけて伸びたのち、**2022年をピークに約16％減少**している（図1）。" +
@@ -350,7 +350,7 @@ y += rH + 0.2;
 caption("図2　育成をやめた・始めない理由（複数選択・N=83）", LX, y, CW, 0.7);
 y += 1.5;
 
-// --- 2 提案 ---
+// 2 提案
 y = head(2, "判定は決定論、表現だけを AI に", LX, y);
 para(
   "そこで我々は、植物を擬人化し、**自ら世話を要求する IoT プランター PlanterAI** を開発した。" +
@@ -528,10 +528,10 @@ caption(
   1.3,
 );
 
-// ================= RIGHT COLUMN =================
+// RIGHT COLUMN
 let r = HDR + 0.85;
 
-// --- 3 結果 ---
+// 3 結果
 r = head(3, "実機で動き、想定外にも耐えた", RX, r);
 para(
   "試作機は ESP32-DevKitC に、土壌水分（SEN0193）・温湿度（BME280）・照度（TSL2591）の各センサーと 128×64 の OLED を接続し、" +
@@ -600,7 +600,7 @@ caption(
 );
 r += 1.9;
 
-// --- 異常値耐性（結果の後半） ---
+// 異常値耐性（結果の後半）
 para(
   "設計の効果は、想定外の事象で確かめられた。運用中に BME280 が間欠的にリセットし、" +
     "**固定異常値（180.1℃／湿度100％）を返す事象が発生**した。生値を LLM に直接渡す構成であれば、センサー異常がそのまま体感として語られてしまう。" +
@@ -671,7 +671,7 @@ caption(
 );
 r += 1.9;
 
-// --- 4 今後の展望 ---
+// 4 今後の展望
 r = head(4, "ルール表に触れずに、身体を持たせる", RX, r);
 para(
   "判定と表現を分離したこの構成は、**判定パイプラインを保ったまま入力と出力を増やせる**。",
@@ -718,7 +718,7 @@ para(
 );
 r += 2.6;
 
-// --- 会場デモの案内 ---
+// 会場デモの案内
 s.addShape(p.ShapeType.rect, {
   x: RX,
   y: r,
@@ -753,7 +753,7 @@ OUT.push(
   "  土壌の乾燥を再現すると、OLED の表情と LINE の発話がその場で変わります。右上の QR からデモ動画もご覧いただけます。",
 );
 
-// --- 参考文献 ---
+// 参考文献
 const refY = H - 1.95;
 s.addText("参考文献・謝辞", {
   x: RX,

@@ -1,5 +1,4 @@
-// ============================================================
-// emotionTable.ts — 感情判定テーブル（★差し替えポイント★)
+// emotionTable.ts — 感情判定テーブル（差し替えポイント)
 //
 // 5感情 × 6主訴 の25パターン表に相当する設定をここに集約している。
 // 作成済みの25パターン表がある場合は、このファイルの数値・ルールだけを
@@ -11,7 +10,6 @@
 //   ・同じ主訴が長く続くほど感情がエスカレートする
 //   ・主訴ごとに「エスカレートの速さ」が違う
 //     （例: 水分過多=根腐れは進行が速いので早めに苛立ちまで到達）
-// ============================================================
 
 export type Emotion = "満足" | "軽い不満" | "不満" | "不安" | "苛立ち";
 export type Complaint =
@@ -46,11 +44,9 @@ export const COMPLAINT_PRIORITY: Record<Complaint, number> = {
   // 植物の種類によってこの重みは異なる。
 };
 
-// ------------------------------------------------------------
 // 主訴の由来センサー
 // センサーが欠測しているとき「その主訴は今そもそも判定できるのか」を
 // 知るために使う（emotionEngine.ts の shouldNotify）。
-// ------------------------------------------------------------
 export type SensorSource = "moisture" | "temp" | "light" | "humidity";
 
 export const COMPLAINT_SOURCE: Record<Complaint, SensorSource> = {
@@ -64,11 +60,9 @@ export const COMPLAINT_SOURCE: Record<Complaint, SensorSource> = {
   "湿度高すぎ": "humidity",
 };
 
-// ------------------------------------------------------------
 // 感情エスカレーション表
 // 緊急度 × 継続時間（時間単位）→ 感情
 // escalationHours: [t1, t2] = t1時間以上で1段階、t2時間以上で2段階エスカレート
-// ------------------------------------------------------------
 interface EscalationRule {
   base: Record<Exclude<Urgency, "none">, Emotion>; // 発生直後の感情
   escalationHours: [number, number];

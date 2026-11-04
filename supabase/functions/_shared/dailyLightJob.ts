@@ -1,9 +1,7 @@
-// ============================================================
 // dailyLightJob.ts — 日照不足判定の実行（Supabase I/O + 通知）
 //
 // ingest-sensor から毎サイクル呼ばれるが、判定時刻（15時）より前は
 // DBを一切叩かずに即returnする。実質的なコストは日に数回だけ。
-// ============================================================
 
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { PLANT_PROFILES } from "./config.ts";
@@ -43,7 +41,7 @@ export async function runDailyLightCheck(
   device: DeviceRow,
   now: Date = new Date(),
 ): Promise<DailyLightVerdict | null> {
-  // ---- 早期リターン: 判定時刻前はDBを叩かない ----
+  // 早期リターン: 判定時刻前はDBを叩かない
   if (jstHour(now) < DAILY_LIGHT.checkpointHour) return null;
 
   const profile = PLANT_PROFILES[device.plant_profile];
@@ -53,7 +51,7 @@ export async function runDailyLightCheck(
   const target = profile.lightDaily.comfortLow;
   const { dayStart, checkpointStart, deadlineStart } = dailyLightWindows(now);
 
-  // ---- 1. 過去の日照不足通知を取得（重複判定 + 連続日数） ----
+  // 1. 過去の日照不足通知を取得（重複判定 + 連続日数）
   const lookbackStart = new Date(dayStart.getTime() - 14 * 24 * 60 * 60 * 1000);
   const { data: pastLogs, error: logErr } = await supabase
     .from("emotion_logs")
@@ -74,7 +72,7 @@ export async function runDailyLightCheck(
     (l) => new Date(l.created_at).getTime() >= deadlineStart.getTime(),
   );
 
-  // ---- 2. 今日のluxサンプルを取得 ----
+  // 2. 今日のluxサンプルを取得
   const { data: sensorRows, error: sensorErr } = await supabase
     .from("sensor_logs")
     .select("raw, created_at")
@@ -90,7 +88,7 @@ export async function runDailyLightCheck(
     }))
     .filter((s) => Number.isFinite(s.lux));
 
-  // ---- 3. 判定 ----
+  // 3. 判定
   const verdict = judgeDailyLight({
     now,
     samples,
@@ -128,7 +126,7 @@ export async function runDailyLightCheck(
     };
   }
 
-  // ---- 4. 感情状態の組み立て ----
+  // 4. 感情状態の組み立て
   const shortDayKeys = logs
     .filter((l) =>
       (l.scores as { daily_light?: { kind?: string } } | null)?.daily_light
@@ -139,7 +137,7 @@ export async function runDailyLightCheck(
 
   const state = buildState(verdict, profile.lightDaily, consecutiveDays);
 
-  // ---- 5. セリフ生成 ----
+  // 5. セリフ生成
   const { data: convo, error: convoError } = await supabase
     .from("conversation_logs")
     .select("role, message, created_at")
@@ -181,7 +179,7 @@ export async function runDailyLightCheck(
     message = fallbackMessage(state.complaint, state.emotion);
   }
 
-  // ---- 6. 送信 & 記録 ----
+  // 6. 送信 & 記録
   try {
     await pushLineMessage(device.line_user_id, message);
   } catch (error) {
@@ -257,9 +255,7 @@ export async function runDailyLightCheck(
   return verdict;
 }
 
-// ------------------------------------------------------------
 // 判定結果 → EmotionState
-// ------------------------------------------------------------
 function buildState(
   verdict: DailyLightVerdict,
   thresholds: typeof PLANT_PROFILES.calathea.lightDaily,
@@ -304,9 +300,7 @@ function buildState(
   };
 }
 
-// ------------------------------------------------------------
 // LLMに渡す状況説明。同じ「日照不足」でも意味が全く違うので分ける
-// ------------------------------------------------------------
 const SITUATION: Record<string, string> = {
   warning:
     "まだ今日は終わっていません。今日浴びた光がこのままだと足りない見込み、という「予報」です。" +
