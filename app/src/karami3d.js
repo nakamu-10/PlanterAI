@@ -2,7 +2,8 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { moodLevels } from "./mood.js";
 
-const MODEL_URL = `${import.meta.env.BASE_URL}models/karami.glb`;
+// 動きを足したら v を上げる。古い glb がキャッシュに残った端末で、足した動きが無くて 2D に落ちるため
+const MODEL_URL = `${import.meta.env.BASE_URL}models/karami.glb?v=2`;
 
 // 葉とマントの骨。しおれの動きのうち、ここだけ土の水分で動かす
 const isLeafTrack = (track) => /^(leaf|cape)_/.test(track.name);
@@ -121,7 +122,10 @@ export async function createKarami(container) {
     current = action;
     action.reset().play();
   }
-  const playOnce = (name) => play(oneShots[name]);
+  // 持っている間はジタバタを続ける（水やりの喜びなどで止めると、そのまま動かなくなる）
+  const playOnce = (name) => {
+    if (!held) play(oneShots[name]);
+  };
 
   function resize() {
     const { clientWidth: w, clientHeight: h } = container;
@@ -166,8 +170,10 @@ export async function createKarami(container) {
       const toward = 1 - Math.exp(-dt * 12);
       const lastX = held.at.x;
       held.at.lerp(held.target, toward);
+      // 描画の間隔が 0 のフレームで割ると NaN になり、カラ美が消える
+      const speed = dt > 0 ? (held.at.x - lastX) / dt : 0;
       const pull = THREE.MathUtils.clamp(
-        ((held.at.x - lastX) / dt) * 0.25,
+        speed * 0.25,
         -0.6,
         0.6,
       );
@@ -176,7 +182,8 @@ export async function createKarami(container) {
       const { x, y } = held.grip;
       model.position.set(
         held.at.x - (x * Math.cos(swing) - y * Math.sin(swing)),
-        held.at.y - (x * Math.sin(swing) + y * Math.cos(swing)),
+        // 振れた分だけ足元が下がっても、床には埋めない
+        Math.max(held.at.y - (x * Math.sin(swing) + y * Math.cos(swing)), 0),
         0,
       );
     } else if (model.position.y > 0) {
