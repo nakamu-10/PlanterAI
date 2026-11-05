@@ -38,3 +38,12 @@ const jstDay = (ms) => Math.floor((ms + JST_MS) / 86_400_000);
 export function daysTogether(createdIso, now = Date.now()) {
   return jstDay(now) - jstDay(Date.parse(createdIso)) + 1;
 }
+
+// 土が乾くまでの見込み（app-data の trends.moisture.hours_to_dry）を言葉にする。
+// null は「乾いていない・まだ分からない」
+export function describeForecast(hours) {
+  if (hours === null || hours === undefined) return "—";
+  if (hours === 0) return "今すぐ";
+  if (hours < 48) return `あと約${hours}時間`;
+  return `あと約${Math.round(hours / 24)}日`;
+}

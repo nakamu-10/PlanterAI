@@ -4,6 +4,7 @@ import { fetchDashboard, isPublicView, sendChatMessage } from "./api.js";
 import {
   daysTogether,
   describeAgo,
+  describeForecast,
   shouldShowLastMessage,
 } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
@@ -50,9 +51,12 @@ const plantName = document.getElementById("plantName");
 const plantDays = document.getElementById("plantDays");
 const statusMood = document.getElementById("statusMood");
 const statusMoodNote = document.getElementById("statusMoodNote");
-const statusMoisture = document.getElementById("statusMoisture");
+const statusNextWatering = document.getElementById("statusNextWatering");
 const statusWatering = document.getElementById("statusWatering");
 const chatForm = document.getElementById("chatForm");
+// キャラ／数値を行き来しても、見ている鉢（?pot=）を保つ
+document.getElementById("toNumbers").href =
+  `/app/numbers.html${location.search}`;
 const chatInput = document.getElementById("chatInput");
 
 // 鍵なしの app-public は読み取りだけで、チャットは受けない（ADR 0006）
@@ -261,9 +265,6 @@ function describeForced() {
   plantName.textContent = "カラ美";
   statusMood.textContent = currentEmotion;
   statusMoodNote.textContent = "（固定）";
-  statusMoisture.textContent = currentMoisture === null
-    ? "—"
-    : `${Math.round(currentMoisture)}/100`;
 }
 
 function renderStatus(data, latest) {
@@ -274,10 +275,9 @@ function renderStatus(data, latest) {
   }日目`;
   statusMood.textContent = currentEmotion;
   statusMoodNote.textContent = latest?.complaint ?? "";
-  const pct = data.latest_sensor?.filtered?.moisture_pct;
-  statusMoisture.textContent = typeof pct === "number"
-    ? `${Math.round(pct)}%`
-    : "—";
+  statusNextWatering.textContent = describeForecast(
+    data.trends?.moisture.hours_to_dry,
+  );
   statusWatering.textContent = data.latest_watering
     ? describeAgo(data.latest_watering.created_at)
     : "まだ記録なし";
