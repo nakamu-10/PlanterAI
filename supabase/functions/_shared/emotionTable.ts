@@ -74,7 +74,7 @@ interface EscalationRule {
   escalationHours: [number, number];
 }
 
-const EMOTION_LADDER: Emotion[] = ["軽い不満", "不満", "不安", "苛立ち"];
+export const EMOTION_LADDER: Emotion[] = ["軽い不満", "不満", "不安", "苛立ち"];
 
 // 感情を n 段階エスカレートさせる（上限=苛立ち）
 function escalate(e: Emotion, steps: number): Emotion {
