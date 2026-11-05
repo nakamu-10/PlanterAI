@@ -28,7 +28,10 @@
   6. A ができたら、`app-data`・`app-chat` の `x-device-key` と、/app/ の
      `VITE_DEVICE_KEY` を消す。デバイスキーは ESP32 だけが使う
 - ESP32 の認証（`devices.device_key`）と LINE
-  の紐付け（`devices.line_user_id`）は変えない
+  の紐付け（`devices.line_user_id`）は変えない。同じ LINE
+  ユーザーに鉢を2つ以上結ぶと `line-webhook` の `.maybeSingle()`
+  がエラーになり、LINE に返事ができない。これはログインでは直らないので、#34
+  で扱う。3鉢にするなら 11/20 の前に決める
 - `device_members` のマイグレーションは、ログインを作る PR で、関数と /app/
   の変更と一緒に入れる
 
@@ -58,8 +61,6 @@
   は今 `false` なので、A で `true` に戻すかを決める
 - 持ち主と家族で権限を分けるか（設定の変更を持ち主だけにする、など）：要るようになったら
   `device_members` に列を足す
-- 同じ LINE ユーザーが鉢を2つ以上持つと、`line-webhook` の `.maybeSingle()`
-  がエラーになり、LINE に返事ができない。どの鉢が返事をするかを決める必要がある
 
 ## 代替案
 
