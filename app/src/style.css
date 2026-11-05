@@ -236,67 +236,6 @@ a:hover {
   min-height: 1.2em;
 }
 
-/* ---------- chat ---------- */
-.chat-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-height: 55vh;
-  overflow-y: auto;
-  /* スクロールする領域には html の touch-action が届かないので、ここにも付ける */
-  touch-action: manipulation;
-}
-.chat-bubble {
-  max-width: 78%;
-  padding: 10px 14px;
-  border-radius: 16px;
-  font-size: 14px;
-  line-height: 1.6;
-}
-.chat-bubble--plant {
-  align-self: flex-start;
-  background: var(--card);
-  color: var(--ink);
-  border-bottom-left-radius: 4px;
-}
-.chat-bubble--user {
-  align-self: flex-end;
-  background: var(--green-700);
-  color: #fff;
-  border-bottom-right-radius: 4px;
-}
-.chat-form {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-}
-.chat-form input {
-  flex: 1;
-  padding: 12px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, .4);
-  background: rgba(255, 255, 255, .12);
-  color: var(--on-wash);
-  font-family: var(--font-jp);
-  font-size: 14px;
-}
-.chat-form input::placeholder {
-  color: var(--on-wash-ghost);
-}
-.chat-form button {
-  padding: 0 20px;
-  border: none;
-  border-radius: 999px;
-  background: var(--on-wash);
-  color: var(--green-800);
-  font-family: var(--font-display);
-  font-size: 14px;
-  cursor: pointer;
-}
-
 /* ---------- karami stage ---------- */
 .karami-stage {
   position: relative;
@@ -364,22 +303,199 @@ a:hover {
 
 .karami-hint {
   text-align: center;
-  color: var(--on-wash-ghost);
-  font-size: 13px;
-  margin-top: 4px;
-}
-.karami-state {
-  text-align: center;
-  color: var(--on-wash);
-  font-family: var(--font-mono);
+  color: var(--green-800);
   font-size: 12px;
-  letter-spacing: .06em;
-  margin-top: 18px;
+  margin: 4px 0 0;
 }
-
 .app-footer {
   text-align: center;
   color: var(--on-wash-ghost);
   font-size: 12px;
   margin-top: 40px;
+}
+
+/* ---------- home ---------- */
+/* 緑の背景の上の文字は、白だと小さい字で読みにくいので濃い色にする */
+.home {
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  color: var(--ink);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 16px 10px 20px;
+}
+.home-header__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: .04em;
+}
+.home-header__sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--green-800);
+}
+.home-header__menu {
+  display: flex;
+  gap: 8px;
+}
+.home-icon-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+}
+.home-icon-button:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, .45);
+}
+
+.view-toggle {
+  align-self: center;
+  display: flex;
+  padding: 3px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: rgba(22, 33, 28, .12);
+}
+.view-toggle__item {
+  width: 92px;
+  height: 34px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 14px;
+  text-decoration: none;
+}
+.view-toggle__item:hover {
+  color: var(--ink);
+}
+.view-toggle__item.is-active {
+  background: var(--card);
+  font-weight: 700;
+}
+
+.home-status {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 16px;
+  background: var(--card);
+  border-radius: 16px;
+}
+.home-status__cell {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.home-status__cell + .home-status__cell {
+  border-left: 1px solid rgba(22, 33, 28, .08);
+}
+.home-status dt {
+  font-size: 11px;
+  color: #56645A;
+}
+.home-status dd {
+  margin: 0;
+}
+.home-status__value {
+  font-size: 15px;
+  font-weight: 500;
+}
+.home-status__note {
+  font-size: 11px;
+  color: #56645A;
+}
+
+.home-stage {
+  position: relative;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 16px;
+}
+.home-stage .karami-stage {
+  flex-grow: 1;
+  height: auto;
+  margin-top: 0;
+}
+.bubble-recall {
+  position: absolute;
+  top: 18%;
+  /* 画面の幅によらず、カラ美の頭の右上に置く */
+  left: calc(50% + 64px);
+  z-index: 2;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--green-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(22, 33, 28, .16);
+  cursor: pointer;
+}
+.bubble-recall[hidden] {
+  display: none;
+}
+
+.home-chat {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  background: var(--card);
+  border-radius: 20px 20px 0 0;
+}
+.home-chat input {
+  flex-grow: 1;
+  min-width: 0;
+  height: 44px;
+  box-sizing: border-box;
+  border: 1px solid rgba(22, 33, 28, .16);
+  border-radius: 999px;
+  background: #fff;
+  padding: 0 16px;
+  font-family: var(--font-jp);
+  font-size: 16px;
+  color: var(--ink);
+}
+.home-chat button {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--green-700);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }

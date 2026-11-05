@@ -36,6 +36,7 @@ interface Device {
   plant_name: string;
   plant_profile: string;
   character_id: string;
+  created_at: string;
 }
 
 async function authenticate(req: Request): Promise<Device | null> {
@@ -44,7 +45,7 @@ async function authenticate(req: Request): Promise<Device | null> {
 
   const { data, error } = await supabase
     .from("devices")
-    .select("id, plant_name, plant_profile, character_id")
+    .select("id, plant_name, plant_profile, character_id, created_at")
     .eq("device_key", deviceKey)
     .maybeSingle();
   if (error) throw error;
@@ -52,40 +53,55 @@ async function authenticate(req: Request): Promise<Device | null> {
 }
 
 async function handleDashboard(device: Device): Promise<Response> {
-  const [sensorResult, emotionResult, summaryResult, wateringResult] =
-    await Promise.all([
-      supabase
-        .from("sensor_logs")
-        .select("raw, filtered, scores, created_at")
-        .eq("device_id", device.id)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabase
-        .from("emotion_logs")
-        .select("emotion, complaint, urgency, duration_hours, created_at")
-        .eq("device_id", device.id)
-        .order("created_at", { ascending: false })
-        .limit(20),
-      supabase
-        .from("relationship_summaries")
-        .select("summary")
-        .eq("device_id", device.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("watering_events")
-        .select("moisture_before, moisture_after, created_at")
-        .eq("device_id", device.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
+  const [
+    sensorResult,
+    emotionResult,
+    summaryResult,
+    wateringResult,
+    plantMessageResult,
+  ] = await Promise.all([
+    supabase
+      .from("sensor_logs")
+      .select("raw, filtered, scores, created_at")
+      .eq("device_id", device.id)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("emotion_logs")
+      .select("emotion, complaint, urgency, duration_hours, created_at")
+      .eq("device_id", device.id)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("relationship_summaries")
+      .select("summary")
+      .eq("device_id", device.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("watering_events")
+      .select("moisture_before, moisture_after, created_at")
+      .eq("device_id", device.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // アプリを開いたときに、LINE の通知やチャットの返事の続きを吹き出しで見せる
+    supabase
+      .from("conversation_logs")
+      .select("message, emotion, created_at")
+      .eq("device_id", device.id)
+      .eq("role", "plant")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   if (sensorResult.error) throw sensorResult.error;
   if (emotionResult.error) throw emotionResult.error;
   if (summaryResult.error) throw summaryResult.error;
   if (wateringResult.error) throw wateringResult.error;
+  if (plantMessageResult.error) throw plantMessageResult.error;
 
   const sensorHistory = sensorResult.data ?? [];
   const emotionHistory = emotionResult.data ?? [];
@@ -95,12 +111,14 @@ async function handleDashboard(device: Device): Promise<Response> {
       plant_name: device.plant_name,
       plant_profile: device.plant_profile,
       character_id: device.character_id,
+      created_at: device.created_at,
     },
     latest_sensor: sensorHistory[0] ?? null,
     sensor_history: sensorHistory,
     emotion_history: emotionHistory,
     relationship_summary: summaryResult.data?.summary ?? null,
     latest_watering: wateringResult.data ?? null,
+    last_plant_message: plantMessageResult.data ?? null,
   });
 }
 
