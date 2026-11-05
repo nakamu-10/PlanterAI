@@ -6,6 +6,9 @@ html {
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
   overscroll-behavior-x: none;
+  /* カラ美をつついたりボタンを続けて押したりすると、iPhone がダブルタップで拡大していた。
+     2本指の拡大は残す */
+  touch-action: manipulation;
 }
 body {
   margin: 0;
