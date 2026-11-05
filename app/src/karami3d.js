@@ -221,6 +221,32 @@ export async function createKarami(container) {
       target.body = next.body;
       target.tears = next.tears;
     },
+    // 画面のこの点が、カラ美（葉・マント・足を含む）を囲む四角の中か。
+    // キャンバスはステージ全体に広がっているので、何もない所を触っても反応させない。
+    // 体の面に当たるかで決めると、動いている葉や足で外れやすいので、囲む四角で決める
+    touches(clientX, clientY) {
+      const box = new THREE.Box3().setFromObject(model);
+      const rect = renderer.domElement.getBoundingClientRect();
+      let left = Infinity,
+        right = -Infinity,
+        top = Infinity,
+        bottom = -Infinity;
+      for (const x of [box.min.x, box.max.x]) {
+        for (const y of [box.min.y, box.max.y]) {
+          for (const z of [box.min.z, box.max.z]) {
+            const p = new THREE.Vector3(x, y, z).project(camera);
+            const px = rect.left + ((p.x + 1) / 2) * rect.width;
+            const py = rect.top + ((1 - p.y) / 2) * rect.height;
+            left = Math.min(left, px);
+            right = Math.max(right, px);
+            top = Math.min(top, py);
+            bottom = Math.max(bottom, py);
+          }
+        }
+      }
+      return clientX >= left && clientX <= right && clientY >= top &&
+        clientY <= bottom;
+    },
     // 画面のこの高さが、頭の中心より上か（上をドラッグするとなでる、下なら回す）
     isAboveHead(clientY) {
       const center = new THREE.Box3()

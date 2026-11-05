@@ -209,6 +209,7 @@ async function setup3d() {
     // 見学会で何人も同時に触るので、2本目以降の指と左ボタン以外は無視する
     // （座標が混ざって激しく回ったり、離したことに気づけなくなったりする）
     if (press || !e.isPrimary || e.button !== 0) return;
+    if (!karami3d.touches(e.clientX, e.clientY)) return;
     canvas.setPointerCapture(e.pointerId);
     press = {
       pointerId: e.pointerId,
