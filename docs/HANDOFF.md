@@ -39,6 +39,15 @@ Docs「PlanterAI 開発計画」）にある。公開リポジトリには書か
 - [ ] /app/ を本番で動かす（#10、担当：地引さん）。展示は
       C（機能を絞る）、ログインは 11/20
       のあと。ほかの必達はすべてアプリの上で動く
+  - [x] コード（`feat/app-public`）：鍵なしで読む `app-public` と
+        `devices.public_slug`（ADR 0006）。/app/ は鍵が無いと `app-public`
+        を使い、`?pot=` で鉢を選ぶ（無ければ `karami`）
+  - [ ] 本番へ：migration `20261105100000_devices_public_slug` → `app-public`
+        をデプロイ → カラ美の鉢に `public_slug = 'karami'` を入れる
+  - [ ] Vercel の本番の環境変数に `VITE_SUPABASE_FUNCTIONS_URL`
+        （`https://bwlfobbsgksvtjudodmq.supabase.co/functions/v1`）を入れ、
+        デプロイし直す。無いと /app/ が関数の URL を知らず、何も読めない
+  - [x] 鍵が無いときは、ホームの話しかける欄を出さない
 - [x] 11/3 3Dアバター（glb）をアプリに表示する（PR #15）
 - [ ] 11/3 リポジトリにタグを付ける（今の main か、8月の審査会の時点かを決める）
 - [x] 11/4 表情としおれを、感情と土の水分に連動させる（`feat/karami-moisture`。

@@ -1,4 +1,4 @@
-import { fetchDashboard, updateSettings } from "./api.js";
+import { fetchDashboard, isPublicView, updateSettings } from "./api.js";
 
 const CHARACTER_LABELS = {
   amaenbo: "甘えん坊",
@@ -94,5 +94,11 @@ els.form.addEventListener("submit", async (event) => {
     els.formStatus.textContent = `保存に失敗しました: ${err.message}`;
   }
 });
+
+// 鍵なしの app-public は読み取りだけなので、設定は変えられない
+if (isPublicView) {
+  for (const field of els.form.elements) field.disabled = true;
+  els.formStatus.textContent = "展示用の画面では、設定は変えられません";
+}
 
 load();
