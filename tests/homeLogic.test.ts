@@ -3,6 +3,7 @@
 import {
   daysTogether,
   describeAgo,
+  describeForecast,
   shouldShowLastMessage,
 } from "../app/src/home.logic.js";
 
@@ -71,6 +72,12 @@ assert(
   daysTogether("2026-11-04T14:00:00Z", Date.parse("2026-11-04T23:00:00Z")) ===
     2,
 );
+
+console.log("--- 乾くまでの見込み ---");
+assert("分からなければ —", describeForecast(null) === "—");
+assert("もう乾いていれば今すぐ", describeForecast(0) === "今すぐ");
+assert("2日より前は時間", describeForecast(18) === "あと約18時間");
+assert("2日より先は日", describeForecast(60) === "あと約3日");
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
