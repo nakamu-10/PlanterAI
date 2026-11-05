@@ -6,6 +6,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PLANT_PROFILES } from "../_shared/config.ts";
 import { CHARACTERS } from "../_shared/llm.ts";
+import { buildTrends, TREND_HOURS } from "../_shared/trends.ts";
 
 const supabase = createClient(
   requiredEnv("SUPABASE_URL"),
@@ -59,6 +60,7 @@ async function handleDashboard(device: Device): Promise<Response> {
     summaryResult,
     wateringResult,
     plantMessageResult,
+    trendResult,
   ] = await Promise.all([
     supabase
       .from("sensor_logs")
@@ -95,6 +97,16 @@ async function handleDashboard(device: Device): Promise<Response> {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    // 「数値」の画面の3日間の推移と、乾くまでの見込み
+    supabase
+      .from("sensor_logs")
+      .select("filtered, created_at")
+      .eq("device_id", device.id)
+      .gte(
+        "created_at",
+        new Date(Date.now() - TREND_HOURS * 3_600_000).toISOString(),
+      )
+      .order("created_at", { ascending: true }),
   ]);
 
   if (sensorResult.error) throw sensorResult.error;
@@ -102,6 +114,7 @@ async function handleDashboard(device: Device): Promise<Response> {
   if (summaryResult.error) throw summaryResult.error;
   if (wateringResult.error) throw wateringResult.error;
   if (plantMessageResult.error) throw plantMessageResult.error;
+  if (trendResult.error) throw trendResult.error;
 
   const sensorHistory = sensorResult.data ?? [];
   const emotionHistory = emotionResult.data ?? [];
@@ -119,6 +132,11 @@ async function handleDashboard(device: Device): Promise<Response> {
     relationship_summary: summaryResult.data?.summary ?? null,
     latest_watering: wateringResult.data ?? null,
     last_plant_message: plantMessageResult.data ?? null,
+    trends: buildTrends(
+      trendResult.data ?? [],
+      PLANT_PROFILES[device.plant_profile],
+      wateringResult.data?.created_at ?? null,
+    ),
   });
 }
 
