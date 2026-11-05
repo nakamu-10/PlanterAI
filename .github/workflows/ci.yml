@@ -22,6 +22,8 @@ jobs:
           deno-version: v2.9.6
       - run: deno fmt --check
       - run: deno lint
+      # lint の独自ルール（lint/）のテスト。Deno.lint.runPlugin は deno test の中でしか動かない
+      - run: npm run test:lint
       - run: npm run typecheck
 
   test:
@@ -34,6 +36,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      # textlint は npm の依存なので、npm ci をしたこの job で調べる
+      - run: npm run lint:md
 
   build:
     runs-on: ubuntu-latest

@@ -19,14 +19,16 @@
 
 - 準備：`npm ci`（`deno` が PATH に無ければ `npx -y deno ...` で代用できる）
 - 確認：`npm run check`（テスト・型・lint・整形・サイトのビルド）
-- 個別：`npm test`、`npm run typecheck`、`npm run lint`、`npm run format:check`
+- 個別：`npm test`、`npm run typecheck`、`npm run lint`（Markdown だけなら
+  `npm run lint:md`）、`npm run format:check`
 - 整形：`npm run format`
 - サイト・アプリの開発：`npm --prefix site run dev`、`npm --prefix app run dev`
 
 ### 開発ルール
 
 - 読みやすい名前と素直なコードを選ぶ。共通化は本当に同じ処理だけ
-- コメントは必要な「なぜ」だけを書く
+- コメントは必要な「なぜ」だけを書く。区切り線や★・【】で飾らない（`deno lint`
+  で止まる。ルールは `lint/readability.ts`）
 - 書き直したら、使わなくなったファイル・export・依存を消す。「あとで使う」コードは残さない
 - 処理を足す・変えるときは、`tests/` にテストも足す
 - ライブラリは、書く前に今の版のドキュメントを確かめる。deprecatedな書き方を避ける
@@ -50,8 +52,8 @@
 
 - commitは、それだけで意味が通り、lintと型が通る単位に分ける
 - 整形・名前の変更は、機能の変更と別のcommitにする
-- メッセージは `feat: 〜する`
-  の形（`fix`・`docs`・`chore`・`refactor`など）。本文に「なぜ」を書く
+- メッセージは `feat: 〜する` の形（`fix`・`docs`・`chore`・`refactor`
+  など）。本文に「なぜ」を書く
 - main に直接 push しない。ブランチを切って PR
   を出す（地引さんと2人で開発している）
 - PR

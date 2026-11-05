@@ -234,8 +234,9 @@ npm ci
 npm run check
 ```
 
-`npm run check`はテスト、Edge
-Functionsの型検査、Webサイトの本番ビルド、Denoのフォーマット確認をまとめて実行する。テストだけを行う場合は`npm test`を使う。
+`npm run check` はテスト、Edge
+Functionsの型検査、Webサイトの本番ビルド、Denoのフォーマット確認をまとめて実行する。テストだけを行う場合は
+`npm test` を使う。
 
 ## トラブルシューティング
 
