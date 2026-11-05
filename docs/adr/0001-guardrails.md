@@ -52,7 +52,7 @@ Wi-Fi パスワードとデバイスキーが直接書かれたまま commit
   の開発用ツールだけなので、増えてから入れる
 - PR の行数やテストの有無の警告、textlint、issue
   テンプレート：人やツールが増えてから（textlint は
-  [0003](0003-textlint-code-spacing.md) で入れた）
+  [0004](0004-textlint-code-spacing.md) で入れた）
 - ESLint の独自ルール：同じ設計違反を AI が何度もするようになってから
 - Supabase
   の自動デプロイ：マイグレーションがマージと同時に本番に入るので、先に手動の手順を固める
