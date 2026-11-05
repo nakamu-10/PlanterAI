@@ -1,0 +1,3 @@
+# deno.json と同じく、昔の資料と手元の参考資料は見ない。「archive/」だけだと外れないので「/**」まで書く
+archive/**
+references/**

@@ -19,7 +19,8 @@
 
 - 準備：`npm ci`（`deno` が PATH に無ければ `npx -y deno ...` で代用できる）
 - 確認：`npm run check`（テスト・型・lint・整形・サイトのビルド）
-- 個別：`npm test`、`npm run typecheck`、`npm run lint`、`npm run format:check`
+- 個別：`npm test`、`npm run typecheck`、`npm run lint`（Markdown だけなら
+  `npm run lint:md`）、`npm run format:check`
 - 整形：`npm run format`
 - サイト・アプリの開発：`npm --prefix site run dev`、`npm --prefix app run dev`
 
@@ -50,8 +51,8 @@
 
 - commitは、それだけで意味が通り、lintと型が通る単位に分ける
 - 整形・名前の変更は、機能の変更と別のcommitにする
-- メッセージは `feat: 〜する`
-  の形（`fix`・`docs`・`chore`・`refactor`など）。本文に「なぜ」を書く
+- メッセージは `feat: 〜する` の形（`fix`・`docs`・`chore`・`refactor`
+  など）。本文に「なぜ」を書く
 - main に直接 push しない。ブランチを切って PR
   を出す（地引さんと2人で開発している）
 - PR
