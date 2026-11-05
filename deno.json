@@ -13,6 +13,7 @@
   },
   "lint": {
     "exclude": ["**/node_modules/", "**/dist/", "archive/", "references/"],
+    "plugins": ["./lint/readability.ts"],
     "rules": {
       "exclude": ["no-import-prefix", "no-window", "no-window-prefix"]
     }

@@ -1,10 +1,8 @@
-// ============================================================
 // app-chat — 専用Webアプリ用のチャットAPI
 //
 // line-webhook と同じプロンプト組み立て・生成ロジックを再利用する。
 // 認証: ingest-sensor と同じ x-device-key ヘッダー方式
 //       （--no-verify-jwt でデプロイ）
-// ============================================================
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {

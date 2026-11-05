@@ -73,7 +73,7 @@ function showBubble(line) {
   bubbleTimeout = setTimeout(() => bubble.classList.remove("is-visible"), 2200);
 }
 
-// ---- 3D が使えないときの 2D 版 ----
+// 3D が使えないときの 2D 版
 function setup2d() {
   loading.remove();
   img.hidden = false;
@@ -141,7 +141,7 @@ function setup2d() {
   });
 }
 
-// ---- 3D 版：短く押して離す＝つつく、頭をドラッグ＝なでる、体をドラッグ＝回す、長押し＝持ち上げる ----
+// 3D 版：短く押して離す＝つつく、頭をドラッグ＝なでる、体をドラッグ＝回す、長押し＝持ち上げる
 async function setup3d() {
   karami3d = await createKarami(stage);
   loading.remove();

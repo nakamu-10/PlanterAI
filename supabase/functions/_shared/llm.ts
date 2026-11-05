@@ -1,4 +1,3 @@
-// ============================================================
 // llm.ts — Layer 3: LLM対話生成レイヤー（Gemini Flash）
 //
 // 役割:
@@ -6,14 +5,11 @@
 //   キャラクターの口調でセリフを1つ生成する。
 //
 // LLMには「状態の判断」をさせない。渡された状態を口語化するだけ。
-// ============================================================
 
 import { EmotionState } from "./emotionEngine.ts";
 
-// ------------------------------------------------------------
-// キャラクター設定（★差し替えポイント★）
+// キャラクター設定（差し替えポイント）
 // devices.character_id で切り替える。増やしたいときはここに追加
-// ------------------------------------------------------------
 export const CHARACTERS: Record<string, { name: string; persona: string }> = {
   amaenbo: {
     name: "甘えん坊",
@@ -58,11 +54,9 @@ function serializeConversation(
   );
 }
 
-// ------------------------------------------------------------
 // 主訴ごとの追加注意書き（誇張・断定を防ぐガード）
 // 特に「湿度高すぎ」は、湿度センサー単体ではカビ・軟腐を断定できない
 // （風通しとの複合要因）ため、断定的なセリフを禁止する。
-// ------------------------------------------------------------
 export function complaintCaution(complaint: string | null): string {
   switch (complaint) {
     case "水分不足":
@@ -98,7 +92,6 @@ function noGuessedThanks(unknownWhere: string): string {
 const SENTENCE_END_RULE =
   "- 文は必ず「。」「！」「？」のどれかで終えてください。";
 
-// ------------------------------------------------------------
 // プロンプト組み立て
 // 含めるもの:
 //   1. キャラクター設定（persona）
@@ -106,7 +99,6 @@ const SENTENCE_END_RULE =
 //   3. 直近5〜7件の会話ウィンドウ … 短期文脈
 //   4. Layer 2の構造化状態（感情・主訴・継続時間・前回のトーン）
 // 全ログは絶対に渡さない（品質劣化するため）
-// ------------------------------------------------------------
 export function buildPrompt(opts: {
   plantName: string;
   characterId: string;
@@ -166,9 +158,7 @@ ${SENTENCE_END_RULE}
 - 60文字以内。メッセージ本文のみを出力し、引用符や説明は付けないでください。`;
 }
 
-// ------------------------------------------------------------
 // Gemini Flash API 呼び出し
-// ------------------------------------------------------------
 const GEMINI_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
 
@@ -180,7 +170,7 @@ const GEMINI_URL =
  * 出力トークンが maxOutputTokens を共有する。思考が予算を食うと出力が
  * 途中で MAX_TOKENS 打ち切りになり、文の途中で切れたセリフが送られてしまう。
  *
- * ★重要★ thinkingLevel に "none" は存在しない。有効値は
+ * 重要 thinkingLevel に "none" は存在しない。有効値は
  * minimal / low / medium / high の4つだけで、"none" を送ると Gemini は
  * HTTP 400 を返す（= その経路の生成が100%失敗してフォールバックに落ちる）。
  * 思考は「切る」ことができないので、interactive は最小の minimal に留め、
@@ -296,7 +286,7 @@ async function callGeminiOnce(
 
   if (!res.ok) {
     const body = await res.text();
-    // ★必ずログに残す★
+    // 必ずログに残す
     // 旧実装は例外メッセージに載せるだけで console に出していなかったため、
     // 「100%失敗する設定が入っている」ことに外から気づけなかった。
     // Edge Function のログ保持は短いので、痕跡は DB 側にも残す（呼び出し元）。
@@ -336,7 +326,7 @@ async function callGeminiOnce(
   }
   const text = raw.trim();
 
-  // --- 対策B: finishReason ガード（打ち切り検知の本命） ---
+  // 対策B: finishReason ガード（打ち切り検知の本命）
   // finishReason が無い応答は STOP とみなす（Gemini は通常 STOP を返す）。
   const finish: string = cand?.finishReason ?? "STOP";
   if (finish !== "STOP") {
@@ -348,7 +338,7 @@ async function callGeminiOnce(
     throw new LlmTruncatedError(text, finish);
   }
 
-  // --- 対策C-1: 文末バリデーション ---
+  // 対策C-1: 文末バリデーション
   // STOP でも文の途中で終わることがあるので、打ち切りとして作り直させる
   if (checkSentenceEnd && !endsSentence(text)) {
     console.error(`[llm] STOPだが文が途中で終わっています: "${text}"`);
@@ -415,9 +405,7 @@ export function enforceMessageLength(text: string, maxChars: number): string {
   return text;
 }
 
-// ------------------------------------------------------------
 // 週次サマリー生成用プロンプト
-// ------------------------------------------------------------
 export function buildSummaryPrompt(
   plantName: string,
   conversation: ConversationEntry[],
