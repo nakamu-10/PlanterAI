@@ -6,6 +6,9 @@ html {
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
   overscroll-behavior-x: none;
+  /* カラ美をつついたりボタンを続けて押したりすると、iPhone がダブルタップで拡大していた。
+     2本指の拡大は残す */
+  touch-action: manipulation;
 }
 body {
   margin: 0;
@@ -243,6 +246,8 @@ a:hover {
   gap: 10px;
   max-height: 55vh;
   overflow-y: auto;
+  /* スクロールする領域には html の touch-action が届かないので、ここにも付ける */
+  touch-action: manipulation;
 }
 .chat-bubble {
   max-width: 78%;
