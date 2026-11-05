@@ -62,6 +62,11 @@ assert("時間", describeAgo("2026-11-05T07:00:00Z", now) === "5時間前");
 assert("日", describeAgo("2026-11-02T11:00:00Z", now) === "3日前");
 assert("登録した日は1日目", daysTogether("2026-11-05T01:00:00Z", now) === 1);
 assert("翌日は2日目", daysTogether("2026-11-04T01:00:00Z", now) === 2);
+assert(
+  "日本時間の23時に登録して翌朝8時に開くと2日目",
+  daysTogether("2026-11-04T14:00:00Z", Date.parse("2026-11-04T23:00:00Z")) ===
+    2,
+);
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
