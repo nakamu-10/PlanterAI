@@ -16,6 +16,7 @@
 import {
   buildPrompt,
   describeLlmFailure,
+  endsSentence,
   LLM_PROFILES,
   LLM_RETRY_CONFIG,
   LlmEmptyResponseError,
@@ -197,7 +198,64 @@ console.log("--- プロンプト ---");
     "水やりがなければ書かない",
     !buildPrompt(base).includes("水をもらった"),
   );
+  // 日が差しただけで「移動してくれてありがとう」と言っていた
+  assert(
+    "書かれていない飼い主の行動にお礼を言わせない",
+    buildPrompt(base).includes("決めつけたりしてはいけません"),
+  );
+  // 「〜ボク最高に幸せなの」が何通も続いていた
+  const plantSaid = (message: string, minutesAgo: number) => ({
+    role: "plant" as const,
+    message,
+    created_at: new Date(Date.now() - minutesAgo * 60000).toISOString(),
+  });
+  const conversation = [1, 2, 3, 4, 5, 6].map((i) =>
+    plantSaid(`発言${i}。`, i * 10)
+  );
+  const prompt = buildPrompt({ ...base, recentConversation: conversation });
+  assert(
+    "最近の自分の発言を5通まで見せ、同じ文末を避けさせる",
+    prompt.includes("「発言1。」") && prompt.includes("「発言5。」") &&
+      !prompt.includes("「発言6。」"),
+  );
+  const unwell = {
+    ...base,
+    state: {
+      emotion: "不満" as Emotion,
+      complaint: "水分不足",
+      urgency: "medium",
+      duration_hours: 2,
+      duration_label: "2時間",
+    } as Parameters<typeof buildPrompt>[0]["state"],
+  };
+  assert(
+    "不調のときは「良くなった」と書かない",
+    !buildPrompt(unwell).includes("良くなった"),
+  );
+  assert(
+    "不調でも、水をもらった直後なら書く",
+    buildPrompt({ ...unwell, justWatered: true }).includes("水をもらった"),
+  );
+  assert(
+    "文を句読点で終えさせる",
+    prompt.includes("「。」「！」「？」のどれかで終えて"),
+  );
 }
+
+console.log("--- 文末 ---");
+for (
+  const line of [
+    "だよ。",
+    "ありがとー",
+    "だよっ",
+    "うれしい～",
+    "ねえ♡",
+    "えっと...",
+  ]
+) {
+  assert(`「${line}」は終わった文`, endsSentence(line));
+}
+assert("「お水を少し」は途中で切れた文", !endsSentence("お水を少し"));
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

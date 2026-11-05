@@ -9,22 +9,30 @@ const REACTIONS = {
   "満足": {
     poke: ["わっ、なに？", "ふふ、くすぐったいよ", "げんきだよ〜"],
     pet: ["気持ちいい…もっとして", "ふにゃ〜", "ありがとう、うれしいな"],
+    lift: ["わわっ、たかいたかい！", "おろして〜！", "じたばたじたばた！"],
   },
   "軽い不満": {
     poke: ["んー、ちょっとかまってほしい気分", "つんつんしないでよ、もう"],
     pet: ["……まあ、悪くないけど", "ちょっとだけ、元気出た"],
+    lift: ["ちょっと、急に持ち上げないでよ！", "おろしてってば〜"],
   },
   "不満": {
     poke: ["もう、いい加減にして", "それより早く助けてよ"],
     pet: ["……少し落ち着いた、かも", "なでなで、ありがとう"],
+    lift: ["遊んでる場合じゃないってば！", "もう、おろして！"],
   },
   "不安": {
     poke: ["どうしよう、大丈夫かな……", "ねえ、そばにいて"],
     pet: ["ちょっと安心した……", "そばにいてくれると心強いよ"],
+    lift: ["こ、こわいよ……おろして", "ゆらさないで〜"],
   },
   "苛立ち": {
     poke: ["もう限界かも……早くなんとかして", "つらいよ、ほんとに"],
     pet: ["……ありがとう、少し楽になった", "お願い、早く様子見てね"],
+    lift: [
+      "そんなことより、早くなんとかして！",
+      "じたばたする元気も、もうないよ……",
+    ],
   },
 };
 
@@ -44,6 +52,8 @@ const forcedMoisture = params.has("moisture")
 const isForced = forcedEmotion !== null || forcedMoisture !== null;
 // ?demo を付けると、状態を5秒おきに取りに行く（センサーもデモモードで5秒おきに送る）
 const REFRESH_MS = params.has("demo") ? 5_000 : 60_000;
+// 動かさずにこれだけ押し続けたら、持ち上げる
+const LIFT_PRESS_MS = 350;
 let currentEmotion = forcedEmotion ?? "満足";
 let currentMoisture = forcedMoisture;
 let bubbleTimeout = null;
@@ -131,7 +141,7 @@ function setup2d() {
   });
 }
 
-// ---- 3D 版：短く押して離す＝つつく、ドラッグ＝なでる ----
+// ---- 3D 版：短く押して離す＝つつく、頭をドラッグ＝なでる、体をドラッグ＝回す、長押し＝持ち上げる ----
 async function setup3d() {
   karami3d = await createKarami(stage);
   loading.remove();
@@ -144,22 +154,60 @@ async function setup3d() {
     window.karami = karami3d;
   }
 
-  let downAt = null;
-  karami3d.canvas.addEventListener("pointerdown", (e) => {
-    downAt = { x: e.clientX, y: e.clientY };
+  const canvas = karami3d.canvas;
+  // Android の長押しメニューも出さない
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  let press = null;
+  canvas.addEventListener("pointerdown", (e) => {
+    // 見学会で何人も同時に触るので、2本目以降の指と左ボタン以外は無視する
+    // （座標が混ざって激しく回ったり、離したことに気づけなくなったりする）
+    if (press || !e.isPrimary || e.button !== 0) return;
+    canvas.setPointerCapture(e.pointerId);
+    press = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      lastX: e.clientX,
+      onHead: karami3d.isAboveHead(e.clientY),
+      // 10px 以上動いたら "pet" か "turn"、動かさずに長押ししたら "lift" に決める
+      mode: null,
+      liftTimer: setTimeout(() => {
+        if (press?.mode !== null) return;
+        press.mode = "lift";
+        karami3d.grab(press.startX, press.startY);
+        showReaction("lift");
+      }, LIFT_PRESS_MS),
+    };
   });
-  karami3d.canvas.addEventListener("pointerup", (e) => {
-    if (!downAt) return;
-    const distance = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
-    downAt = null;
-    if (distance > 10) {
+  canvas.addEventListener("pointermove", (e) => {
+    if (press?.pointerId !== e.pointerId) return;
+    const dx = e.clientX - press.startX;
+    const dy = e.clientY - press.startY;
+    if (press.mode === null && Math.hypot(dx, dy) > 10) {
+      // 体でも、縦になでたときはなでる
+      press.mode = press.onHead || Math.abs(dy) > Math.abs(dx) ? "pet" : "turn";
+    }
+    if (press.mode === "turn") karami3d.turn(e.clientX - press.lastX);
+    if (press.mode === "lift") karami3d.moveHeld(e.clientX, e.clientY);
+    press.lastX = e.clientX;
+  });
+  const release = (e, cancelled) => {
+    if (press?.pointerId !== e.pointerId) return;
+    clearTimeout(press.liftTimer);
+    karami3d.endTurn();
+    if (press.mode === "lift") {
+      karami3d.drop();
+    } else if (!cancelled && press.mode === "pet") {
       karami3d.pet();
       showReaction("pet");
-    } else {
+    } else if (!cancelled && press.mode === null) {
       karami3d.poke();
       showReaction("poke");
     }
-  });
+    press = null;
+  };
+  canvas.addEventListener("pointerup", (e) => release(e, false));
+  canvas.addEventListener("pointercancel", (e) => release(e, true));
 }
 
 function describeState(complaint) {

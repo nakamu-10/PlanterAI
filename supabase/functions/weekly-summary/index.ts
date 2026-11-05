@@ -78,7 +78,9 @@ Deno.serve(async (req: Request) => {
           ([...(convo ?? [])].reverse()) as ConversationEntry[],
           prev?.[0]?.summary ?? null,
         );
-        const summary = await generateMessage(prompt);
+        const summary = await generateMessage(prompt, "batch", {
+          checkSentenceEnd: false,
+        });
 
         const { error: insertError } = await supabase.from(
           "relationship_summaries",
