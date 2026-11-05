@@ -127,6 +127,37 @@ export function durationLabel(hours: number): string {
   return `${Math.floor(hours / 24)}日`;
 }
 
+// 返事（LINE・アプリのチャット）に使う「今の状態」を、感情ログの最新行から作る。
+// 日照の日次判定で目標に届いた行は、重複判定のため complaint を「日照不足」のまま
+// 満足で記録している。そのまま使うと「満足なのに主訴: 日照不足」になるので、
+// 満足なら主訴なしにする
+export function stateFromLog(
+  log: {
+    emotion: Emotion;
+    complaint: Complaint | null;
+    urgency: Urgency;
+    duration_hours: number | string | null;
+  } | null,
+): EmotionState {
+  if (!log || log.emotion === "満足") {
+    return {
+      emotion: "満足",
+      complaint: null,
+      urgency: "none",
+      duration_hours: 0,
+      duration_label: "",
+    };
+  }
+  const hours = Number(log.duration_hours ?? 0);
+  return {
+    emotion: log.emotion,
+    complaint: log.complaint,
+    urgency: log.urgency,
+    duration_hours: hours,
+    duration_label: log.complaint ? durationLabel(hours) : "",
+  };
+}
+
 // メイン: 感情状態の決定
 export function evaluateEmotion(
   scores: ComfortScores,
