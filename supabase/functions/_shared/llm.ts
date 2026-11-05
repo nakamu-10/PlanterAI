@@ -130,11 +130,12 @@ export function buildPrompt(opts: {
     : `感情: 満足（不調がおさまって、快適な状態に戻った）`;
   // 何で元気になったかが分かるのは、水やりを検出したときだけ。
   // 不調のときに「良くなった」と書くと回復したようなセリフになるので、行ごと出さない
-  const eventLine = opts.justWatered
-    ? "\n直前の出来事: 飼い主に水をもらった"
-    : opts.state.complaint
-    ? ""
-    : "\n直前の出来事: なし（なぜ良くなったかは分からない）";
+  let eventLine = "";
+  if (opts.justWatered) {
+    eventLine = "\n直前の出来事: 飼い主に水をもらった";
+  } else if (!opts.state.complaint) {
+    eventLine = "\n直前の出来事: なし（なぜ良くなったかは分からない）";
+  }
 
   return `${character.persona}
 あなたの名前は「${opts.plantName}」です。
