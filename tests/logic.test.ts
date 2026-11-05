@@ -7,6 +7,7 @@ import {
 import {
   evaluateEmotion,
   hasTransitioned,
+  stateFromLog,
 } from "../supabase/functions/_shared/emotionEngine.ts";
 import {
   PLANT_PROFILES,
@@ -389,6 +390,36 @@ assert(
 assert(
   "回復（満足に戻る）も通知する",
   hasTransitioned(s1, { emotion: "不満", complaint: "水分不足" }) === true,
+);
+
+console.log("--- 返事に使う今の状態（感情ログの最新行から） ---");
+const reachedLight = stateFromLog({
+  emotion: "満足",
+  complaint: "日照不足",
+  urgency: "none",
+  duration_hours: 0,
+});
+assert(
+  "日照の目標に届いた行（満足・日照不足）は、主訴なしにする",
+  reachedLight.complaint === null && reachedLight.emotion === "満足",
+  JSON.stringify(reachedLight),
+);
+const thirsty = stateFromLog({
+  emotion: "不満",
+  complaint: "水分不足",
+  urgency: "medium",
+  duration_hours: "30.5",
+});
+assert(
+  "不調の行は主訴と継続時間をそのまま使う（numeric は文字列で届く）",
+  thirsty.complaint === "水分不足" && thirsty.duration_hours === 30.5 &&
+    thirsty.duration_label === "1日",
+  JSON.stringify(thirsty),
+);
+assert(
+  "感情ログがまだ無いときは満足",
+  stateFromLog(null).emotion === "満足" &&
+    stateFromLog(null).complaint === null,
 );
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);

@@ -6,7 +6,8 @@ import {
   generateMessage,
 } from "../_shared/llm.ts";
 import type { ConversationEntry } from "../_shared/llm.ts";
-import { durationLabel } from "../_shared/emotionEngine.ts";
+import { stateFromLog } from "../_shared/emotionEngine.ts";
+import { CONVERSATION_WINDOW } from "../_shared/config.ts";
 import { fallbackMessage } from "../_shared/fallback.ts";
 import { replyLineMessage } from "../_shared/line.ts";
 
@@ -121,7 +122,7 @@ async function processEvent(event: LineEvent): Promise<void> {
       .select("role, message, created_at")
       .eq("device_id", device.id)
       .order("created_at", { ascending: false })
-      .limit(7),
+      .limit(CONVERSATION_WINDOW),
     supabase
       .from("relationship_summaries")
       .select("summary")
@@ -135,18 +136,11 @@ async function processEvent(event: LineEvent): Promise<void> {
   if (convoResult.error) throw convoResult.error;
   if (summaryResult.error) throw summaryResult.error;
 
-  const latestEmotion = emotionResult.data;
-  const hours = Number(latestEmotion?.duration_hours ?? 0);
+  const state = stateFromLog(emotionResult.data);
   const replyPrompt = buildReplyPrompt({
     plantName: device.plant_name,
     characterId: device.character_id,
-    state: {
-      emotion: latestEmotion?.emotion ?? "満足",
-      complaint: latestEmotion?.complaint ?? null,
-      urgency: latestEmotion?.urgency ?? "none",
-      duration_hours: hours,
-      duration_label: latestEmotion?.complaint ? durationLabel(hours) : "",
-    },
+    state,
     recentConversation: (convoResult.data ?? []) as ConversationEntry[],
     relationshipSummary: summaryResult.data?.summary ?? null,
     userMessage: userText,
@@ -167,10 +161,7 @@ async function processEvent(event: LineEvent): Promise<void> {
     console.error("Gemini生成エラー。テンプレへ切り替えます:", err);
     replySource = "fallback";
     replyFinishReason = describeLlmFailure(err);
-    replyText = fallbackMessage(
-      latestEmotion?.complaint ?? null,
-      latestEmotion?.emotion ?? null,
-    );
+    replyText = fallbackMessage(state.complaint, state.emotion);
   }
 
   await replyLineMessage(replyToken, replyText);
@@ -195,8 +186,8 @@ async function processEvent(event: LineEvent): Promise<void> {
       device_id: device.id,
       role: "plant",
       message: replyText,
-      emotion: latestEmotion?.emotion ?? null,
-      complaint: latestEmotion?.complaint ?? null,
+      emotion: state.emotion,
+      complaint: state.complaint,
       source: replySource,
       finish_reason: replyFinishReason,
       created_at: plantCreatedAt.toISOString(),
