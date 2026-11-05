@@ -64,7 +64,7 @@ npm run dev
 
 **通知の抑制**：境界付近での状態の往復（チャタリング）による LINE
 乱発を防ぐため、直近通知から
-`NOTIFY_COOLDOWN_MINUTES`（既定60分）は原則再通知しない。ただし危険域（urgency=high）はクールダウンを無視して即通知する（`shouldNotify`）。
+`NOTIFY_COOLDOWN_MINUTES`（既定60分）は原則再通知しない。不調を伝えたあとの別の不調（悪化していないもの）は3倍の180分あける。満足に戻ったときと危険域（urgency=high）はクールダウンを無視して即通知する（`shouldNotify`・`cooldownFor`）。
 
 ## ディレクトリ構成
 
