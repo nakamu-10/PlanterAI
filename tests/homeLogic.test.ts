@@ -3,6 +3,7 @@
 import {
   daysTogether,
   describeAgo,
+  isStaleMessage,
   shouldShowLastMessage,
 } from "../app/src/home.logic.js";
 
@@ -52,6 +53,15 @@ assert(
 assert(
   "気分の記録がまだ無い鉢でも出す",
   shouldShowLastMessage({ ...message, emotion: "満足" }, null, null),
+);
+assert(
+  "気分が変わったセリフは古い（アイコンからも出さない）",
+  isStaleMessage(message, { emotion: "満足" }) &&
+    !isStaleMessage(message, anxious),
+);
+assert(
+  "チャットの返事（気分の記録なし）は古くならない",
+  !isStaleMessage({ ...message, emotion: undefined }, { emotion: "満足" }),
 );
 assert("セリフが無ければ出さない", !shouldShowLastMessage(null, null, anxious));
 

@@ -4,6 +4,7 @@ import { fetchDashboard, isPublicView, sendChatMessage } from "./api.js";
 import {
   daysTogether,
   describeAgo,
+  isStaleMessage,
   shouldShowLastMessage,
 } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
@@ -320,8 +321,12 @@ async function refreshState() {
         showMessage(message);
       } else {
         lastMessage = message;
-        if (!bubble.classList.contains("is-visible")) recall.hidden = false;
       }
+    }
+    // 今と食い違う古いセリフは、アイコンからも出し直せないようにする
+    if (lastMessage && isStaleMessage(lastMessage, latest)) lastMessage = null;
+    if (!bubble.classList.contains("is-visible")) {
+      recall.hidden = lastMessage === null;
     }
     firstLoad = false;
   } catch (err) {

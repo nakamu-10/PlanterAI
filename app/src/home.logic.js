@@ -1,5 +1,14 @@
 // ホームの表示を決める計算。DOM と three.js に依存しないので、ここだけテストできる
 
+// セリフのあとに気分が変わっていたら、今と食い違う古いセリフ
+// （「お水ちょうだい」のあとに水をもらって満足になった、など）
+export function isStaleMessage(message, latestEmotion) {
+  return Boolean(
+    message.emotion && latestEmotion &&
+      latestEmotion.emotion !== message.emotion,
+  );
+}
+
 // 開いたときに、植物の最後のセリフを吹き出しで出すか。
 // message: { message, emotion, created_at } | null
 // seenAt: この端末で最後に見たセリフの時刻（ISO 文字列） | null
@@ -9,15 +18,7 @@ export function shouldShowLastMessage(message, seenAt, latestEmotion) {
   if (seenAt && Date.parse(message.created_at) <= Date.parse(seenAt)) {
     return false;
   }
-  // セリフのあとに気分が変わっていたら、今と食い違う古いセリフなので出さない
-  // （「お水ちょうだい」のあとに水をもらって満足になった、など）
-  if (
-    message.emotion && latestEmotion &&
-    latestEmotion.emotion !== message.emotion
-  ) {
-    return false;
-  }
-  return true;
+  return !isStaleMessage(message, latestEmotion);
 }
 
 // 「3日前」「たった今」のような、ざっくりした経過時間
