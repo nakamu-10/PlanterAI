@@ -250,6 +250,12 @@ async function refreshState() {
   }
 }
 
+// iPhone の Safari は、touch-action: none でもカラ美のダブルタップで拡大する。
+// 指を離したときの既定の動作を止める（触る操作は pointer イベントで受けているので消えない）
+stage.addEventListener("touchend", (e) => e.preventDefault(), {
+  passive: false,
+});
+
 setup3d().catch((err) => {
   console.error("3Dモデルを表示できないので、画像で表示します:", err);
   setup2d();
