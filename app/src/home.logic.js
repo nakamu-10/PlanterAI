@@ -11,7 +11,10 @@ export function shouldShowLastMessage(message, seenAt, latestEmotion) {
   }
   // セリフのあとに気分が変わっていたら、今と食い違う古いセリフなので出さない
   // （「お水ちょうだい」のあとに水をもらって満足になった、など）
-  if (message.emotion && latestEmotion?.emotion !== message.emotion) {
+  if (
+    message.emotion && latestEmotion &&
+    latestEmotion.emotion !== message.emotion
+  ) {
     return false;
   }
   return true;

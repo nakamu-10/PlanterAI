@@ -49,6 +49,10 @@ assert(
     emotion: "満足",
   }),
 );
+assert(
+  "気分の記録がまだ無い鉢でも出す",
+  shouldShowLastMessage({ ...message, emotion: "満足" }, null, null),
+);
 assert("セリフが無ければ出さない", !shouldShowLastMessage(null, null, anxious));
 
 console.log("--- 経過時間 ---");
