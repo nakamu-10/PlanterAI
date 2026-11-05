@@ -74,8 +74,8 @@ const unsigned long POST_INTERVAL_MS = DEMO_MODE ? 5UL * 1000 : 600UL * 1000;
 // ★v3 堅牢化パラメータ
 // ============================================================
 // ウォッチドッグのタイムアウト[秒]。
-// postReading() は最悪 setConnectTimeout(10s) + setTimeout(20s) = 30秒
-// ブロックしうるので、それより十分長く取ること。
+// postReading() は最悪 setConnectTimeout(10s) + setHandshakeTimeout(15s)
+// + setTimeout(20s) = 45秒ブロックしうるので、それより長く取ること。
 static const uint32_t WDT_TIMEOUT_S = 60;
 
 // Wi-Fi再接続を試みる間隔[ms]。旧実装はPOST間隔（10分）と同じだったため
@@ -90,6 +90,11 @@ static const uint8_t POST_FAIL_LIMIT = 6;
 
 // I2C転送のタイムアウト[ms]。バス固着時に永久ブロックさせない
 static const uint16_t I2C_TIMEOUT_MS = 50;
+
+// TSL2591 が飽和したときに送る照度[lux]。0 にすると強い日なたが「真っ暗」になり、
+// 葉焼け（日照過剰）を見逃し、1日の積算も減って「日照不足」と判定される。
+// GAIN_LOW・200ms では、赤外の多い光でもおよそ3万 lux 以上で飽和する
+static const float LUX_SATURATED = 30000.0f;
 
 // ============================================================
 // デバイス
@@ -197,7 +202,8 @@ FaceParams cur;
 float blinkTimer = 0, blinkNext = 1800, blinkPhase = -1;
 float gazeX = 0, gazeY = 0, gazeTargetX = 0, gazeTargetY = 0;
 float gazeTimer = 0, gazeNext = 5000;
-unsigned long speakUntil = 0;
+// 終わりの時刻ではなく開始と長さで持つ。millis() は約49.7日で0に戻るため
+unsigned long speakStart = 0, speakDuration = 0;
 
 unsigned long lastPost = 0, lastFrame = 0;
 String serialBuf = "";
@@ -233,6 +239,23 @@ void wdtSetup() {
 
 inline void wdtFeed() { esp_task_wdt_reset(); }
 
+// BME280・TSL2591 の初期化。起動時、バス回復後、初期化に失敗していたときの読み取り前に呼ぶ
+bool initBme() {
+  if (!bme.begin(0x76)) return false;
+  bme.setSampling(Adafruit_BME280::MODE_NORMAL,
+                  Adafruit_BME280::SAMPLING_X1, Adafruit_BME280::SAMPLING_X1,
+                  Adafruit_BME280::SAMPLING_X1, Adafruit_BME280::FILTER_X4,
+                  Adafruit_BME280::STANDBY_MS_500);
+  return true;
+}
+
+bool initTsl() {
+  if (!tsl.begin()) return false;
+  tsl.setGain(TSL2591_GAIN_LOW);   // 室内向け
+  tsl.setTiming(TSL2591_INTEGRATIONTIME_200MS);
+  return true;
+}
+
 // ============================================================
 // ★v3-C: I2Cバス回復
 //
@@ -245,15 +268,17 @@ void i2cRecover() {
   Serial.println("[i2c] バス回復を試みます");
   Wire.end();
 
+  // I2C の線はオープンドレインで扱う。ふつうの OUTPUT で High にすると、
+  // SDA を Low に掴んだまま・SCL を引き延ばし中のスレーブとショートする
   pinMode(I2C_SDA, INPUT_PULLUP);
-  pinMode(I2C_SCL, OUTPUT);
+  pinMode(I2C_SCL, OUTPUT_OPEN_DRAIN | PULLUP);
   for (int i = 0; i < 9; i++) {
     digitalWrite(I2C_SCL, LOW);  delayMicroseconds(5);
     digitalWrite(I2C_SCL, HIGH); delayMicroseconds(5);
     if (digitalRead(I2C_SDA) == HIGH) break;   // 解放された
   }
   // STOP条件（SCLがHighの間にSDAをLow→High）
-  pinMode(I2C_SDA, OUTPUT);
+  pinMode(I2C_SDA, OUTPUT_OPEN_DRAIN | PULLUP);
   digitalWrite(I2C_SDA, LOW);  delayMicroseconds(5);
   digitalWrite(I2C_SCL, HIGH); delayMicroseconds(5);
   digitalWrite(I2C_SDA, HIGH); delayMicroseconds(5);
@@ -265,18 +290,8 @@ void i2cRecover() {
   // バスを張り直したのでデバイスも初期化し直す
   u8g2.begin();
   u8g2.setContrast(255);
-  bmeOk = bme.begin(0x76);
-  if (bmeOk) {
-    bme.setSampling(Adafruit_BME280::MODE_NORMAL,
-                    Adafruit_BME280::SAMPLING_X1, Adafruit_BME280::SAMPLING_X1,
-                    Adafruit_BME280::SAMPLING_X1, Adafruit_BME280::FILTER_X4,
-                    Adafruit_BME280::STANDBY_MS_500);
-  }
-  tslOk = tsl.begin();
-  if (tslOk) {
-    tsl.setGain(TSL2591_GAIN_LOW);
-    tsl.setTiming(TSL2591_INTEGRATIONTIME_200MS);
-  }
+  bmeOk = initBme();
+  tslOk = initTsl();
   Serial.printf("[i2c] 回復後 bmeOk=%d tslOk=%d\n", bmeOk, tslOk);
 }
 
@@ -310,6 +325,11 @@ void readAllSensors() {
   lastSoilAdc = readSoilMedian();
   wdtFeed();
 
+  // 起動時やバス回復のときに初期化に失敗しても、ここでつなぎ直す。
+  // 試さないと再起動するまで止まったままで、TSL2591 なら照度0を送り続けて毎日「日照不足」になる
+  if (!bmeOk) bmeOk = initBme();
+  if (!tslOk) tslOk = initTsl();
+
   if (bmeOk) {
     // BME280が間欠的に異常値を返す。diag解析で「チップID(0x60)は読めるのに測定値だけ
     // 固定ゴミ(180.1/100.0/-154.x)」＝一瞬リセットしてスリープに戻る挙動と判明（電源不安定が疑い）。
@@ -321,12 +341,7 @@ void readAllSensors() {
     for (int attempt = 0; attempt < 3 && !ok; attempt++) {
       if (attempt > 0) {
         // 直前が異常＝リセット/スリープの可能性。設定を入れ直してチップを起こす。
-        if (bme.begin(0x76)) {
-          bme.setSampling(Adafruit_BME280::MODE_NORMAL,
-                          Adafruit_BME280::SAMPLING_X1, Adafruit_BME280::SAMPLING_X1,
-                          Adafruit_BME280::SAMPLING_X1, Adafruit_BME280::FILTER_X4,
-                          Adafruit_BME280::STANDBY_MS_500);
-        }
+        initBme();
         delay(15);
       }
       t = bme.readTemperature();
@@ -352,7 +367,7 @@ void readAllSensors() {
   if (tslOk) {
     uint32_t lum = tsl.getFullLuminosity();
     lastLux = tsl.calculateLux(lum & 0xFFFF, lum >> 16);
-    if (lastLux < 0) lastLux = 0; // 飽和時の負値をガード
+    if (lastLux < 0) lastLux = LUX_SATURATED; // 飽和すると -1 が返る
     wdtFeed();
   }
 }
@@ -425,7 +440,8 @@ void applyResponse(JsonDocument& doc) {
   if (strlen(msg) > 0) {
     // UTF-8のバイト数ではなく文字数に近づけるため3で割る（日本語は1文字3バイト）
     int chars = strlen(msg) / 3;
-    speakUntil = millis() + (unsigned long)min(6000.0f, max(1200.0f, chars * 95.0f));
+    speakStart = millis();
+    speakDuration = (unsigned long)min(6000.0f, max(1200.0f, chars * 95.0f));
     Serial.printf("メッセージ(%d文字相当): %s\n", chars, msg);
   }
 }
@@ -441,7 +457,7 @@ void postReading() {
 
   drawThinking();       // ブロックする前に演出を出しておく
   readAllSensors();
-  wdtFeed();            // ★HTTPで最大30秒ブロックする前に必ず餌をやる
+  wdtFeed();            // ★HTTPで最大45秒ブロックする前に必ず餌をやる
 
   // ★v3-D: uptime_s / boot_count / rssi を同送する。
   //   sensor_logs.raw は jsonb なのでサーバー無改修で保存され、
@@ -480,7 +496,9 @@ void postReading() {
       if (err) Serial.printf("JSONパース失敗: %s\n", err.c_str());
       else     applyResponse(doc);
     } else {
-      postFailCount++;
+      // 再起動はネットワークがこじれたときのため。4xx（キーの間違いなど）は
+      // 通信はできていて、再起動しても直らないので数えない
+      postFailCount = code >= 500 ? postFailCount + 1 : 0;
       Serial.println(body);
     }
   } else {
@@ -734,7 +752,7 @@ void drawFace(unsigned long nowMs, float dt) {
   const EmotionPreset&   P = EMO_TABLE[currentEmotion];
   const ComplaintPreset& C = CMP_TABLE[currentComplaint];
   float v = vitality();
-  bool speaking = nowMs < speakUntil;
+  bool speaking = nowMs - speakStart < speakDuration;
 
   // まばたき（照度スコアが低いほど頻度が下がる）
   float blinkMul = P.blinkMul * (1 + 1.8f * v) * (1 + (100 - lightScore) / 100.0f * 0.6f);
@@ -920,20 +938,10 @@ void setup() {
   u8g2.begin();
   u8g2.setContrast(255);
 
-  bmeOk = bme.begin(0x76);
+  bmeOk = initBme();
   Serial.println(bmeOk ? "BME280 OK" : "BME280 初期化失敗");
-  if (bmeOk) {
-    bme.setSampling(Adafruit_BME280::MODE_NORMAL,
-                    Adafruit_BME280::SAMPLING_X1, Adafruit_BME280::SAMPLING_X1,
-                    Adafruit_BME280::SAMPLING_X1, Adafruit_BME280::FILTER_X4,
-                    Adafruit_BME280::STANDBY_MS_500);
-  }
-  tslOk = tsl.begin();
+  tslOk = initTsl();
   Serial.println(tslOk ? "TSL2591 OK" : "TSL2591 初期化失敗");
-  if (tslOk) {
-    tsl.setGain(TSL2591_GAIN_LOW);   // 室内向け
-    tsl.setTiming(TSL2591_INTEGRATIONTIME_200MS);
-  }
   wdtFeed();
 
   // Wi-Fi接続中も目を閉じた顔を出しておく
@@ -958,6 +966,9 @@ void setup() {
 
   // プロトタイプ用途のため証明書検証は省略
   netClient.setInsecure();
+  // TLS ハンドシェイクは setConnectTimeout に含まれず、既定は120秒。
+  // WDT（60秒）より長いと、回線が悪いときに失敗として数えられる前に再起動してしまう
+  netClient.setHandshakeTimeout(15);
 
   printHelp();
 
