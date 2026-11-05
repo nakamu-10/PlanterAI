@@ -44,7 +44,10 @@ Docs「PlanterAI 開発計画」）にある。公開リポジトリには書か
         を使い、`?pot=` で鉢を選ぶ（無ければ `karami`）
   - [ ] 本番へ：migration `20261105100000_devices_public_slug` → `app-public`
         をデプロイ → カラ美の鉢に `public_slug = 'karami'` を入れる
-  - [ ] #37 のマージのあと、鍵が無いときはホームの話しかける欄を出さない
+  - [ ] Vercel の本番の環境変数に `VITE_SUPABASE_FUNCTIONS_URL`
+        （`https://bwlfobbsgksvtjudodmq.supabase.co/functions/v1`）を入れ、
+        デプロイし直す。無いと /app/ が関数の URL を知らず、何も読めない
+  - [x] 鍵が無いときは、ホームの話しかける欄を出さない
 - [x] 11/3 3Dアバター（glb）をアプリに表示する（PR #15）
 - [ ] 11/3 リポジトリにタグを付ける（今の main か、8月の審査会の時点かを決める）
 - [x] 11/4 表情としおれを、感情と土の水分に連動させる（`feat/karami-moisture`。

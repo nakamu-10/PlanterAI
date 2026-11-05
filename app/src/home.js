@@ -1,6 +1,6 @@
 import { gsap } from "gsap";
 import { Draggable } from "gsap/Draggable";
-import { fetchDashboard, sendChatMessage } from "./api.js";
+import { fetchDashboard, isPublicView, sendChatMessage } from "./api.js";
 import {
   daysTogether,
   describeAgo,
@@ -54,6 +54,9 @@ const statusMoisture = document.getElementById("statusMoisture");
 const statusWatering = document.getElementById("statusWatering");
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
+
+// 鍵なしの app-public は読み取りだけで、チャットは受けない（ADR 0006）
+chatForm.hidden = isPublicView;
 
 // ?emotion=不安 や ?moisture=20（土の水分の快適度 0〜100）を付けると、
 // その状態に固定する（デモの練習用）。片方だけでもよい
