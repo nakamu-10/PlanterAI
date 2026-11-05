@@ -26,9 +26,9 @@ export async function createKarami(container) {
     if (!found) throw new Error(`アニメーション ${name} が glb にありません`);
     return found;
   };
-  const findBone = (name) => {
+  const findNode = (name) => {
     const found = model.getObjectByName(name);
-    if (!found) throw new Error(`骨 ${name} が glb にありません`);
+    if (!found) throw new Error(`${name} が glb にありません`);
     return found;
   };
   // 涙以外の動きを流す
@@ -59,7 +59,8 @@ export async function createKarami(container) {
   }
   // 涙は常に流しておき、目のうるみごと骨 cry_* の大きさで出し入れする
   mixer.clipAction(keepTracks(findClip("Cry"), "Cry", isTearTrack)).play();
-  const cryBones = [findBone("cry_L"), findBone("cry_R")];
+  const cryBones = [findNode("cry_L"), findNode("cry_R")];
+  const headMesh = findNode("HeadMesh");
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -86,6 +87,11 @@ export async function createKarami(container) {
   let current = null;
   let shot = 0;
   const clock = new THREE.Clock();
+
+  // 体をつかんで回した向き。離してしばらくすると、顔が見える正面へ戻る
+  let yaw = 0;
+  let turning = false;
+  let sinceTurn = 0;
 
   function playOnce(name) {
     const action = oneShots[name];
@@ -123,6 +129,14 @@ export async function createKarami(container) {
       idle[part].timeScale = wiltLoop[part].timeScale = 1 - 0.5 * level[part];
     }
 
+    if (turning) {
+      sinceTurn = 0;
+    } else if ((sinceTurn += dt) > 1.5) {
+      const front = Math.round(yaw / (Math.PI * 2)) * Math.PI * 2;
+      yaw += (front - yaw) * (1 - Math.exp(-dt * 3));
+    }
+    model.rotation.y = yaw;
+
     mixer.update(dt);
     // 1回だけの動き（喜ぶなど）の間は涙を引っ込める。0 にすると向きが壊れるので小さく残す
     level.tears += (target.tears - level.tears) * k;
@@ -142,6 +156,23 @@ export async function createKarami(container) {
       target.leaves = next.leaves;
       target.body = next.body;
       target.tears = next.tears;
+    },
+    // 画面のこの高さが、頭の中心より上か（上をドラッグするとなでる、下なら回す）
+    isAboveHead(clientY) {
+      const center = new THREE.Box3()
+        .setFromObject(headMesh)
+        .getCenter(new THREE.Vector3())
+        .project(camera);
+      const rect = renderer.domElement.getBoundingClientRect();
+      return clientY < rect.top + ((1 - center.y) / 2) * rect.height;
+    },
+    // dx: 横にドラッグした画素数。画面の半分ほどで半回転する
+    turn(dx) {
+      turning = true;
+      yaw += dx * 0.01;
+    },
+    endTurn() {
+      turning = false;
     },
     poke: () => playOnce("surprise"),
     pet: () => playOnce("pet"),

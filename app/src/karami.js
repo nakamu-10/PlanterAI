@@ -131,7 +131,7 @@ function setup2d() {
   });
 }
 
-// ---- 3D 版：短く押して離す＝つつく、ドラッグ＝なでる ----
+// ---- 3D 版：短く押して離す＝つつく、頭をドラッグ＝なでる、体をドラッグ＝回す ----
 async function setup3d() {
   karami3d = await createKarami(stage);
   loading.remove();
@@ -144,22 +144,47 @@ async function setup3d() {
     window.karami = karami3d;
   }
 
-  let downAt = null;
-  karami3d.canvas.addEventListener("pointerdown", (e) => {
-    downAt = { x: e.clientX, y: e.clientY };
+  const canvas = karami3d.canvas;
+  let press = null;
+  canvas.addEventListener("pointerdown", (e) => {
+    // 見学会で何人も同時に触るので、2本目以降の指と左ボタン以外は無視する
+    // （座標が混ざって激しく回ったり、離したことに気づけなくなったりする）
+    if (press || !e.isPrimary || e.button !== 0) return;
+    canvas.setPointerCapture(e.pointerId);
+    press = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      lastX: e.clientX,
+      onHead: karami3d.isAboveHead(e.clientY),
+      mode: null, // 10px 以上動いたら "pet" か "turn" に決める
+    };
   });
-  karami3d.canvas.addEventListener("pointerup", (e) => {
-    if (!downAt) return;
-    const distance = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
-    downAt = null;
-    if (distance > 10) {
+  canvas.addEventListener("pointermove", (e) => {
+    if (press?.pointerId !== e.pointerId) return;
+    const dx = e.clientX - press.startX;
+    const dy = e.clientY - press.startY;
+    if (press.mode === null && Math.hypot(dx, dy) > 10) {
+      // 体でも、縦になでたときはなでる
+      press.mode = press.onHead || Math.abs(dy) > Math.abs(dx) ? "pet" : "turn";
+    }
+    if (press.mode === "turn") karami3d.turn(e.clientX - press.lastX);
+    press.lastX = e.clientX;
+  });
+  const release = (e, cancelled) => {
+    if (press?.pointerId !== e.pointerId) return;
+    karami3d.endTurn();
+    if (!cancelled && press.mode === "pet") {
       karami3d.pet();
       showReaction("pet");
-    } else {
+    } else if (!cancelled && press.mode === null) {
       karami3d.poke();
       showReaction("poke");
     }
-  });
+    press = null;
+  };
+  canvas.addEventListener("pointerup", (e) => release(e, false));
+  canvas.addEventListener("pointercancel", (e) => release(e, true));
 }
 
 function describeState(complaint) {
