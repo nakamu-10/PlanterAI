@@ -4,7 +4,7 @@
 // DBを一切叩かずに即returnする。実質的なコストは日に数回だけ。
 
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
-import { PLANT_PROFILES } from "./config.ts";
+import { CONVERSATION_WINDOW, PLANT_PROFILES } from "./config.ts";
 import { toScore } from "./normalize.ts";
 import { decideEmotion, scoreToUrgency, Urgency } from "./emotionTable.ts";
 import type { EmotionState } from "./emotionEngine.ts";
@@ -143,7 +143,7 @@ export async function runDailyLightCheck(
     .select("role, message, created_at")
     .eq("device_id", device.id)
     .order("created_at", { ascending: false })
-    .limit(7);
+    .limit(CONVERSATION_WINDOW);
   if (convoError) throw convoError;
 
   const { data: summary, error: summaryError } = await supabase

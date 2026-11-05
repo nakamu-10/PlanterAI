@@ -103,7 +103,7 @@ for t in bpy.data.texts:
 - Blender
   で一時的なカメラを置いて、正面・斜め・横から描画して見る（終わったらカメラは消す）
 - 全部の動きの全コマで、腕がマントを突き抜けないかを見る
-- `npm --prefix app run dev` で `karami.html?emotion=不安&moisture=20&debug`
+- `npm --prefix app run dev` で `/app/?emotion=不安&moisture=20&debug`
   を開き、コンソールから `karami.cheer()` などで動きを流す。`emotion` と
   `moisture` で、しおれと涙の具合を固定できる
 
