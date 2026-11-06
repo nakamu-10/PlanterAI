@@ -1,6 +1,11 @@
 import { gsap } from "gsap";
 import { Draggable } from "gsap/Draggable";
-import { fetchDashboard, isPublicView, sendChatMessage } from "./api.js";
+import {
+  fetchDashboard,
+  isPublicView,
+  recordTouch,
+  sendChatMessage,
+} from "./api.js";
 import {
   daysTogether,
   describeAgo,
@@ -88,6 +93,10 @@ const REACTION_MS = 2_200;
 const SEEN_KEY = "planterai:lastSeenMessageAt";
 
 function showReaction(kind) {
+  // ?emotion= などで固定した練習の操作は、本物の鉢の記憶に混ぜない
+  if (!isForced) {
+    recordTouch(kind).catch((err) => console.error("触った記録に失敗:", err));
+  }
   const pool = REACTIONS[currentEmotion]?.[kind] ?? REACTIONS["満足"][kind];
   showBubble(pool[Math.floor(Math.random() * pool.length)]);
 }
@@ -210,9 +219,11 @@ async function setup3d() {
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   let press = null;
   canvas.addEventListener("pointerdown", (e) => {
-    // 見学会で何人も同時に触るので、2本目以降の指と左ボタン以外は無視する
-    // （座標が混ざって激しく回ったり、離したことに気づけなくなったりする）
-    if (press || !e.isPrimary || e.button !== 0) return;
+    // 見学会で何人も同時に触るので、触っている指が離れるまで次の指は無視する
+    // （座標が混ざって激しく回ったり、離したことに気づけなくなったりする）。
+    // isPrimary では見ない。カラ美の外に置かれた1本目の指が、ほかの人の指を弾いてしまう
+    if (press || e.button !== 0) return;
+    if (!karami3d.touches(e.clientX, e.clientY)) return;
     canvas.setPointerCapture(e.pointerId);
     press = {
       pointerId: e.pointerId,
