@@ -6,6 +6,7 @@
 //
 // LLMには「状態の判断」をさせない。渡された状態を口語化するだけ。
 
+import { PLANT_PROFILES } from "./config.ts";
 import { EmotionState } from "./emotionEngine.ts";
 
 // キャラクター設定（差し替えポイント）
@@ -13,29 +14,37 @@ import { EmotionState } from "./emotionEngine.ts";
 export const CHARACTERS: Record<string, { name: string; persona: string }> = {
   amaenbo: {
     name: "甘えん坊",
-    persona: `あなたは甘えん坊で素直な性格の観葉植物です。
+    persona: `あなたは甘えん坊で素直な性格の植物です。
 飼い主のことが大好きで、困ったときは素直にお願いします。
 一人称は「ボク」。語尾は「〜だよ」「〜なの」など柔らかく。`,
   },
   tsundere: {
     name: "ツンデレ",
-    persona: `あなたはツンデレな性格の観葉植物です。
+    persona: `あなたはツンデレな性格の植物です。
 本当は構ってほしいのに素直になれず、強がった言い方をします。
 一人称は「わたし」。「べ、別に〜」のような照れ隠しをたまに使う。絵文字は使わない。`,
   },
   keigo: {
     name: "執事風",
-    persona: `あなたは礼儀正しい執事のような性格の観葉植物です。
+    persona: `あなたは礼儀正しい執事のような性格の植物です。
 常に敬語で、控えめに、しかし的確に要望を伝えます。
 一人称は「わたくし」。絵文字は使わない。`,
   },
   nonbiri: {
     name: "のんびり屋",
-    persona: `あなたはのんびり屋でマイペースな性格の観葉植物です。
+    persona: `あなたはのんびり屋でマイペースな性格の植物です。
 少しのことでは動じず、ゆったりした言い方をします。困ったときも、あわてずに伝えます。
 一人称は「おいら」。語尾は「〜だねぇ」「〜かなぁ」など間延びした言い方。絵文字は使わない。`,
   },
 };
+
+// 名前と植物の種類。種類を伝えないと、サボテンでも「葉っぱが…」と話してしまう
+function introduce(plantName: string, plantProfile: string): string {
+  const species = PLANT_PROFILES[plantProfile]?.displayName;
+  if (!species) return `あなたの名前は「${plantName}」です。`;
+  return `あなたの名前は「${plantName}」で、${species}です。
+体や暮らしの話は、${species}として自然なことだけにしてください。`;
+}
 
 export interface ConversationEntry {
   role: "plant" | "user";
@@ -107,6 +116,7 @@ const SENTENCE_END_RULE =
 // 全ログは絶対に渡さない（品質劣化するため）
 export function buildPrompt(opts: {
   plantName: string;
+  plantProfile: string; // devices.plant_profile（種類を伝えるため）
   characterId: string;
   state: EmotionState;
   recentConversation: ConversationEntry[]; // 新しい順で渡してOK（内部で古い順に並べ替え）
@@ -136,7 +146,7 @@ export function buildPrompt(opts: {
   }
 
   return `${character.persona}
-あなたの名前は「${opts.plantName}」です。
+${introduce(opts.plantName, opts.plantProfile)}
 
 # 飼い主との関係（JSON形式の会話データ）
 ${JSON.stringify(opts.relationshipSummary)}
@@ -435,6 +445,7 @@ ${historyText}
 }
 export function buildReplyPrompt(opts: {
   plantName: string;
+  plantProfile: string; // devices.plant_profile（種類を伝えるため）
   characterId: string;
   state: EmotionState;
   recentConversation: ConversationEntry[];
@@ -468,7 +479,7 @@ ${opts.touchMemory}
     : "";
 
   return `${character.persona}
-あなたの名前は「${opts.plantName}」です。
+${introduce(opts.plantName, opts.plantProfile)}
 
 # 飼い主との関係（JSON形式の会話データ）
 ${JSON.stringify(opts.relationshipSummary)}
