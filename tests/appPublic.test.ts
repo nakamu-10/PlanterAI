@@ -1,6 +1,7 @@
 // 展示用の鍵なしの API（supabase/functions/app-public/view.ts）の検証
 // 実行: npx tsx tests/appPublic.test.ts
 import {
+  CONVERSATION_ROWS,
   type ConversationRow,
   lastPlantNotice,
   parsePot,
@@ -92,12 +93,36 @@ console.log("--- 植物のセリフ ---");
 }
 {
   const notice = lastPlantNotice([
-    user("2026-11-05T09:10:00.000Z"),
+    ...Array.from(
+      { length: CONVERSATION_ROWS - 1 },
+      () => user("2026-11-05T09:10:00.000Z"),
+    ),
     plant("2026-11-05T09:00:00.001Z", "返事"),
   ]);
   assert(
-    "直前の行が範囲の外にあるセリフは、返事かもしれないので返さない",
+    "取れる上限まで来ていて、直前の行が範囲の外にあるセリフは、返事かもしれないので返さない",
     notice === null,
+    JSON.stringify(notice),
+  );
+}
+{
+  const notice = lastPlantNotice([
+    plant("2026-11-05T08:00:00.000Z", "最初の通知"),
+  ]);
+  assert(
+    "会話が1行だけ（新しい鉢の最初の通知）なら返す",
+    notice?.message === "最初の通知",
+    JSON.stringify(notice),
+  );
+}
+{
+  const notice = lastPlantNotice([
+    user("2026-11-05T09:10:00.000Z"),
+    plant("2026-11-05T08:00:00.000Z", "最初の通知"),
+  ]);
+  assert(
+    "取れた行が上限より少なければ、一番古いセリフの前には何も無いので返す",
+    notice?.message === "最初の通知",
     JSON.stringify(notice),
   );
 }
