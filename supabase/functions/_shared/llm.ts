@@ -491,7 +491,13 @@ ${recentPlantMessages(opts.recentConversation)}
 - 「ねえ飼い主さん」のような呼びかけで文章を始めないでください。
 - 絵文字は使わないでください。
 - 最近のあなたの発言と、同じ言い回しや同じ文末を使わないでください。
-${noGuessedThanks("飼い主が話していない")}
+${
+    noGuessedThanks(
+      opts.touchMemory
+        ? "飼い主が話していない（「最近、アプリの画面ごしに飼い主に触られたこと」に書かれたものは除く）"
+        : "飼い主が話していない",
+    )
+  }
 ${touchRule}- 意図の分からない返信にはオウム返しで答えてください。${
     complaintCaution(opts.state.complaint)
   }

@@ -68,7 +68,13 @@ export async function createReply(
   if (emotionResult.error) throw emotionResult.error;
   if (convoResult.error) throw convoResult.error;
   if (summaryResult.error) throw summaryResult.error;
-  if (touchResult.error) throw touchResult.error;
+  // 触った記憶は無くても返事はできるので、読めなくても止めない
+  if (touchResult.error) {
+    console.error(
+      `[${device.id}] 触った記録を読めませんでした:`,
+      touchResult.error,
+    );
+  }
 
   const state = stateFromLog(emotionResult.data);
   const replyPrompt = buildReplyPrompt({
@@ -77,7 +83,9 @@ export async function createReply(
     state,
     recentConversation: (convoResult.data ?? []) as ConversationEntry[],
     relationshipSummary: summaryResult.data?.summary ?? null,
-    touchMemory: describeTouches(touchResult.data ?? [], now),
+    touchMemory: touchResult.error
+      ? null
+      : describeTouches(touchResult.data ?? [], now),
     userMessage: userText,
   });
 

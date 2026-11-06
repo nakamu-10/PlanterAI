@@ -78,6 +78,10 @@ assert(
   "毎回は触れないよう指示する",
   withTouches.includes("毎回は触れないでください"),
 );
+assert(
+  "「話していない行動にお礼を言わない」の指示から、触られたことを除く",
+  withTouches.includes("飼い主に触られたこと」に書かれたものは除く"),
+);
 const withoutTouches = buildReplyPrompt({ ...base, touchMemory: null });
 assert(
   "触られていなければ、見出しも指示も入れない",

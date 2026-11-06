@@ -89,7 +89,10 @@ const REACTION_MS = 2_200;
 const SEEN_KEY = "planterai:lastSeenMessageAt";
 
 function showReaction(kind) {
-  recordTouch(kind).catch((err) => console.error("触った記録に失敗:", err));
+  // ?emotion= などで固定した練習の操作は、本物の鉢の記憶に混ぜない
+  if (!isForced) {
+    recordTouch(kind).catch((err) => console.error("触った記録に失敗:", err));
+  }
   const pool = REACTIONS[currentEmotion]?.[kind] ?? REACTIONS["満足"][kind];
   showBubble(pool[Math.floor(Math.random() * pool.length)]);
 }
