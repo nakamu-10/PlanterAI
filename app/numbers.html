@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="apple-mobile-web-app-title" content="PlanterAI">
+    <title>数値｜PlanterAIアプリ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Noto+Sans+JP:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <script type="module" src="/src/numbers.js"></script>
+  </head>
+  <body class="home">
+    <header class="home-header">
+      <div>
+        <h1 id="plantName" class="home-header__name">カラ美</h1>
+        <p id="plantDays" class="home-header__sub"></p>
+      </div>
+      <!-- 設定のページは 11/8 に作る。それまでは今のダッシュボードを開く -->
+      <nav class="home-header__menu" aria-label="メニュー">
+        <a class="home-icon-button" href="/app/records.html" data-keep-query
+          aria-label="記録">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <rect x="4" y="5" width="16" height="15" rx="1.5"></rect>
+            <path d="M4 9.5h16M8.5 3v4M15.5 3v4"></path>
+          </svg>
+        </a>
+        <a class="home-icon-button" href="/app/dashboard.html" data-keep-query
+          aria-label="設定">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path
+              d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"></path>
+          </svg>
+        </a>
+      </nav>
+    </header>
+
+    <div class="view-toggle">
+      <a class="view-toggle__item" href="/app/" data-keep-query>キャラ</a>
+      <span class="view-toggle__item is-active" aria-current="page">数値</span>
+    </div>
+
+    <main class="numbers">
+      <section class="numbers-card numbers-values" aria-label="今の値">
+        <div class="numbers-value">
+          <span class="numbers-value__label">土の水分</span>
+          <span id="valueMoisture" class="numbers-value__num">—</span>
+        </div>
+        <div class="numbers-value">
+          <span class="numbers-value__label">気温</span>
+          <span id="valueTemp" class="numbers-value__num">—</span>
+        </div>
+        <div class="numbers-value">
+          <span class="numbers-value__label">空気の湿度</span>
+          <span id="valueHumidity" class="numbers-value__num">—</span>
+        </div>
+        <div class="numbers-value">
+          <span class="numbers-value__label">今日の日照（積算）</span>
+          <span id="valueLight" class="numbers-value__num">—</span>
+        </div>
+      </section>
+
+      <section class="numbers-card" aria-labelledby="moistureTitle">
+        <h2 id="moistureTitle"
+          class="numbers-card__title">土の水分　3日間と見込み</h2>
+        <div id="moistureChart" class="numbers-chart"></div>
+        <p id="moistureForecast" class="numbers-card__note"></p>
+      </section>
+
+      <section class="numbers-card" aria-labelledby="tempTitle">
+        <h2 id="tempTitle" class="numbers-card__title">気温　24時間</h2>
+        <div id="tempChart" class="numbers-chart"></div>
+      </section>
+
+      <p id="lastReceived" class="numbers-footer"></p>
+    </main>
+  </body>
+</html>

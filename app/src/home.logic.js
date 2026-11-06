@@ -1,5 +1,14 @@
 // ホームの表示を決める計算。DOM と three.js に依存しないので、ここだけテストできる
 
+// セリフのあとに気分が変わっていたら、今と食い違う古いセリフ
+// （「お水ちょうだい」のあとに水をもらって満足になった、など）
+export function isStaleMessage(message, latestEmotion) {
+  return Boolean(
+    message.emotion && latestEmotion &&
+      latestEmotion.emotion !== message.emotion,
+  );
+}
+
 // 開いたときに、植物の最後のセリフを吹き出しで出すか。
 // message: { message, emotion, created_at } | null
 // seenAt: この端末で最後に見たセリフの時刻（ISO 文字列） | null
@@ -9,15 +18,34 @@ export function shouldShowLastMessage(message, seenAt, latestEmotion) {
   if (seenAt && Date.parse(message.created_at) <= Date.parse(seenAt)) {
     return false;
   }
-  // セリフのあとに気分が変わっていたら、今と食い違う古いセリフなので出さない
-  // （「お水ちょうだい」のあとに水をもらって満足になった、など）
-  if (
-    message.emotion && latestEmotion &&
-    latestEmotion.emotion !== message.emotion
-  ) {
-    return false;
-  }
-  return true;
+  return !isStaleMessage(message, latestEmotion);
+}
+
+// 取得のたびに、吹き出しをどうするかを決める。
+// known: 前回までに受け取ったセリフ（新しいかどうかを比べる相手）
+// firstLoad: 開いて最初の取得か。seenAt: この端末で最後に見たセリフの時刻
+// 返す値: known は次の比べる相手、show は今出すか、recallable はアイコンから出し直せるセリフ。
+// known と recallable を分けておかないと、古くなったセリフを recallable から外したときに
+// 次の取得で「新しいセリフ」と見なされ、また出てしまう
+export function decideBubble({
+  known,
+  message,
+  latestEmotion,
+  firstLoad,
+  seenAt,
+}) {
+  // チャットの返事は送った直後に出しているので、同じ文なら新しいと見なさない
+  const isNew = Boolean(message) &&
+    message.created_at !== known?.created_at &&
+    message.message !== known?.message;
+  const current = isNew ? message : known;
+  // 開いたときは、まだ見ていない今のセリフだけ出す。開いている間に届いたセリフ（LINE の通知など）はいつも出す
+  const show = isNew &&
+    (!firstLoad || shouldShowLastMessage(message, seenAt, latestEmotion));
+  const recallable = current && !isStaleMessage(current, latestEmotion)
+    ? current
+    : null;
+  return { known: current, show, recallable };
 }
 
 // 「3日前」「たった今」のような、ざっくりした経過時間
@@ -37,4 +65,21 @@ const jstDay = (ms) => Math.floor((ms + JST_MS) / 86_400_000);
 
 export function daysTogether(createdIso, now = Date.now()) {
   return jstDay(now) - jstDay(Date.parse(createdIso)) + 1;
+}
+
+// 土が乾くまでの見込み（app-data の trends.moisture.forecast）を言葉にする
+export function describeForecast(forecast) {
+  switch (forecast?.status) {
+    case "dry":
+      return "今すぐ";
+    case "steady":
+      return "しばらく先";
+    case "drying":
+      return forecast.hours < 48
+        ? `あと約${forecast.hours}時間`
+        : `あと約${Math.round(forecast.hours / 24)}日`;
+    default:
+      // データが足りない（unknown）か、推移を出せない鉢
+      return "—";
+  }
 }

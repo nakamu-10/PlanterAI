@@ -5,7 +5,7 @@ const DEVICE_KEY = import.meta.env.VITE_DEVICE_KEY;
 // 鍵を使うのは手元の開発（app/.env）だけ（ADR 0006）
 export const isPublicView = !DEVICE_KEY;
 // どの鉢を見るか（/app/?pot=karami）。無ければカラ美
-const POT = new URLSearchParams(location.search).get("pot") ?? "karami";
+export const POT = new URLSearchParams(location.search).get("pot") ?? "karami";
 
 async function readJson(res, name) {
   const data = await res.json().catch(() => null);

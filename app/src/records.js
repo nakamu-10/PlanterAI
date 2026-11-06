@@ -1,5 +1,6 @@
 import { fetchRecords, isPublicView } from "./api.js";
 import { daysTogether } from "./home.logic.js";
+import { keepQueryOnLinks } from "./potSwitcher.js";
 import {
   calendarWeeks,
   conversationByDay,
@@ -280,7 +281,7 @@ async function load() {
   }
 }
 
-$("toHome").href = `/app/${location.search}`;
+keepQueryOnLinks();
 $("diaryPrev").addEventListener("click", () => moveDiary(-1));
 $("diaryNext").addEventListener("click", () => moveDiary(1));
 load();

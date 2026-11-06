@@ -422,5 +422,38 @@ assert(
     stateFromLog(null).complaint === null,
 );
 
+console.log("\n--- 植物プロファイル ---");
+// toScore は6点が小さい順に並んでいる前提で補間する
+for (const [id, p] of Object.entries(PLANT_PROFILES)) {
+  for (
+    const sensor of ["moisture", "temp", "light", "lightDaily", "humidity"]
+  ) {
+    const t = p[sensor as keyof typeof p] as typeof p.moisture;
+    const points = [
+      t.dangerLow,
+      t.cautionLow,
+      t.comfortLow,
+      t.comfortHigh,
+      t.cautionHigh,
+      t.dangerHigh,
+    ];
+    assert(
+      `${id}.${sensor} の閾値は小さい順`,
+      points.every((v, i) => i === 0 || points[i - 1] <= v),
+      points.join(","),
+    );
+  }
+}
+const cactus = PLANT_PROFILES.cactus;
+assert(
+  "サボテンは、土の水分20%で快適",
+  toScore(20, cactus.moisture) === 100,
+);
+assert(
+  "サボテンは、カラテアに快適な土の水分（60%）で困る",
+  toScore(60, cactus.moisture) < 100 &&
+    toScore(60, PLANT_PROFILES.calathea.moisture) === 100,
+);
+
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
