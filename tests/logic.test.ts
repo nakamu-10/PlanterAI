@@ -454,6 +454,11 @@ assert(
   toScore(60, cactus.moisture) < 100 &&
     toScore(60, PLANT_PROFILES.calathea.moisture) === 100,
 );
+const everfresh = PLANT_PROFILES.everfresh;
+assert(
+  "エバーフレッシュは寒さに弱く、サボテンが平気な12℃で注意になる",
+  toScore(12, everfresh.temp) <= 50 && toScore(12, cactus.temp) > 50,
+);
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
