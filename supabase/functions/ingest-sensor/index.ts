@@ -312,7 +312,10 @@ Deno.serve(async (req: Request) => {
           finishReason = describeLlmFailure(genErr);
           message = fallbackMessage(state.complaint, state.emotion);
         }
-        await pushLineMessage(device.line_user_id, message);
+        // LINE と結んでいない鉢は送らない。セリフは下で記録し、アプリの吹き出しに出る
+        if (device.line_user_id) {
+          await pushLineMessage(device.line_user_id, message);
+        }
         notified = true;
 
         try {
