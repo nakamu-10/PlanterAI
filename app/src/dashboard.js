@@ -1,9 +1,13 @@
 import { fetchDashboard, isPublicView, updateSettings } from "./api.js";
+import { keepQueryOnLinks } from "./potSwitcher.js";
+
+keepQueryOnLinks();
 
 const CHARACTER_LABELS = {
   amaenbo: "甘えん坊",
   tsundere: "ツンデレ",
   keigo: "執事風",
+  nonbiri: "のんびり屋",
 };
 const SCORE_LABELS = {
   moisture: "土の水分",

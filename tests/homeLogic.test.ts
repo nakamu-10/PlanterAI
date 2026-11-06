@@ -2,8 +2,10 @@
 // 実行: npx tsx tests/homeLogic.test.ts
 import {
   daysTogether,
+  decideBubble,
   describeAgo,
   describeForecast,
+  isStaleMessage,
   shouldShowLastMessage,
 } from "../app/src/home.logic.js";
 
@@ -54,6 +56,15 @@ assert(
   "気分の記録がまだ無い鉢でも出す",
   shouldShowLastMessage({ ...message, emotion: "満足" }, null, null),
 );
+assert(
+  "気分が変わったセリフは古い（アイコンからも出さない）",
+  isStaleMessage(message, { emotion: "満足" }) &&
+    !isStaleMessage(message, anxious),
+);
+assert(
+  "チャットの返事（気分の記録なし）は古くならない",
+  !isStaleMessage({ ...message, emotion: undefined }, { emotion: "満足" }),
+);
 assert("セリフが無ければ出さない", !shouldShowLastMessage(null, null, anxious));
 
 console.log("--- 経過時間 ---");
@@ -94,6 +105,87 @@ assert(
 assert(
   "2日より先は日",
   describeForecast({ status: "drying", hours: 60 }) === "あと約3日",
+);
+
+console.log("--- 取得をくり返したときの吹き出し ---");
+const satisfied = { emotion: "満足" };
+// 開いたとき、セリフのあとに水をもらって満足になっている
+const first = decideBubble({
+  known: null,
+  message,
+  latestEmotion: satisfied,
+  firstLoad: true,
+  seenAt: null,
+});
+assert("開いたとき、古いセリフは出さない", !first.show);
+assert("古いセリフはアイコンからも出せない", first.recallable === null);
+const second = decideBubble({
+  known: first.known,
+  message,
+  latestEmotion: satisfied,
+  firstLoad: false,
+  seenAt: null,
+});
+assert("1分後の取得でも、古いセリフは出さない", !second.show);
+assert("1分後もアイコンから出せない", second.recallable === null);
+
+const fresh = decideBubble({
+  known: null,
+  message,
+  latestEmotion: anxious,
+  firstLoad: true,
+  seenAt: null,
+});
+assert("今のセリフは開いたときに出す", fresh.show);
+const again = decideBubble({
+  known: fresh.known,
+  message,
+  latestEmotion: anxious,
+  firstLoad: false,
+  seenAt: message.created_at,
+});
+assert("同じセリフを2回は出さない", !again.show);
+assert("同じセリフはアイコンから出せる", again.recallable === message);
+const watered = decideBubble({
+  known: again.known,
+  message,
+  latestEmotion: satisfied,
+  firstLoad: false,
+  seenAt: message.created_at,
+});
+assert(
+  "開いている間に満足になったら、アイコンからも出せなくなる",
+  !watered.show && watered.recallable === null,
+);
+const notice = {
+  message: "ありがとう、生き返ったよ。",
+  emotion: "満足",
+  created_at: "2026-11-05T10:00:00Z",
+};
+assert(
+  "開いている間に届いたセリフは出す",
+  decideBubble({
+    known: watered.known,
+    message: notice,
+    latestEmotion: satisfied,
+    firstLoad: false,
+    seenAt: message.created_at,
+  }).show,
+);
+const reply = {
+  message: "うん、元気だよ。",
+  emotion: "満足",
+  created_at: "2026-11-05T10:05:00.100Z",
+};
+assert(
+  "送った直後に出したチャットの返事は、取得で出し直さない",
+  !decideBubble({
+    known: reply,
+    message: { ...reply, created_at: "2026-11-05T10:05:00.001Z" },
+    latestEmotion: satisfied,
+    firstLoad: false,
+    seenAt: reply.created_at,
+  }).show,
 );
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);

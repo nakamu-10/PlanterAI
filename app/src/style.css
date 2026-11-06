@@ -369,6 +369,33 @@ a:hover {
   background: rgba(255, 255, 255, .45);
 }
 
+.pot-switcher {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 10px;
+  overflow-x: auto;
+}
+.pot-switcher[hidden] {
+  display: none;
+}
+.pot-switcher__item {
+  flex: none;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, .28);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 14px;
+  text-decoration: none;
+}
+.pot-switcher__item.is-active {
+  background: var(--card);
+  font-weight: 700;
+}
+
 .view-toggle {
   align-self: center;
   display: flex;

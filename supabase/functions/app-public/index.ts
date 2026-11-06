@@ -1,13 +1,19 @@
 // app-public — 展示用の /app/ が、鍵なしで鉢の様子を読むための API（ADR 0006）
 //
 // GET ?pot=<devices.public_slug>。public_slug が入っている鉢だけを返す。
+// 見られる鉢の一覧（pots）も一緒に返し、アプリで鉢を切り替えられるようにする。
 // 読み取りだけで、設定の変更とチャットは鍵の要る app-data・app-chat が受ける。
 // 鍵・id・LINE の ID、人が書いた文、人への返事は返さない
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PLANT_PROFILES } from "../_shared/config.ts";
 import { buildTrends, TREND_HOURS, TREND_MAX_ROWS } from "../_shared/trends.ts";
-import { lastPlantNotice, parsePot } from "./view.ts";
+import {
+  cacheHeaders,
+  CONVERSATION_ROWS,
+  lastPlantNotice,
+  parsePot,
+} from "./view.ts";
 
 const supabase = createClient(
   requiredEnv("SUPABASE_URL"),
@@ -19,9 +25,6 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 
-// 返事かどうかを、直前の行で見分けるのに足りる数
-const CONVERSATION_ROWS = 20;
-
 function requiredEnv(name: string): string {
   const value = Deno.env.get(name);
   if (!value) throw new Error(`環境変数 ${name} が設定されていません`);
@@ -31,7 +34,11 @@ function requiredEnv(name: string): string {
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    headers: {
+      "Content-Type": "application/json",
+      ...CORS_HEADERS,
+      ...cacheHeaders(status),
+    },
   });
 }
 
@@ -50,6 +57,7 @@ async function handleView(device: Device): Promise<Response> {
     wateringResult,
     conversationResult,
     trendResult,
+    potsResult,
   ] = await Promise.all([
     supabase
       .from("sensor_logs")
@@ -87,6 +95,11 @@ async function handleView(device: Device): Promise<Response> {
       )
       .order("created_at", { ascending: false })
       .limit(TREND_MAX_ROWS),
+    supabase
+      .from("devices")
+      .select("public_slug, plant_name")
+      .not("public_slug", "is", null)
+      .order("created_at", { ascending: true }),
   ]);
 
   if (sensorResult.error) throw sensorResult.error;
@@ -94,6 +107,7 @@ async function handleView(device: Device): Promise<Response> {
   if (wateringResult.error) throw wateringResult.error;
   if (conversationResult.error) throw conversationResult.error;
   if (trendResult.error) throw trendResult.error;
+  if (potsResult.error) throw potsResult.error;
 
   const sensorHistory = sensorResult.data ?? [];
 
@@ -115,6 +129,10 @@ async function handleView(device: Device): Promise<Response> {
       PLANT_PROFILES[device.plant_profile],
       wateringResult.data?.created_at ?? null,
     ),
+    pots: (potsResult.data ?? []).map((p) => ({
+      slug: p.public_slug,
+      name: p.plant_name,
+    })),
   });
 }
 

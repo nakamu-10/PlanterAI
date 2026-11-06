@@ -3,16 +3,18 @@ import { Draggable } from "gsap/Draggable";
 import {
   fetchDashboard,
   isPublicView,
+  POT,
   recordTouch,
   sendChatMessage,
 } from "./api.js";
 import {
   daysTogether,
+  decideBubble,
   describeAgo,
   describeForecast,
-  shouldShowLastMessage,
 } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
+import { keepQueryOnLinks, renderPotSwitcher } from "./potSwitcher.js";
 
 gsap.registerPlugin(Draggable);
 
@@ -59,13 +61,11 @@ const statusMoodNote = document.getElementById("statusMoodNote");
 const statusNextWatering = document.getElementById("statusNextWatering");
 const statusWatering = document.getElementById("statusWatering");
 const chatForm = document.getElementById("chatForm");
-// キャラ／数値を行き来しても、見ている鉢（?pot=）を保つ
-document.getElementById("toNumbers").href =
-  `/app/numbers.html${location.search}`;
 const chatInput = document.getElementById("chatInput");
 
 // 鍵なしの app-public は読み取りだけで、チャットは受けない（ADR 0006）
 chatForm.hidden = isPublicView;
+keepQueryOnLinks();
 
 // ?emotion=不安 や ?moisture=20（土の水分の快適度 0〜100）を付けると、
 // その状態に固定する（デモの練習用）。片方だけでもよい
@@ -85,12 +85,15 @@ let bubbleTimeout = null;
 let karami3d = null;
 // 最後に見た水やりの時刻。開いたときの記録には喜ばず、その後の水やりにだけ喜ぶ
 let lastWateringAt;
-// 植物の最後のセリフ。吹き出しを引っ込めたあと、アイコンから出し直す
+// 受け取った最後のセリフ（新しいかどうかを比べる相手）
+let knownMessage = null;
+// アイコンから出し直せるセリフ。今の気分と食い違う古いセリフは入れない
 let lastMessage = null;
 // 植物のセリフは読み終わるまで出し、触ったときの反応はすぐ消す
 const MESSAGE_MS = 8_000;
 const REACTION_MS = 2_200;
-const SEEN_KEY = "planterai:lastSeenMessageAt";
+// どのセリフまで見たかは鉢ごとに覚える。共有すると、別の鉢の新しいセリフで「もう見た」になる
+const SEEN_KEY = `planterai:lastSeenMessageAt:${POT}`;
 
 function showReaction(kind) {
   // ?emotion= などで固定した練習の操作は、本物の鉢の記憶に混ぜない
@@ -115,6 +118,7 @@ function hideBubble() {
 }
 
 function showMessage(message) {
+  knownMessage = message;
   lastMessage = message;
   showBubble(message.message, MESSAGE_MS);
   // どのセリフまで見たかは、この端末にだけ覚えておけばよい
@@ -280,6 +284,7 @@ function describeForced() {
 
 function renderStatus(data, latest) {
   plantName.textContent = data.device.plant_name;
+  renderPotSwitcher(document.getElementById("potSwitcher"), data.pots);
   chatInput.placeholder = `${data.device.plant_name}に話しかける`;
   plantDays.textContent = `一緒に過ごして ${
     daysTogether(data.device.created_at)
@@ -321,18 +326,18 @@ async function refreshState() {
     }
     lastWateringAt = wateringAt;
 
-    const message = data.last_plant_message;
-    // チャットの返事は送った直後に出しているので、同じ文なら出し直さない
-    const isNew = message && message.created_at !== lastMessage?.created_at &&
-      message.message !== lastMessage?.message;
-    if (isNew) {
-      // 開いたときは、まだ見ていない今のセリフだけ出す。開いている間に届いたセリフ（LINE の通知など）はいつも出す
-      if (!firstLoad || shouldShowLastMessage(message, lastSeenAt(), latest)) {
-        showMessage(message);
-      } else {
-        lastMessage = message;
-        if (!bubble.classList.contains("is-visible")) recall.hidden = false;
-      }
+    const bubbleState = decideBubble({
+      known: knownMessage,
+      message: data.last_plant_message,
+      latestEmotion: latest,
+      firstLoad,
+      seenAt: lastSeenAt(),
+    });
+    knownMessage = bubbleState.known;
+    lastMessage = bubbleState.recallable;
+    if (bubbleState.show) showMessage(bubbleState.known);
+    if (!bubble.classList.contains("is-visible")) {
+      recall.hidden = lastMessage === null;
     }
     firstLoad = false;
   } catch (err) {
@@ -354,7 +359,12 @@ chatForm.addEventListener("submit", async (event) => {
   showBubble("……", 30_000);
   try {
     const data = await sendChatMessage(text);
-    showMessage({ message: data.reply, created_at: new Date().toISOString() });
+    // 気分も渡し、気分が変わったら返事も古いセリフとして扱う（読み込み直したときと同じに）
+    showMessage({
+      message: data.reply,
+      emotion: data.emotion,
+      created_at: new Date().toISOString(),
+    });
   } catch (err) {
     console.error(err);
     showBubble("返事を受け取れませんでした");

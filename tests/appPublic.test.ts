@@ -1,6 +1,8 @@
 // 展示用の鍵なしの API（supabase/functions/app-public/view.ts）の検証
 // 実行: npx tsx tests/appPublic.test.ts
 import {
+  cacheHeaders,
+  CONVERSATION_ROWS,
   type ConversationRow,
   lastPlantNotice,
   parsePot,
@@ -92,12 +94,36 @@ console.log("--- 植物のセリフ ---");
 }
 {
   const notice = lastPlantNotice([
-    user("2026-11-05T09:10:00.000Z"),
+    ...Array.from(
+      { length: CONVERSATION_ROWS - 1 },
+      () => user("2026-11-05T09:10:00.000Z"),
+    ),
     plant("2026-11-05T09:00:00.001Z", "返事"),
   ]);
   assert(
-    "直前の行が範囲の外にあるセリフは、返事かもしれないので返さない",
+    "取れる上限まで来ていて、直前の行が範囲の外にあるセリフは、返事かもしれないので返さない",
     notice === null,
+    JSON.stringify(notice),
+  );
+}
+{
+  const notice = lastPlantNotice([
+    plant("2026-11-05T08:00:00.000Z", "最初の通知"),
+  ]);
+  assert(
+    "会話が1行だけ（新しい鉢の最初の通知）なら返す",
+    notice?.message === "最初の通知",
+    JSON.stringify(notice),
+  );
+}
+{
+  const notice = lastPlantNotice([
+    user("2026-11-05T09:10:00.000Z"),
+    plant("2026-11-05T08:00:00.000Z", "最初の通知"),
+  ]);
+  assert(
+    "取れた行が上限より少なければ、一番古いセリフの前には何も無いので返す",
+    notice?.message === "最初の通知",
     JSON.stringify(notice),
   );
 }
@@ -113,6 +139,24 @@ assert("会話が無ければ返さない", lastPlantNotice([]) === null);
       notice?.created_at === "2026-11-05T08:00:00.000Z" &&
       !("role" in notice),
     JSON.stringify(notice),
+  );
+}
+
+console.log("--- キャッシュ ---");
+{
+  const maxAge = Number(
+    cacheHeaders(200)["Cache-Control"]?.match(/max-age=(\d+)/)?.[1],
+  );
+  assert(
+    "成功した応答は、?demo の取得（5秒おき）より短く覚える",
+    maxAge > 0 && maxAge < 5,
+    String(maxAge),
+  );
+}
+for (const status of [400, 404, 405, 500]) {
+  assert(
+    `失敗の応答（${status}）は覚えない`,
+    !("Cache-Control" in cacheHeaders(status)),
   );
 }
 
