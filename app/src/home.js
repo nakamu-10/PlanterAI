@@ -7,6 +7,7 @@ import {
   shouldShowLastMessage,
 } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
+import { renderPotSwitcher } from "./potSwitcher.js";
 
 gsap.registerPlugin(Draggable);
 
@@ -268,6 +269,7 @@ function describeForced() {
 
 function renderStatus(data, latest) {
   plantName.textContent = data.device.plant_name;
+  renderPotSwitcher(document.getElementById("potSwitcher"), data.pots);
   chatInput.placeholder = `${data.device.plant_name}に話しかける`;
   plantDays.textContent = `一緒に過ごして ${
     daysTogether(data.device.created_at)
