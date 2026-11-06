@@ -39,11 +39,19 @@ export function daysTogether(createdIso, now = Date.now()) {
   return jstDay(now) - jstDay(Date.parse(createdIso)) + 1;
 }
 
-// 土が乾くまでの見込み（app-data の trends.moisture.hours_to_dry）を言葉にする。
-// null は「乾いていない・まだ分からない」
-export function describeForecast(hours) {
-  if (hours === null || hours === undefined) return "—";
-  if (hours === 0) return "今すぐ";
-  if (hours < 48) return `あと約${hours}時間`;
-  return `あと約${Math.round(hours / 24)}日`;
+// 土が乾くまでの見込み（app-data の trends.moisture.forecast）を言葉にする
+export function describeForecast(forecast) {
+  switch (forecast?.status) {
+    case "dry":
+      return "今すぐ";
+    case "steady":
+      return "しばらく先";
+    case "drying":
+      return forecast.hours < 48
+        ? `あと約${forecast.hours}時間`
+        : `あと約${Math.round(forecast.hours / 24)}日`;
+    default:
+      // データが足りない（unknown）か、推移を出せない鉢
+      return "—";
+  }
 }

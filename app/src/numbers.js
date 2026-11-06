@@ -11,8 +11,10 @@ const HOUR_MS = 3_600_000;
 
 const $ = (id) => document.getElementById(id);
 
-// キャラ／数値を行き来しても、見ている鉢（?pot=）を保つ
-$("toCharacter").href = `/app/${location.search}`;
+// キャラ／数値・記録・設定へ移っても、見ている鉢（?pot=）と ?demo を保つ
+for (const link of document.querySelectorAll("a[data-keep-query]")) {
+  link.search = location.search;
+}
 
 function svg(tag, attrs, text) {
   const el = document.createElementNS(SVG_NS, tag);
@@ -21,10 +23,12 @@ function svg(tag, attrs, text) {
   return el;
 }
 
-// 快適かどうかは、色だけでなく言葉でも出す
-function statusLabel(score) {
-  if (typeof score !== "number") return null;
-  return score >= 80 ? ["快適", LINE] : ["注意", WARN];
+// 快適かどうかは、色だけでなく言葉でも出す。基準はグラフの帯と同じ快適な範囲
+function statusLabel(value, range) {
+  if (typeof value !== "number" || !range) return null;
+  return value >= range.comfort_low && value <= range.comfort_high
+    ? ["快適", LINE]
+    : ["範囲外", WARN];
 }
 
 function setValue(id, text, unit, status) {
@@ -240,13 +244,14 @@ function renderMoisture(trends, now) {
   }));
   const last = [...points].reverse().find((p) => p.v !== null);
   // 見込みは明日いっぱいまで描く。それより先は、そこまでの傾きで止める
+  const f = m.forecast;
   let forecast = null;
-  if (last && typeof m.hours_to_dry === "number" && m.hours_to_dry > 0) {
-    const horizon = Math.min(m.hours_to_dry, 24);
+  if (last && f.status === "drying") {
+    const horizon = Math.min(f.hours, 24);
     forecast = {
       t: now + horizon * HOUR_MS,
-      v: last.v - (last.v - m.comfort_low) * (horizon / m.hours_to_dry),
-      reaches: m.hours_to_dry <= 24,
+      v: last.v - (last.v - m.comfort_low) * (horizon / f.hours),
+      reaches: f.hours <= 24,
     };
   }
   lineChart($("moistureChart"), {
@@ -279,18 +284,21 @@ function renderMoisture(trends, now) {
 
   const note = $("moistureForecast");
   note.textContent = "";
-  if (m.hours_to_dry === null) {
+  if (f.status === "unknown") {
+    note.textContent =
+      "まだ見込みを出せません（水やりの直後や、鉢からの送信が止まっているときは、数時間分のデータが要ります）。";
+  } else if (f.status === "steady") {
     note.textContent = "今のペースでは、しばらく乾く心配はありません。";
-  } else if (m.hours_to_dry === 0) {
+  } else if (f.status === "dry") {
     note.textContent =
       `土が乾いています（快適の下限 ${m.comfort_low}% より下）。`;
   } else {
     const strong = document.createElement("strong");
-    strong.textContent = describeForecast(m.hours_to_dry);
+    strong.textContent = describeForecast(f);
     note.append(
       "このペースだと、",
       strong,
-      `で快適の下限（${m.comfort_low}%）を下回り、のどが渇き始めます。`,
+      `で快適の下限（${m.comfort_low}%）を下回ります。`,
     );
   }
 }
@@ -339,35 +347,44 @@ async function load() {
     }日目`;
 
     const f = data.latest_sensor?.filtered ?? {};
-    const s = data.latest_sensor?.scores ?? {};
+    const trends = data.trends;
     setValue(
       "valueMoisture",
       fixed(f.moisture_pct, 0),
       "%",
-      statusLabel(s.moisture),
+      statusLabel(f.moisture_pct, trends?.moisture),
     );
-    setValue("valueTemp", fixed(f.temp, 1), "℃", statusLabel(s.temp));
+    setValue(
+      "valueTemp",
+      fixed(f.temp, 1),
+      "℃",
+      statusLabel(f.temp, trends?.temp),
+    );
     setValue(
       "valueHumidity",
       fixed(f.humidity_pct, 0),
       "%",
-      statusLabel(s.humidity),
+      statusLabel(f.humidity_pct, trends?.humidity),
     );
-    const light = data.trends.light_today;
-    // 日中はまだ増えるので、足りたかどうかは目標に届いたときか、15時（日照の判定）を過ぎてから言う
-    const jstHour = (new Date(now).getUTCHours() + 9) % 24;
-    let lightStatus = null;
-    if (light.lux_hours >= light.target) lightStatus = ["足りている", LINE];
-    else if (jstHour >= 15) lightStatus = ["少なめ", WARN];
-    setValue(
-      "valueLight",
-      light.lux_hours.toLocaleString("ja-JP"),
-      " lx·h",
-      lightStatus,
-    );
-
-    renderMoisture(data.trends, now);
-    renderTemp(data.trends, now);
+    if (!trends) {
+      // 推移を出せない鉢（新しい植物の設定が、まだ本番に無いときなど）
+      setValue("valueLight", null);
+      $("moistureForecast").textContent = "この鉢の推移は、まだ出せません。";
+    } else {
+      const light = trends.light_today;
+      // 足りないかどうかは、LINE の日照の判定（時刻で基準が変わる）に任せる。
+      // ここでは目標に届いたことだけ言い、届くまでは目標を見せる
+      setValue(
+        "valueLight",
+        light.lux_hours.toLocaleString("ja-JP"),
+        " lx·h",
+        light.lux_hours >= light.target
+          ? ["足りている", LINE]
+          : [`目標 ${light.target.toLocaleString("ja-JP")}`, INK_SOFT],
+      );
+      renderMoisture(trends, now);
+      renderTemp(trends, now);
+    }
     $("lastReceived").textContent = data.latest_sensor
       ? `鉢から最終受信：${describeAgo(data.latest_sensor.created_at)}`
       : "鉢からまだ受信していません";

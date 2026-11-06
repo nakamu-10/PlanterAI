@@ -287,7 +287,7 @@ function renderStatus(data, latest) {
   statusMood.textContent = currentEmotion;
   statusMoodNote.textContent = latest?.complaint ?? "";
   statusNextWatering.textContent = describeForecast(
-    data.trends?.moisture.hours_to_dry,
+    data.trends?.moisture.forecast,
   );
   statusWatering.textContent = data.latest_watering
     ? describeAgo(data.latest_watering.created_at)

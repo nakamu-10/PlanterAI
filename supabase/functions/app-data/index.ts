@@ -7,7 +7,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PLANT_PROFILES } from "../_shared/config.ts";
 import { CHARACTERS } from "../_shared/llm.ts";
 import { isTouchKind } from "../_shared/touches.ts";
-import { buildTrends, TREND_HOURS } from "../_shared/trends.ts";
+import { buildTrends, TREND_HOURS, TREND_MAX_ROWS } from "../_shared/trends.ts";
 
 const supabase = createClient(
   requiredEnv("SUPABASE_URL"),
@@ -107,7 +107,8 @@ async function handleDashboard(device: Device): Promise<Response> {
         "created_at",
         new Date(Date.now() - TREND_HOURS * 3_600_000).toISOString(),
       )
-      .order("created_at", { ascending: true }),
+      .order("created_at", { ascending: false })
+      .limit(TREND_MAX_ROWS),
   ]);
 
   if (sensorResult.error) throw sensorResult.error;

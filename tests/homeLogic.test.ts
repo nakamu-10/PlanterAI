@@ -74,10 +74,27 @@ assert(
 );
 
 console.log("--- 乾くまでの見込み ---");
-assert("分からなければ —", describeForecast(null) === "—");
-assert("もう乾いていれば今すぐ", describeForecast(0) === "今すぐ");
-assert("2日より前は時間", describeForecast(18) === "あと約18時間");
-assert("2日より先は日", describeForecast(60) === "あと約3日");
+assert("推移を出せない鉢は —", describeForecast(null) === "—");
+assert(
+  "データが足りなければ —（乾く心配なし、とは言わない）",
+  describeForecast({ status: "unknown" }) === "—",
+);
+assert(
+  "もう乾いていれば今すぐ",
+  describeForecast({ status: "dry" }) === "今すぐ",
+);
+assert(
+  "乾いていなければしばらく先",
+  describeForecast({ status: "steady" }) === "しばらく先",
+);
+assert(
+  "2日より前は時間",
+  describeForecast({ status: "drying", hours: 18 }) === "あと約18時間",
+);
+assert(
+  "2日より先は日",
+  describeForecast({ status: "drying", hours: 60 }) === "あと約3日",
+);
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
