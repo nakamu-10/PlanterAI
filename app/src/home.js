@@ -3,11 +3,13 @@ import { Draggable } from "gsap/Draggable";
 import {
   fetchDashboard,
   isPublicView,
+  POT,
   recordTouch,
   sendChatMessage,
 } from "./api.js";
 import { daysTogether, decideBubble, describeAgo } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
+import { keepQueryOnLinks, renderPotSwitcher } from "./potSwitcher.js";
 
 gsap.registerPlugin(Draggable);
 
@@ -58,6 +60,7 @@ const chatInput = document.getElementById("chatInput");
 
 // 鍵なしの app-public は読み取りだけで、チャットは受けない（ADR 0006）
 chatForm.hidden = isPublicView;
+keepQueryOnLinks();
 
 // ?emotion=不安 や ?moisture=20（土の水分の快適度 0〜100）を付けると、
 // その状態に固定する（デモの練習用）。片方だけでもよい
@@ -84,7 +87,8 @@ let lastMessage = null;
 // 植物のセリフは読み終わるまで出し、触ったときの反応はすぐ消す
 const MESSAGE_MS = 8_000;
 const REACTION_MS = 2_200;
-const SEEN_KEY = "planterai:lastSeenMessageAt";
+// どのセリフまで見たかは鉢ごとに覚える。共有すると、別の鉢の新しいセリフで「もう見た」になる
+const SEEN_KEY = `planterai:lastSeenMessageAt:${POT}`;
 
 function showReaction(kind) {
   // ?emotion= などで固定した練習の操作は、本物の鉢の記憶に混ぜない
@@ -278,6 +282,7 @@ function describeForced() {
 
 function renderStatus(data, latest) {
   plantName.textContent = data.device.plant_name;
+  renderPotSwitcher(document.getElementById("potSwitcher"), data.pots);
   chatInput.placeholder = `${data.device.plant_name}に話しかける`;
   plantDays.textContent = `一緒に過ごして ${
     daysTogether(data.device.created_at)

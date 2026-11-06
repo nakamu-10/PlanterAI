@@ -33,7 +33,7 @@ export interface DeviceRow {
   plant_name: string;
   plant_profile: string;
   character_id: string;
-  line_user_id: string;
+  line_user_id: string | null;
 }
 
 export async function runDailyLightCheck(
@@ -181,7 +181,10 @@ export async function runDailyLightCheck(
 
   // 6. 送信 & 記録
   try {
-    await pushLineMessage(device.line_user_id, message);
+    // LINE と結んでいない鉢は送らない。セリフは下で記録し、アプリの吹き出しに出る
+    if (device.line_user_id) {
+      await pushLineMessage(device.line_user_id, message);
+    }
   } catch (error) {
     const { error: statusError } = await supabase
       .from("daily_light_notification_slots")
