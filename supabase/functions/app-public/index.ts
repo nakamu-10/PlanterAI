@@ -6,6 +6,8 @@
 // 鍵・id・LINE の ID、人が書いた文、人への返事は返さない
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { PLANT_PROFILES } from "../_shared/config.ts";
+import { buildTrends, TREND_HOURS, TREND_MAX_ROWS } from "../_shared/trends.ts";
 import {
   cacheHeaders,
   CONVERSATION_ROWS,
@@ -54,6 +56,7 @@ async function handleView(device: Device): Promise<Response> {
     emotionResult,
     wateringResult,
     conversationResult,
+    trendResult,
     potsResult,
   ] = await Promise.all([
     supabase
@@ -81,6 +84,17 @@ async function handleView(device: Device): Promise<Response> {
       .eq("device_id", device.id)
       .order("created_at", { ascending: false })
       .limit(CONVERSATION_ROWS),
+    // 「数値」の画面の3日間の推移と、乾くまでの見込み
+    supabase
+      .from("sensor_logs")
+      .select("filtered, created_at")
+      .eq("device_id", device.id)
+      .gte(
+        "created_at",
+        new Date(Date.now() - TREND_HOURS * 3_600_000).toISOString(),
+      )
+      .order("created_at", { ascending: false })
+      .limit(TREND_MAX_ROWS),
     supabase
       .from("devices")
       .select("public_slug, plant_name")
@@ -92,6 +106,7 @@ async function handleView(device: Device): Promise<Response> {
   if (emotionResult.error) throw emotionResult.error;
   if (wateringResult.error) throw wateringResult.error;
   if (conversationResult.error) throw conversationResult.error;
+  if (trendResult.error) throw trendResult.error;
   if (potsResult.error) throw potsResult.error;
 
   const sensorHistory = sensorResult.data ?? [];
@@ -109,6 +124,11 @@ async function handleView(device: Device): Promise<Response> {
     emotion_history: emotionResult.data ?? [],
     latest_watering: wateringResult.data ?? null,
     last_plant_message: lastPlantNotice(conversationResult.data ?? []),
+    trends: buildTrends(
+      trendResult.data ?? [],
+      PLANT_PROFILES[device.plant_profile],
+      wateringResult.data?.created_at ?? null,
+    ),
     pots: (potsResult.data ?? []).map((p) => ({
       slug: p.public_slug,
       name: p.plant_name,

@@ -7,7 +7,12 @@ import {
   recordTouch,
   sendChatMessage,
 } from "./api.js";
-import { daysTogether, decideBubble, describeAgo } from "./home.logic.js";
+import {
+  daysTogether,
+  decideBubble,
+  describeAgo,
+  describeForecast,
+} from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
 import { keepQueryOnLinks, renderPotSwitcher } from "./potSwitcher.js";
 
@@ -53,7 +58,7 @@ const plantName = document.getElementById("plantName");
 const plantDays = document.getElementById("plantDays");
 const statusMood = document.getElementById("statusMood");
 const statusMoodNote = document.getElementById("statusMoodNote");
-const statusMoisture = document.getElementById("statusMoisture");
+const statusNextWatering = document.getElementById("statusNextWatering");
 const statusWatering = document.getElementById("statusWatering");
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
@@ -275,9 +280,6 @@ function describeForced() {
   plantName.textContent = "カラ美";
   statusMood.textContent = currentEmotion;
   statusMoodNote.textContent = "（固定）";
-  statusMoisture.textContent = currentMoisture === null
-    ? "—"
-    : `${Math.round(currentMoisture)}/100`;
 }
 
 function renderStatus(data, latest) {
@@ -289,10 +291,9 @@ function renderStatus(data, latest) {
   }日目`;
   statusMood.textContent = currentEmotion;
   statusMoodNote.textContent = latest?.complaint ?? "";
-  const pct = data.latest_sensor?.filtered?.moisture_pct;
-  statusMoisture.textContent = typeof pct === "number"
-    ? `${Math.round(pct)}%`
-    : "—";
+  statusNextWatering.textContent = describeForecast(
+    data.trends?.moisture.forecast,
+  );
   statusWatering.textContent = data.latest_watering
     ? describeAgo(data.latest_watering.created_at)
     : "まだ記録なし";

@@ -45,14 +45,13 @@
       </nav>
     </header>
 
-    <!-- 数値の画面は 11/7 に作る。それまでは今のダッシュボードを開く -->
     <nav id="potSwitcher" class="pot-switcher" aria-label="鉢を選ぶ"
       hidden></nav>
 
     <div class="view-toggle">
       <span class="view-toggle__item is-active"
         aria-current="page">キャラ</span>
-      <a class="view-toggle__item" href="/app/dashboard.html"
+      <a class="view-toggle__item" href="/app/numbers.html"
         data-keep-query>数値</a>
     </div>
 
@@ -63,8 +62,8 @@
         <dd id="statusMoodNote" class="home-status__note"></dd>
       </div>
       <div class="home-status__cell">
-        <dt>土の水分</dt>
-        <dd id="statusMoisture" class="home-status__value">—</dd>
+        <dt>次の水やり</dt>
+        <dd id="statusNextWatering" class="home-status__value">—</dd>
       </div>
       <div class="home-status__cell">
         <dt>最後の水やり</dt>

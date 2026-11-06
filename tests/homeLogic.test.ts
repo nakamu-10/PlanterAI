@@ -4,6 +4,7 @@ import {
   daysTogether,
   decideBubble,
   describeAgo,
+  describeForecast,
   isStaleMessage,
   shouldShowLastMessage,
 } from "../app/src/home.logic.js";
@@ -81,6 +82,29 @@ assert(
   "日本時間の23時に登録して翌朝8時に開くと2日目",
   daysTogether("2026-11-04T14:00:00Z", Date.parse("2026-11-04T23:00:00Z")) ===
     2,
+);
+
+console.log("--- 乾くまでの見込み ---");
+assert("推移を出せない鉢は —", describeForecast(null) === "—");
+assert(
+  "データが足りなければ —（乾く心配なし、とは言わない）",
+  describeForecast({ status: "unknown" }) === "—",
+);
+assert(
+  "もう乾いていれば今すぐ",
+  describeForecast({ status: "dry" }) === "今すぐ",
+);
+assert(
+  "乾いていなければしばらく先",
+  describeForecast({ status: "steady" }) === "しばらく先",
+);
+assert(
+  "2日より前は時間",
+  describeForecast({ status: "drying", hours: 18 }) === "あと約18時間",
+);
+assert(
+  "2日より先は日",
+  describeForecast({ status: "drying", hours: 60 }) === "あと約3日",
 );
 
 console.log("--- 取得をくり返したときの吹き出し ---");
