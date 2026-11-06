@@ -1,4 +1,4 @@
-// app-data — 専用Webアプリ用のダッシュボード取得・設定更新API
+// app-data — 専用Webアプリ用のダッシュボード・記録の取得と設定更新のAPI
 //
 // 認証: ingest-sensor と同じ x-device-key ヘッダー方式
 //       （--no-verify-jwt でデプロイ）
@@ -6,6 +6,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PLANT_PROFILES } from "../_shared/config.ts";
 import { CHARACTERS } from "../_shared/llm.ts";
+import { fetchRecords } from "../_shared/records.ts";
 
 const supabase = createClient(
   requiredEnv("SUPABASE_URL"),
@@ -122,6 +123,23 @@ async function handleDashboard(device: Device): Promise<Response> {
   });
 }
 
+async function handleRecords(device: Device): Promise<Response> {
+  const records = await fetchRecords(supabase, device.id);
+  return json({
+    device: {
+      plant_name: device.plant_name,
+      character_id: device.character_id,
+      created_at: device.created_at,
+    },
+    ...records,
+    conversation: records.conversation.map((row) => ({
+      role: row.role,
+      message: row.message,
+      created_at: row.created_at,
+    })),
+  });
+}
+
 async function handleUpdateSettings(
   device: Device,
   body: Record<string, unknown>,
@@ -193,6 +211,8 @@ Deno.serve(async (req: Request) => {
     switch (body.action) {
       case "dashboard":
         return await handleDashboard(device);
+      case "records":
+        return await handleRecords(device);
       case "update_settings":
         return await handleUpdateSettings(device, body);
       default:
