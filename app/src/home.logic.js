@@ -21,6 +21,33 @@ export function shouldShowLastMessage(message, seenAt, latestEmotion) {
   return !isStaleMessage(message, latestEmotion);
 }
 
+// 取得のたびに、吹き出しをどうするかを決める。
+// known: 前回までに受け取ったセリフ（新しいかどうかを比べる相手）
+// firstLoad: 開いて最初の取得か。seenAt: この端末で最後に見たセリフの時刻
+// 返す値: known は次の比べる相手、show は今出すか、recallable はアイコンから出し直せるセリフ。
+// known と recallable を分けておかないと、古くなったセリフを recallable から外したときに
+// 次の取得で「新しいセリフ」と見なされ、また出てしまう
+export function decideBubble({
+  known,
+  message,
+  latestEmotion,
+  firstLoad,
+  seenAt,
+}) {
+  // チャットの返事は送った直後に出しているので、同じ文なら新しいと見なさない
+  const isNew = Boolean(message) &&
+    message.created_at !== known?.created_at &&
+    message.message !== known?.message;
+  const current = isNew ? message : known;
+  // 開いたときは、まだ見ていない今のセリフだけ出す。開いている間に届いたセリフ（LINE の通知など）はいつも出す
+  const show = isNew &&
+    (!firstLoad || shouldShowLastMessage(message, seenAt, latestEmotion));
+  const recallable = current && !isStaleMessage(current, latestEmotion)
+    ? current
+    : null;
+  return { known: current, show, recallable };
+}
+
 // 「3日前」「たった今」のような、ざっくりした経過時間
 export function describeAgo(iso, now = Date.now()) {
   const minutes = Math.floor((now - Date.parse(iso)) / 60_000);
