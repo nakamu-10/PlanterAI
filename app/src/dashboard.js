@@ -1,4 +1,7 @@
 import { fetchDashboard, isPublicView, updateSettings } from "./api.js";
+import { keepQueryOnLinks } from "./potSwitcher.js";
+
+keepQueryOnLinks();
 
 const CHARACTER_LABELS = {
   amaenbo: "甘えん坊",
