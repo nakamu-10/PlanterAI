@@ -8,6 +8,13 @@ export function parsePot(value: string | null): string | null {
   return value;
 }
 
+// 続けて開いたときの問い合わせを減らす。?demo は5秒おきに取るので、それより短くする
+// （同じ長さだと古い応答を読むことがあり、水やりの反応が次の取得まで遅れる）。
+// 失敗は覚えない。直ったあとも数秒失敗が続いてしまう
+export function cacheHeaders(status: number): Record<string, string> {
+  return status === 200 ? { "Cache-Control": "public, max-age=4" } : {};
+}
+
 export interface ConversationRow {
   role: "plant" | "user";
   message: string;

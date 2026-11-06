@@ -5,7 +5,12 @@
 // 鍵・id・LINE の ID、人が書いた文、人への返事は返さない
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { CONVERSATION_ROWS, lastPlantNotice, parsePot } from "./view.ts";
+import {
+  cacheHeaders,
+  CONVERSATION_ROWS,
+  lastPlantNotice,
+  parsePot,
+} from "./view.ts";
 
 const supabase = createClient(
   requiredEnv("SUPABASE_URL"),
@@ -26,7 +31,11 @@ function requiredEnv(name: string): string {
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    headers: {
+      "Content-Type": "application/json",
+      ...CORS_HEADERS,
+      ...cacheHeaders(status),
+    },
   });
 }
 
