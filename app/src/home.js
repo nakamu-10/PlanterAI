@@ -55,6 +55,10 @@ const statusWatering = document.getElementById("statusWatering");
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 
+// 記録を開いても、見ている鉢（?pot=）を保つ
+document.getElementById("toRecords").href =
+  `/app/records.html${location.search}`;
+
 // 鍵なしの app-public は読み取りだけで、チャットは受けない（ADR 0006）
 chatForm.hidden = isPublicView;
 

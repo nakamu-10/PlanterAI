@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="apple-mobile-web-app-title" content="PlanterAI">
+    <title>記録｜PlanterAIアプリ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Noto+Sans+JP:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/records.css" />
+    <script type="module" src="/src/records.js"></script>
+  </head>
+  <body class="home">
+    <header class="home-header">
+      <div>
+        <h1 id="plantName" class="home-header__name">記録</h1>
+        <p id="plantDays" class="home-header__sub"></p>
+      </div>
+      <nav class="home-header__menu" aria-label="メニュー">
+        <a id="toHome" class="home-icon-button" href="/app/"
+          aria-label="ホームへ戻る">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M4 11l8-7 8 7"></path>
+            <path d="M6 9.5V20h12V9.5"></path>
+          </svg>
+        </a>
+      </nav>
+    </header>
+
+    <main class="records">
+      <p id="recordsError" class="records-error" role="alert" hidden></p>
+
+      <section id="diaryCard" class="records-card" aria-labelledby="diaryTitle">
+        <h2 id="diaryTitle" class="records-card__title">日記</h2>
+        <p id="diaryEmpty" class="records-card__note">
+          読み込み中…
+        </p>
+        <article id="diaryPage" class="diary" hidden>
+          <header class="diary__head">
+            <span id="diaryDate" class="diary__date"></span>
+            <span id="diaryDayNumber" class="diary__number"></span>
+          </header>
+          <img id="diaryPicture" class="diary__picture" alt="" width="960"
+            height="640" />
+          <p id="diaryBody" class="diary__body"></p>
+          <div class="diary__nav">
+            <button id="diaryPrev" class="diary__button" type="button">
+              前の日
+            </button>
+            <button id="diaryNext" class="diary__button" type="button">
+              次の日
+            </button>
+          </div>
+        </article>
+      </section>
+
+      <section class="records-card" aria-labelledby="weekTitle">
+        <h2 id="weekTitle" class="records-card__title">週のふりかえり</h2>
+        <div id="weekList" class="week-list"></div>
+      </section>
+
+      <section class="records-card" aria-labelledby="moodTitle">
+        <h2 id="moodTitle" class="records-card__title">気分の移り変わり</h2>
+        <ul id="moodLegend" class="mood-legend"></ul>
+        <ol id="moodRows" class="mood-rows"></ol>
+        <div id="moodChangesBlock" hidden>
+          <h3 class="records-card__subtitle">最近の変化</h3>
+          <ol id="moodChanges" class="mood-changes"></ol>
+        </div>
+      </section>
+
+      <section class="records-card" aria-labelledby="wateringTitle">
+        <h2 id="wateringTitle"
+          class="records-card__title">水やりのカレンダー</h2>
+        <div id="wateringCalendar" class="calendar"></div>
+        <p id="wateringSummary" class="records-card__note"></p>
+      </section>
+
+      <section class="records-card" aria-labelledby="conversationTitle">
+        <h2 id="conversationTitle" class="records-card__title">会話ログ</h2>
+        <p id="conversationNote" class="records-card__note" hidden>
+          展示用の画面なので、植物から届いたセリフだけを出しています。
+        </p>
+        <div id="conversationList" class="talk-list"></div>
+      </section>
+    </main>
+  </body>
+</html>

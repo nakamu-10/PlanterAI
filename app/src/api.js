@@ -39,6 +39,16 @@ export async function fetchDashboard() {
   return callFunction("app-data", { action: "dashboard" });
 }
 
+export async function fetchRecords() {
+  if (isPublicView) {
+    const res = await fetch(
+      `${FUNCTIONS_URL}/app-public?pot=${encodeURIComponent(POT)}&view=records`,
+    );
+    return readJson(res, "app-public");
+  }
+  return callFunction("app-data", { action: "records" });
+}
+
 export function updateSettings(patch) {
   return callFunction("app-data", { action: "update_settings", ...patch });
 }
