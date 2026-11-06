@@ -255,6 +255,7 @@ console.log("--- プロンプト ---");
 {
   const prompt = buildDiaryPrompt({
     plantName: "カラ美",
+    plantKind: "カラテア",
     characterId: "tsundere",
     picture: "mizumoratta",
     stats: stats({
@@ -265,6 +266,7 @@ console.log("--- プロンプト ---");
     recentBodies: ["きのうの日記の文。"],
   });
   assert("名前を渡す", prompt.includes("カラ美"));
+  assert("植物の種類を渡す", prompt.includes("植物の種類はカラテア"));
   assert("絵のできごとを渡す", prompt.includes("飼い主に水をもらった"));
   assert("長く続いた不調を渡す", prompt.includes("長く続いた不調: 水分不足"));
   assert(
@@ -281,6 +283,7 @@ console.log("--- プロンプト ---");
 {
   const prompt = buildDiaryPrompt({
     plantName: "カラ美",
+    plantKind: "カラテア",
     characterId: "amaenbo",
     picture: "kumori",
     stats: stats({
@@ -295,6 +298,7 @@ console.log("--- プロンプト ---");
 {
   const prompt = buildDiaryPrompt({
     plantName: "カラ美",
+    plantKind: "カラテア",
     characterId: "未知の性格",
     picture: "kumori",
     stats: stats(),
@@ -309,6 +313,11 @@ for (const picture of DIARY_PICTURES) {
   assert(
     `${picture} の定型文は文の形で、70文字以内`,
     Boolean(body) && endsSentence(body) && [...body].length <= 70,
+    body,
+  );
+  assert(
+    `${picture} の定型文は、葉のない鉢でも読める`,
+    !body.includes("葉"),
     body,
   );
 }

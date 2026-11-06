@@ -178,6 +178,7 @@ async function writeDiary(
       await generateMessage(
         buildDiaryPrompt({
           plantName: device.plant_name,
+          plantKind: profile.displayName,
           characterId: device.character_id,
           picture,
           stats,

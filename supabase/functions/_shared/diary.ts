@@ -43,8 +43,8 @@ const FALLBACK_BODIES: Record<DiaryPicture, string> = {
   mizumoratta: "今日はお水をもらったの。土がしっとりして、ほっとしたよ。",
   nodokarakara: "今日は土がからからだったの。のどがかわいた一日だったな。",
   onakaippai: "今日は土がずっと湿っていたの。おなかがいっぱいの一日だったよ。",
-  atui: "今日はなんだか暑かったの。葉っぱがぐったりしちゃった。",
-  samui: "今日は寒かったの。葉っぱをちぢめて過ごしたよ。",
+  atui: "今日はなんだか暑かったの。すっかりぐったりしちゃった。",
+  samui: "今日は寒かったの。じっとちぢこまって過ごしたよ。",
   osyaberi: "今日はたくさんおしゃべりしたの。楽しい一日だったな。",
   hinatabokko: "今日は日がたっぷり当たったの。ぽかぽかして気持ちよかったよ。",
   kurai: "今日はあまり日が当たらなかったの。明日は明るいといいな。",
@@ -204,6 +204,7 @@ export const fallbackDiaryBody = (picture: DiaryPicture) =>
 // 会話の中身と関係のまとめは渡さない。人が書いた文が混ざらないので、鍵なしの画面でも出せる（ADR 0006）
 export function buildDiaryPrompt(opts: {
   plantName: string;
+  plantKind: string;
   characterId: string;
   picture: DiaryPicture;
   stats: DiaryStats;
@@ -233,7 +234,7 @@ export function buildDiaryPrompt(opts: {
     : "（まだありません）";
 
   return `${character.persona}
-あなたの名前は「${opts.plantName}」です。今夜の絵日記を書きます。
+あなたの名前は「${opts.plantName}」、植物の種類は${opts.plantKind}です。今夜の絵日記を書きます。
 
 # 今日の記録（センサーと記録からの確定情報）
 ${facts}
