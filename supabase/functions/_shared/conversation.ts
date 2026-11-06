@@ -11,6 +11,7 @@ import {
   enforceMessageLength,
   generateMessage,
 } from "./llm.ts";
+import { describeTouches, TOUCH_MEMORY_HOURS } from "./touches.ts";
 
 export interface ConversationDevice {
   id: string;
@@ -31,32 +32,43 @@ export async function createReply(
   userText: string,
 ): Promise<Reply> {
   // 現在の発言を履歴へ二重に含めないよう、直近履歴は保存前に取得する。
-  const [emotionResult, convoResult, summaryResult] = await Promise.all([
-    supabase
-      .from("emotion_logs")
-      .select("emotion, complaint, urgency, duration_hours")
-      .eq("device_id", device.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from("conversation_logs")
-      .select("role, message, created_at")
-      .eq("device_id", device.id)
-      .order("created_at", { ascending: false })
-      .limit(CONVERSATION_WINDOW),
-    supabase
-      .from("relationship_summaries")
-      .select("summary")
-      .eq("device_id", device.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  const now = new Date();
+  const touchSince = new Date(now.getTime() - TOUCH_MEMORY_HOURS * 3_600_000);
+  const [emotionResult, convoResult, summaryResult, touchResult] = await Promise
+    .all([
+      supabase
+        .from("emotion_logs")
+        .select("emotion, complaint, urgency, duration_hours")
+        .eq("device_id", device.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("conversation_logs")
+        .select("role, message, created_at")
+        .eq("device_id", device.id)
+        .order("created_at", { ascending: false })
+        .limit(CONVERSATION_WINDOW),
+      supabase
+        .from("relationship_summaries")
+        .select("summary")
+        .eq("device_id", device.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("touch_logs")
+        .select("kind, created_at")
+        .eq("device_id", device.id)
+        .gte("created_at", touchSince.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(500),
+    ]);
 
   if (emotionResult.error) throw emotionResult.error;
   if (convoResult.error) throw convoResult.error;
   if (summaryResult.error) throw summaryResult.error;
+  if (touchResult.error) throw touchResult.error;
 
   const state = stateFromLog(emotionResult.data);
   const replyPrompt = buildReplyPrompt({
@@ -65,6 +77,7 @@ export async function createReply(
     state,
     recentConversation: (convoResult.data ?? []) as ConversationEntry[],
     relationshipSummary: summaryResult.data?.summary ?? null,
+    touchMemory: describeTouches(touchResult.data ?? [], now),
     userMessage: userText,
   });
 

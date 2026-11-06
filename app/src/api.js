@@ -43,6 +43,12 @@ export function updateSettings(patch) {
   return callFunction("app-data", { action: "update_settings", ...patch });
 }
 
+// 触ったことを記録し、あとの会話で触れられるようにする。鍵が無いときは記録しない（ADR 0007）
+export function recordTouch(kind) {
+  if (isPublicView) return Promise.resolve();
+  return callFunction("app-data", { action: "touch", kind });
+}
+
 export function sendChatMessage(message) {
   return callFunction("app-chat", { message });
 }
