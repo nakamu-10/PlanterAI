@@ -1,5 +1,6 @@
 import { fetchDashboard } from "./api.js";
 import { daysTogether, describeAgo, describeForecast } from "./home.logic.js";
+import { keepQueryOnLinks } from "./potSwitcher.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const INK = "#16211C";
@@ -11,10 +12,7 @@ const HOUR_MS = 3_600_000;
 
 const $ = (id) => document.getElementById(id);
 
-// キャラ／数値・記録・設定へ移っても、見ている鉢（?pot=）と ?demo を保つ
-for (const link of document.querySelectorAll("a[data-keep-query]")) {
-  link.search = location.search;
-}
+keepQueryOnLinks();
 
 function svg(tag, attrs, text) {
   const el = document.createElementNS(SVG_NS, tag);
