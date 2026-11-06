@@ -2,6 +2,19 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { moodLevels } from "./mood.js";
 
+// 触ったかを調べる、押した点からのずれ[px]。指の腹くらいの広さ
+const TOUCH_OFFSETS = [
+  [0, 0],
+  [12, 0],
+  [-12, 0],
+  [0, 12],
+  [0, -12],
+  [9, 9],
+  [-9, 9],
+  [9, -9],
+  [-9, -9],
+];
+
 // 動きを足したら v を上げる。古い glb がキャッシュに残った端末で、足した動きが無くて 2D に落ちるため
 const MODEL_URL = `${import.meta.env.BASE_URL}models/karami.glb?v=2`;
 
@@ -107,13 +120,17 @@ export async function createKarami(container) {
   let swing = 0; // 指を横に動かしたときの、ぶら下がった体の振れ
   let fallSpeed = 0;
 
-  function toStand(clientX, clientY) {
+  function aim(clientX, clientY) {
     const rect = renderer.domElement.getBoundingClientRect();
     const pointer = new THREE.Vector2(
       ((clientX - rect.left) / rect.width) * 2 - 1,
       -((clientY - rect.top) / rect.height) * 2 + 1,
     );
     raycaster.setFromCamera(pointer, camera);
+  }
+
+  function toStand(clientX, clientY) {
+    aim(clientX, clientY);
     return raycaster.ray.intersectPlane(stand, new THREE.Vector3());
   }
 
@@ -220,6 +237,15 @@ export async function createKarami(container) {
       target.leaves = next.leaves;
       target.body = next.body;
       target.tears = next.tears;
+    },
+    // 画面のこの点のそばに、カラ美の体（葉・マント・足を含む）があるか。
+    // キャンバスはステージ全体に広がっているので、何もない所を触っても反応させない。
+    // 細い葉の先や足でも指で触れるよう、押した点のまわりも少し調べる
+    touches(clientX, clientY) {
+      return TOUCH_OFFSETS.some(([dx, dy]) => {
+        aim(clientX + dx, clientY + dy);
+        return raycaster.intersectObject(model, true).length > 0;
+      });
     },
     // 画面のこの高さが、頭の中心より上か（上をドラッグするとなでる、下なら回す）
     isAboveHead(clientY) {
