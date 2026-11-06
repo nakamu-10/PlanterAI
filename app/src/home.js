@@ -6,11 +6,7 @@ import {
   recordTouch,
   sendChatMessage,
 } from "./api.js";
-import {
-  daysTogether,
-  describeAgo,
-  shouldShowLastMessage,
-} from "./home.logic.js";
+import { daysTogether, decideBubble, describeAgo } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
 
 gsap.registerPlugin(Draggable);
@@ -81,7 +77,9 @@ let bubbleTimeout = null;
 let karami3d = null;
 // 最後に見た水やりの時刻。開いたときの記録には喜ばず、その後の水やりにだけ喜ぶ
 let lastWateringAt;
-// 植物の最後のセリフ。吹き出しを引っ込めたあと、アイコンから出し直す
+// 受け取った最後のセリフ（新しいかどうかを比べる相手）
+let knownMessage = null;
+// アイコンから出し直せるセリフ。今の気分と食い違う古いセリフは入れない
 let lastMessage = null;
 // 植物のセリフは読み終わるまで出し、触ったときの反応はすぐ消す
 const MESSAGE_MS = 8_000;
@@ -111,6 +109,7 @@ function hideBubble() {
 }
 
 function showMessage(message) {
+  knownMessage = message;
   lastMessage = message;
   showBubble(message.message, MESSAGE_MS);
   // どのセリフまで見たかは、この端末にだけ覚えておけばよい
@@ -321,18 +320,18 @@ async function refreshState() {
     }
     lastWateringAt = wateringAt;
 
-    const message = data.last_plant_message;
-    // チャットの返事は送った直後に出しているので、同じ文なら出し直さない
-    const isNew = message && message.created_at !== lastMessage?.created_at &&
-      message.message !== lastMessage?.message;
-    if (isNew) {
-      // 開いたときは、まだ見ていない今のセリフだけ出す。開いている間に届いたセリフ（LINE の通知など）はいつも出す
-      if (!firstLoad || shouldShowLastMessage(message, lastSeenAt(), latest)) {
-        showMessage(message);
-      } else {
-        lastMessage = message;
-        if (!bubble.classList.contains("is-visible")) recall.hidden = false;
-      }
+    const bubbleState = decideBubble({
+      known: knownMessage,
+      message: data.last_plant_message,
+      latestEmotion: latest,
+      firstLoad,
+      seenAt: lastSeenAt(),
+    });
+    knownMessage = bubbleState.known;
+    lastMessage = bubbleState.recallable;
+    if (bubbleState.show) showMessage(bubbleState.known);
+    if (!bubble.classList.contains("is-visible")) {
+      recall.hidden = lastMessage === null;
     }
     firstLoad = false;
   } catch (err) {
@@ -354,7 +353,12 @@ chatForm.addEventListener("submit", async (event) => {
   showBubble("……", 30_000);
   try {
     const data = await sendChatMessage(text);
-    showMessage({ message: data.reply, created_at: new Date().toISOString() });
+    // 気分も渡し、気分が変わったら返事も古いセリフとして扱う（読み込み直したときと同じに）
+    showMessage({
+      message: data.reply,
+      emotion: data.emotion,
+      created_at: new Date().toISOString(),
+    });
   } catch (err) {
     console.error(err);
     showBubble("返事を受け取れませんでした");
