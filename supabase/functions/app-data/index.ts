@@ -1,4 +1,4 @@
-// app-data — 専用Webアプリ用のダッシュボード・記録の取得と設定更新のAPI
+// app-data — 専用Webアプリ用のダッシュボード・記録の取得と、設定更新・触った記録のAPI
 //
 // 認証: ingest-sensor と同じ x-device-key ヘッダー方式
 //       （--no-verify-jwt でデプロイ）
@@ -7,6 +7,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PLANT_PROFILES } from "../_shared/config.ts";
 import { CHARACTERS } from "../_shared/llm.ts";
 import { fetchRecords } from "../_shared/records.ts";
+import { isTouchKind } from "../_shared/touches.ts";
 
 const supabase = createClient(
   requiredEnv("SUPABASE_URL"),
@@ -140,6 +141,21 @@ async function handleRecords(device: Device): Promise<Response> {
   });
 }
 
+// 触った記録は返事で触れるためだけのものなので、失敗しても画面の反応は止めない
+async function handleTouch(
+  device: Device,
+  body: Record<string, unknown>,
+): Promise<Response> {
+  if (!isTouchKind(body.kind)) {
+    return json({ error: `未知の kind です: ${body.kind}` }, 400);
+  }
+  const { error } = await supabase
+    .from("touch_logs")
+    .insert({ device_id: device.id, kind: body.kind });
+  if (error) throw error;
+  return json({ ok: true });
+}
+
 async function handleUpdateSettings(
   device: Device,
   body: Record<string, unknown>,
@@ -215,6 +231,8 @@ Deno.serve(async (req: Request) => {
         return await handleRecords(device);
       case "update_settings":
         return await handleUpdateSettings(device, body);
+      case "touch":
+        return await handleTouch(device, body);
       default:
         return json({ error: `未知の action です: ${body.action}` }, 400);
     }
