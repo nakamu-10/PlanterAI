@@ -22,6 +22,10 @@
   `docs/avatar.md`（#33）
 - LINE の返答は Gemini が生成している（直近7日の `conversation_logs` は
   source=llm、finish_reason=STOP）
+- 本番の pg_cron と pg_net は 11/6 夜に有効にした（それまで無く、週のまとめは
+  一度も自動で動いていなかった）。ジョブは `x-cron-key` を Vault の
+  `cron_secret` から読む（関数の `CRON_SECRET` と同じ値）。登録済みは
+  `weekly-relationship-summary`（日曜21時）だけで、日記は #51 のデプロイで足す
 - ファームウェアは `hardware/firmware/planterai_firmware_oled/` が正。Wi-Fi
   とデバイスキーは、git の管理外の `secrets.h` に置く
 
@@ -76,7 +80,9 @@ Docs「PlanterAI 開発計画」）にある。公開リポジトリには書か
 - [x] 11/7 先読み予測（あと何時間で乾くか）と、キャラ⇄数値の切替（#43）
 - [ ] 記録のページと「カラ美の日記」（担当：地引さん。日記は機能凍結までに入れ、
       LINE には週に1回送る）
-- [ ] 11/8 デモを通しで回し、詰まる所を直す。日記の pg_cron が動いたかも見る
+- [ ] 11/8 デモを通しで回し、詰まる所を直す。21時のあとに、週のまとめ
+      （`relationship_summaries`）と日記が自動でできたか、`net._http_response`
+      が 200 かを見る
 - [ ] 11/11 午前 デモ動画を撮る（撮り直しは 11/12 まで）
 
 できたら（11/9 の予備日）：
