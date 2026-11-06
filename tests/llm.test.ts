@@ -246,6 +246,13 @@ console.log("--- プロンプト ---");
       buildPrompt({ ...base, plantProfile: "cactus" }).includes("サボテンです"),
   );
   assert(
+    "元気者と眠たがりは、それぞれの一人称で話させる",
+    buildPrompt({ ...base, characterId: "genki" }).includes("「オレ」") &&
+      buildPrompt({ ...base, characterId: "nemutagari" }).includes(
+        "眠たがり",
+      ),
+  );
+  assert(
     "知らない種類なら、種類は書かずに名前だけ伝える",
     buildPrompt({ ...base, plantProfile: "unknown" }).includes(
       "あなたの名前は「カラ美」です。",
