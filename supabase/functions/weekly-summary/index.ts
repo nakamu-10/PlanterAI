@@ -12,6 +12,7 @@ import {
   buildSummaryPrompt,
   ConversationEntry,
   generateMessage,
+  hasOwnerMessage,
 } from "../_shared/llm.ts";
 
 const supabase = createClient(
@@ -46,7 +47,7 @@ Deno.serve(async (req: Request) => {
 
     for (const device of devices ?? []) {
       try {
-        // 直近1週間の会話ログを古い順で取得
+        // 直近1週間の会話ログを新しい順で取得
         const { data: convo, error: convoError } = await supabase
           .from("conversation_logs")
           .select("role, message, created_at")
@@ -56,6 +57,11 @@ Deno.serve(async (req: Request) => {
           .limit(200);
         if (convoError) throw convoError;
 
+        if (!hasOwnerMessage(convo ?? [])) {
+          results[device.plant_name] = "スキップ（今週は話しかけられていない）";
+          continue;
+        }
+
         // 前回のサマリー（積み重ねて更新していく）
         const { data: prev, error: prevError } = await supabase
           .from("relationship_summaries")
@@ -64,12 +70,6 @@ Deno.serve(async (req: Request) => {
           .order("created_at", { ascending: false })
           .limit(1);
         if (prevError) throw prevError;
-
-        // 会話も前回サマリーもない場合はスキップ（生成する意味がない）
-        if ((convo ?? []).length === 0 && !prev?.[0]) {
-          results[device.plant_name] = "スキップ（会話なし）";
-          continue;
-        }
 
         const prompt = buildSummaryPrompt(
           device.plant_name,
