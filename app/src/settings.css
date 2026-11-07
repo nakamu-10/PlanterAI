@@ -1,0 +1,21 @@
+/* 設定のページ。カードの形はホームと記録のページに合わせる */
+.settings {
+  padding: 0 16px 28px;
+}
+.settings-card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 2px 16px 14px;
+}
+/* 展示では変えられないが、名前と性格は見せたいので薄くしない */
+.settings-card input:disabled,
+.settings-card select:disabled {
+  opacity: 1;
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
+  background: #F4F6F2;
+}
+.settings-card .app-submit:disabled {
+  opacity: .5;
+  cursor: default;
+}

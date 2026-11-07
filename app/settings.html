@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="apple-mobile-web-app-title" content="PlanterAI">
+    <title>設定｜PlanterAIアプリ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Noto+Sans+JP:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/settings.css" />
+    <script type="module" src="/src/settings.js"></script>
+  </head>
+  <body class="home">
+    <header class="home-header">
+      <h1 id="pageTitle" class="home-header__name">設定</h1>
+      <nav class="home-header__menu" aria-label="メニュー">
+        <a class="home-icon-button" href="/app/" data-keep-query
+          aria-label="ホームへ戻る">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M4 11l8-7 8 7"></path>
+            <path d="M6 9.5V20h12V9.5"></path>
+          </svg>
+        </a>
+      </nav>
+    </header>
+
+    <main class="settings">
+      <form id="settingsForm" class="settings-card">
+        <label class="app-field">
+          <span>名前</span>
+          <input type="text" name="plant_name" maxlength="40" required />
+        </label>
+        <label class="app-field">
+          <span>性格</span>
+          <select name="character_id"></select>
+        </label>
+        <button id="saveButton" class="app-submit" type="submit" disabled>
+          保存する
+        </button>
+        <p id="formStatus" class="app-form-status" role="status"></p>
+      </form>
+    </main>
+  </body>
+</html>
