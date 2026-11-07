@@ -21,7 +21,10 @@ import {
   isRejectedByLine,
   LineHttpError,
 } from "../supabase/functions/_shared/line.ts";
-import { endsSentence } from "../supabase/functions/_shared/llm.ts";
+import {
+  complaintCaution,
+  endsSentence,
+} from "../supabase/functions/_shared/llm.ts";
 
 let pass = 0, fail = 0;
 function assert(name: string, cond: boolean, detail = "") {
@@ -359,6 +362,34 @@ console.log("--- 週の LINE ---");
     recordsUrl: null,
   });
   assert("公開していない鉢にはリンクを付けない", !message.includes("http"));
+}
+
+console.log("--- 不調の注意 ---");
+{
+  const promptFor = (complaint: string, share: number) =>
+    buildDiaryPrompt({
+      plantName: "カラ美",
+      plantKind: "カラテア",
+      characterId: "amaenbo",
+      picture: "hinatabokko",
+      stats: stats({ light_ratio: 1.2, top_complaint: { complaint, share } }),
+      recentBodies: [],
+    });
+  const dryAir = promptFor("湿度低すぎ", 0.68);
+  assert(
+    "長く続いた空気の乾燥は、土の水やりの話ではないと伝える",
+    dryAir.includes("長く続いた不調: 湿度低すぎ") &&
+      dryAir.includes("土の水やりの話ではありません") &&
+      dryAir.includes("「お水」という言葉は使わないでください"),
+  );
+  assert(
+    "セリフと同じ注意を、指示の最後に入れる",
+    dryAir.trimEnd().endsWith(complaintCaution("湿度低すぎ").trim()),
+  );
+  assert(
+    "短い不調は書かないので、注意も入れない",
+    !promptFor("湿度低すぎ", 0.1).includes("土の水やりの話ではありません"),
+  );
 }
 
 console.log("--- 週の LINE のカード ---");
