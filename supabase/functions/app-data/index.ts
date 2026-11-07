@@ -1,4 +1,4 @@
-// app-data — 専用Webアプリ用のダッシュボード取得・設定更新API
+// app-data — 専用Webアプリ用のダッシュボード・記録の取得と、設定更新・触った記録のAPI
 //
 // 認証: ingest-sensor と同じ x-device-key ヘッダー方式
 //       （--no-verify-jwt でデプロイ）
@@ -6,6 +6,9 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PLANT_PROFILES } from "../_shared/config.ts";
 import { CHARACTERS } from "../_shared/llm.ts";
+import { fetchRecords } from "../_shared/records.ts";
+import { isTouchKind } from "../_shared/touches.ts";
+import { buildTrends, TREND_HOURS, TREND_MAX_ROWS } from "../_shared/trends.ts";
 
 const supabase = createClient(
   requiredEnv("SUPABASE_URL"),
@@ -36,6 +39,7 @@ interface Device {
   plant_name: string;
   plant_profile: string;
   character_id: string;
+  created_at: string;
 }
 
 async function authenticate(req: Request): Promise<Device | null> {
@@ -44,7 +48,7 @@ async function authenticate(req: Request): Promise<Device | null> {
 
   const { data, error } = await supabase
     .from("devices")
-    .select("id, plant_name, plant_profile, character_id")
+    .select("id, plant_name, plant_profile, character_id, created_at")
     .eq("device_key", deviceKey)
     .maybeSingle();
   if (error) throw error;
@@ -52,40 +56,68 @@ async function authenticate(req: Request): Promise<Device | null> {
 }
 
 async function handleDashboard(device: Device): Promise<Response> {
-  const [sensorResult, emotionResult, summaryResult, wateringResult] =
-    await Promise.all([
-      supabase
-        .from("sensor_logs")
-        .select("raw, filtered, scores, created_at")
-        .eq("device_id", device.id)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabase
-        .from("emotion_logs")
-        .select("emotion, complaint, urgency, duration_hours, created_at")
-        .eq("device_id", device.id)
-        .order("created_at", { ascending: false })
-        .limit(20),
-      supabase
-        .from("relationship_summaries")
-        .select("summary")
-        .eq("device_id", device.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("watering_events")
-        .select("moisture_before, moisture_after, created_at")
-        .eq("device_id", device.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
+  const [
+    sensorResult,
+    emotionResult,
+    summaryResult,
+    wateringResult,
+    plantMessageResult,
+    trendResult,
+  ] = await Promise.all([
+    supabase
+      .from("sensor_logs")
+      .select("raw, filtered, scores, created_at")
+      .eq("device_id", device.id)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("emotion_logs")
+      .select("emotion, complaint, urgency, duration_hours, created_at")
+      .eq("device_id", device.id)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("relationship_summaries")
+      .select("summary")
+      .eq("device_id", device.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("watering_events")
+      .select("moisture_before, moisture_after, created_at")
+      .eq("device_id", device.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // アプリを開いたときに、LINE の通知やチャットの返事の続きを吹き出しで見せる
+    supabase
+      .from("conversation_logs")
+      .select("message, emotion, created_at")
+      .eq("device_id", device.id)
+      .eq("role", "plant")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // 「数値」の画面の3日間の推移と、乾くまでの見込み
+    supabase
+      .from("sensor_logs")
+      .select("filtered, created_at")
+      .eq("device_id", device.id)
+      .gte(
+        "created_at",
+        new Date(Date.now() - TREND_HOURS * 3_600_000).toISOString(),
+      )
+      .order("created_at", { ascending: false })
+      .limit(TREND_MAX_ROWS),
+  ]);
 
   if (sensorResult.error) throw sensorResult.error;
   if (emotionResult.error) throw emotionResult.error;
   if (summaryResult.error) throw summaryResult.error;
   if (wateringResult.error) throw wateringResult.error;
+  if (plantMessageResult.error) throw plantMessageResult.error;
+  if (trendResult.error) throw trendResult.error;
 
   const sensorHistory = sensorResult.data ?? [];
   const emotionHistory = emotionResult.data ?? [];
@@ -95,13 +127,52 @@ async function handleDashboard(device: Device): Promise<Response> {
       plant_name: device.plant_name,
       plant_profile: device.plant_profile,
       character_id: device.character_id,
+      created_at: device.created_at,
     },
     latest_sensor: sensorHistory[0] ?? null,
     sensor_history: sensorHistory,
     emotion_history: emotionHistory,
     relationship_summary: summaryResult.data?.summary ?? null,
     latest_watering: wateringResult.data ?? null,
+    last_plant_message: plantMessageResult.data ?? null,
+    trends: buildTrends(
+      trendResult.data ?? [],
+      PLANT_PROFILES[device.plant_profile],
+      wateringResult.data?.created_at ?? null,
+    ),
   });
+}
+
+async function handleRecords(device: Device): Promise<Response> {
+  const records = await fetchRecords(supabase, device.id);
+  return json({
+    device: {
+      plant_name: device.plant_name,
+      character_id: device.character_id,
+      created_at: device.created_at,
+    },
+    ...records,
+    conversation: records.conversation.map((row) => ({
+      role: row.role,
+      message: row.message,
+      created_at: row.created_at,
+    })),
+  });
+}
+
+// 触った記録は返事で触れるためだけのものなので、失敗しても画面の反応は止めない
+async function handleTouch(
+  device: Device,
+  body: Record<string, unknown>,
+): Promise<Response> {
+  if (!isTouchKind(body.kind)) {
+    return json({ error: `未知の kind です: ${body.kind}` }, 400);
+  }
+  const { error } = await supabase
+    .from("touch_logs")
+    .insert({ device_id: device.id, kind: body.kind });
+  if (error) throw error;
+  return json({ ok: true });
 }
 
 async function handleUpdateSettings(
@@ -175,8 +246,12 @@ Deno.serve(async (req: Request) => {
     switch (body.action) {
       case "dashboard":
         return await handleDashboard(device);
+      case "records":
+        return await handleRecords(device);
       case "update_settings":
         return await handleUpdateSettings(device, body);
+      case "touch":
+        return await handleTouch(device, body);
       default:
         return json({ error: `未知の action です: ${body.action}` }, 400);
     }

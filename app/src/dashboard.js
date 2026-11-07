@@ -1,9 +1,13 @@
-import { fetchDashboard, updateSettings } from "./api.js";
+import { fetchDashboard, isPublicView, updateSettings } from "./api.js";
+import { keepQueryOnLinks } from "./potSwitcher.js";
+
+keepQueryOnLinks();
 
 const CHARACTER_LABELS = {
   amaenbo: "甘えん坊",
   tsundere: "ツンデレ",
   keigo: "執事風",
+  nonbiri: "のんびり屋",
 };
 const SCORE_LABELS = {
   moisture: "土の水分",
@@ -94,5 +98,11 @@ els.form.addEventListener("submit", async (event) => {
     els.formStatus.textContent = `保存に失敗しました: ${err.message}`;
   }
 });
+
+// 鍵なしの app-public は読み取りだけなので、設定は変えられない
+if (isPublicView) {
+  for (const field of els.form.elements) field.disabled = true;
+  els.formStatus.textContent = "展示用の画面では、設定は変えられません";
+}
 
 load();

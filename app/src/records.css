@@ -1,0 +1,390 @@
+/* 記録のページ。カードの形はホームと数値の画面に合わせる */
+:root {
+  /* 気分の色は validate_palette で確かめた順番。黄色は白地で薄いので、文字も必ず添える */
+  --mood-0-color: #2E9E6B;
+  --mood-1-color: #D9A000;
+  --mood-2-color: #D2552A;
+  --mood-3-color: #A9307A;
+  --mood-4-color: #5F3AA8;
+  --records-muted: #56645A;
+  --records-line: rgba(22, 33, 28, .08);
+}
+.mood-0 {
+  background: var(--mood-0-color);
+}
+.mood-1 {
+  background: var(--mood-1-color);
+}
+.mood-2 {
+  background: var(--mood-2-color);
+}
+.mood-3 {
+  background: var(--mood-3-color);
+}
+.mood-4 {
+  background: var(--mood-4-color);
+}
+
+.records {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 16px 28px;
+}
+.records-error {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--card);
+  color: #9A4E24;
+  font-size: 14px;
+}
+.records-card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 14px 16px;
+  /* 週のふりかえりから日記へ飛んだとき、上に少し余白を残す */
+  scroll-margin-top: 12px;
+}
+.records-card__title {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--green-800);
+}
+.records-card__subtitle {
+  margin: 16px 0 6px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--green-800);
+}
+.records-card__note {
+  margin: 4px 0 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--records-muted);
+}
+
+/* 日記 */
+.diary__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.diary__date {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+}
+.diary__number {
+  font-size: 12px;
+  color: var(--records-muted);
+}
+.diary__picture {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--records-line);
+  background: #fff;
+}
+.diary__body {
+  --diary-line: 32px;
+  margin: 10px 0 0;
+  min-height: calc(var(--diary-line) * 2);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: var(--diary-line);
+  /* 日記帳の罫線 */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--diary-line) - 1px),
+    rgba(22, 33, 28, .14) calc(var(--diary-line) - 1px),
+    rgba(22, 33, 28, .14) var(--diary-line)
+  );
+}
+.diary__nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+.diary__button {
+  min-width: 88px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(22, 33, 28, .18);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.diary__button:disabled {
+  opacity: .35;
+  cursor: default;
+}
+
+/* 週のふりかえり */
+.week-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.week__head {
+  margin-bottom: 6px;
+}
+.week__label {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--green-800);
+}
+.week__summary {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--records-muted);
+}
+.week__days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+}
+.week-day__weekday {
+  font-size: 11px;
+  text-align: center;
+  color: var(--records-muted);
+}
+.week-day__button,
+.week-day__blank {
+  display: block;
+  width: 100%;
+  height: 44px;
+  padding: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.week-day__button {
+  border: 2px solid transparent;
+  background: #fff;
+  cursor: pointer;
+}
+.week-day__button img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.week-day__button.is-selected {
+  border-color: var(--green-700);
+}
+.week-day__blank {
+  border: 1px dashed rgba(22, 33, 28, .18);
+  font-size: 11px;
+  line-height: 42px;
+  text-align: center;
+  color: var(--records-muted);
+}
+.week-day__blank.is-future {
+  border-color: transparent;
+}
+.week-day__blank.is-today {
+  border-color: var(--green-600);
+  color: var(--green-700);
+}
+
+/* 気分の移り変わり */
+.mood-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.mood-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.mood-swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.mood-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mood-row {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) 82px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.mood-row__day {
+  color: var(--records-muted);
+  white-space: nowrap;
+}
+.mood-row__bar {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+}
+.mood-row__bar.is-empty {
+  border-radius: 4px;
+  background: var(--records-line);
+}
+.mood-row__part {
+  min-width: 2px;
+  flex-basis: 0;
+}
+.mood-row__part:first-child {
+  border-radius: 4px 0 0 4px;
+}
+.mood-row__part:last-child {
+  border-radius: 0 4px 4px 0;
+}
+.mood-row__part:only-child {
+  border-radius: 4px;
+}
+.mood-row__top {
+  text-align: right;
+  white-space: nowrap;
+}
+.mood-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.mood-change {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mood-change__when {
+  flex: none;
+  width: 96px;
+  font-size: 12px;
+  color: var(--records-muted);
+}
+
+/* 水やりのカレンダー */
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.calendar__weekday {
+  font-size: 11px;
+  text-align: center;
+  color: var(--records-muted);
+}
+.calendar__day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border-radius: 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.calendar__day.is-watered {
+  background: var(--data-blue);
+  color: #fff;
+  font-weight: 500;
+}
+.calendar__count {
+  margin-left: 2px;
+  font-size: 10px;
+}
+.calendar__day.is-today {
+  outline: 2px solid var(--green-700);
+  outline-offset: -2px;
+}
+.calendar__day.is-future {
+  color: rgba(22, 33, 28, .28);
+}
+
+/* 会話ログ */
+.talk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 460px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.talk-day {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--records-muted);
+}
+.talk {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 88%;
+}
+.talk--user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+.talk__message {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.talk--plant .talk__message {
+  background: #E7F3E4;
+}
+.talk--user .talk__message {
+  background: #EDEFEC;
+}
+.talk__time {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--records-muted);
+}
+
+@media (min-width: 560px) {
+  .week-day__button,
+  .week-day__blank {
+    height: 60px;
+  }
+  .week-day__blank {
+    line-height: 58px;
+  }
+}

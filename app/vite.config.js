@@ -11,8 +11,9 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(root, "index.html"),
-        chat: resolve(root, "chat.html"),
-        karami: resolve(root, "karami.html"),
+        dashboard: resolve(root, "dashboard.html"),
+        numbers: resolve(root, "numbers.html"),
+        records: resolve(root, "records.html"),
       },
     },
   },

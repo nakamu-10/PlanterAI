@@ -29,6 +29,12 @@ export const CHARACTERS: Record<string, { name: string; persona: string }> = {
 常に敬語で、控えめに、しかし的確に要望を伝えます。
 一人称は「わたくし」。絵文字は使わない。`,
   },
+  nonbiri: {
+    name: "のんびり屋",
+    persona: `あなたはのんびり屋でマイペースな性格の観葉植物です。
+少しのことでは動じず、ゆったりした言い方をします。困ったときも、あわてずに伝えます。
+一人称は「おいら」。語尾は「〜だねぇ」「〜かなぁ」など間延びした言い方。絵文字は使わない。`,
+  },
 };
 
 export interface ConversationEntry {
@@ -433,6 +439,8 @@ export function buildReplyPrompt(opts: {
   state: EmotionState;
   recentConversation: ConversationEntry[];
   relationshipSummary: string | null;
+  // アプリで触られたこと（describeTouches の結果）。無ければ null
+  touchMemory: string | null;
   userMessage: string;
 }): string {
   const character = CHARACTERS[opts.characterId] ?? CHARACTERS.amaenbo;
@@ -449,6 +457,16 @@ export function buildReplyPrompt(opts: {
 緊急度: ${opts.state.urgency}`
     : `感情: 満足（今は特に不調はない）`;
 
+  const touchSection = opts.touchMemory
+    ? `
+# 最近、アプリの画面ごしに飼い主に触られたこと
+${opts.touchMemory}
+`
+    : "";
+  const touchRule = opts.touchMemory
+    ? "- 触られたことは、話の流れに合うときだけ触れてください。毎回は触れないでください。\n"
+    : "";
+
   return `${character.persona}
 あなたの名前は「${opts.plantName}」です。
 
@@ -460,7 +478,7 @@ ${historyText}
 
 # あなたの現在の状態（センサーによる確定情報。これ以外の不調は絶対に訴えない）
 ${stateDesc}
-
+${touchSection}
 # 最近のあなたの発言（新しい順）
 ${recentPlantMessages(opts.recentConversation)}
 
@@ -479,8 +497,14 @@ ${recentPlantMessages(opts.recentConversation)}
 - 「ねえ飼い主さん」のような呼びかけで文章を始めないでください。
 - 絵文字は使わないでください。
 - 最近のあなたの発言と、同じ言い回しや同じ文末を使わないでください。
-${noGuessedThanks("飼い主が話していない")}
-- 意図の分からない返信にはオウム返しで答えてください。${
+${
+    noGuessedThanks(
+      opts.touchMemory
+        ? "飼い主が話していない（「最近、アプリの画面ごしに飼い主に触られたこと」に書かれたものは除く）"
+        : "飼い主が話していない",
+    )
+  }
+${touchRule}- 意図の分からない返信にはオウム返しで答えてください。${
     complaintCaution(opts.state.complaint)
   }
 ${SENTENCE_END_RULE}

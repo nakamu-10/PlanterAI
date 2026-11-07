@@ -1,13 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import {
-  buildReplyPrompt,
-  describeLlmFailure,
-  enforceMessageLength,
-  generateMessage,
-} from "../_shared/llm.ts";
-import type { ConversationEntry } from "../_shared/llm.ts";
-import { durationLabel } from "../_shared/emotionEngine.ts";
-import { fallbackMessage } from "../_shared/fallback.ts";
+import { createReply, saveExchange } from "../_shared/conversation.ts";
 import { replyLineMessage } from "../_shared/line.ts";
 
 const supabase = createClient(
@@ -107,104 +99,11 @@ async function processEvent(event: LineEvent): Promise<void> {
     return;
   }
 
-  // 現在の発言を履歴へ二重に含めないよう、直近履歴は保存前に取得する。
-  const [emotionResult, convoResult, summaryResult] = await Promise.all([
-    supabase
-      .from("emotion_logs")
-      .select("emotion, complaint, urgency, duration_hours")
-      .eq("device_id", device.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from("conversation_logs")
-      .select("role, message, created_at")
-      .eq("device_id", device.id)
-      .order("created_at", { ascending: false })
-      .limit(7),
-    supabase
-      .from("relationship_summaries")
-      .select("summary")
-      .eq("device_id", device.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
-
-  if (emotionResult.error) throw emotionResult.error;
-  if (convoResult.error) throw convoResult.error;
-  if (summaryResult.error) throw summaryResult.error;
-
-  const latestEmotion = emotionResult.data;
-  const hours = Number(latestEmotion?.duration_hours ?? 0);
-  const replyPrompt = buildReplyPrompt({
-    plantName: device.plant_name,
-    characterId: device.character_id,
-    state: {
-      emotion: latestEmotion?.emotion ?? "満足",
-      complaint: latestEmotion?.complaint ?? null,
-      urgency: latestEmotion?.urgency ?? "none",
-      duration_hours: hours,
-      duration_label: latestEmotion?.complaint ? durationLabel(hours) : "",
-    },
-    recentConversation: (convoResult.data ?? []) as ConversationEntry[],
-    relationshipSummary: summaryResult.data?.summary ?? null,
-    userMessage: userText,
-  });
-
-  // 返信経路は Webhook 応答窓があるので interactive（思考は minimal）。
-  // それでも失敗したら黙って落とさず、テンプレを返して会話を途切れさせない。
-  // どちらで返したかは conversation_logs に残す（フォールバック率の集計用）。
-  let replyText: string;
-  let replySource: "llm" | "fallback" = "llm";
-  let replyFinishReason = "STOP";
-  try {
-    replyText = enforceMessageLength(
-      await generateMessage(replyPrompt, "interactive"),
-      40,
-    );
-  } catch (err) {
-    console.error("Gemini生成エラー。テンプレへ切り替えます:", err);
-    replySource = "fallback";
-    replyFinishReason = describeLlmFailure(err);
-    replyText = fallbackMessage(
-      latestEmotion?.complaint ?? null,
-      latestEmotion?.emotion ?? null,
-    );
-  }
-
-  await replyLineMessage(replyToken, replyText);
-
+  const reply = await createReply(supabase, device, userText);
+  await replyLineMessage(replyToken, reply.text);
   // LINE送信後に2発言をまとめて保存する。送信前にユーザー発言だけを保存すると、
   // LINE側の一時障害でWebhookが再送された際に同じ発言が重複してしまう。
-  const userCreatedAt = new Date();
-  const plantCreatedAt = new Date(userCreatedAt.getTime() + 1);
-  const { error: conversationLogError } = await supabase.from(
-    "conversation_logs",
-  ).insert([
-    {
-      device_id: device.id,
-      role: "user",
-      message: userText,
-      // 飼い主の発言。source を入れておかないと、記録開始前の古い行（source=null）と
-      // 区別がつかず、フォールバック率の集計にノイズが乗る。
-      source: "user",
-      created_at: userCreatedAt.toISOString(),
-    },
-    {
-      device_id: device.id,
-      role: "plant",
-      message: replyText,
-      emotion: latestEmotion?.emotion ?? null,
-      complaint: latestEmotion?.complaint ?? null,
-      source: replySource,
-      finish_reason: replyFinishReason,
-      created_at: plantCreatedAt.toISOString(),
-    },
-  ]);
-  if (conversationLogError) {
-    console.error(`[${device.id}] 会話ログの保存に失敗:`, conversationLogError);
-  }
+  await saveExchange(supabase, device.id, userText, reply);
 
   console.log(`[${device.id}] LINE返信を送信しました`);
 }

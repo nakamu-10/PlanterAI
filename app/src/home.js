@@ -1,7 +1,20 @@
 import { gsap } from "gsap";
 import { Draggable } from "gsap/Draggable";
-import { fetchDashboard } from "./api.js";
+import {
+  fetchDashboard,
+  isPublicView,
+  POT,
+  recordTouch,
+  sendChatMessage,
+} from "./api.js";
+import {
+  daysTogether,
+  decideBubble,
+  describeAgo,
+  describeForecast,
+} from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
+import { keepQueryOnLinks, renderPotSwitcher } from "./potSwitcher.js";
 
 gsap.registerPlugin(Draggable);
 
@@ -40,7 +53,19 @@ const stage = document.getElementById("karamiStage");
 const img = document.getElementById("karamiImg");
 const loading = document.getElementById("karamiLoading");
 const bubble = document.getElementById("karamiBubble");
-const stateLabel = document.getElementById("karamiState");
+const recall = document.getElementById("bubbleRecall");
+const plantName = document.getElementById("plantName");
+const plantDays = document.getElementById("plantDays");
+const statusMood = document.getElementById("statusMood");
+const statusMoodNote = document.getElementById("statusMoodNote");
+const statusNextWatering = document.getElementById("statusNextWatering");
+const statusWatering = document.getElementById("statusWatering");
+const chatForm = document.getElementById("chatForm");
+const chatInput = document.getElementById("chatInput");
+
+// 鍵なしの app-public は読み取りだけで、チャットは受けない（ADR 0006）
+chatForm.hidden = isPublicView;
+keepQueryOnLinks();
 
 // ?emotion=不安 や ?moisture=20（土の水分の快適度 0〜100）を付けると、
 // その状態に固定する（デモの練習用）。片方だけでもよい
@@ -60,17 +85,56 @@ let bubbleTimeout = null;
 let karami3d = null;
 // 最後に見た水やりの時刻。開いたときの記録には喜ばず、その後の水やりにだけ喜ぶ
 let lastWateringAt;
+// 受け取った最後のセリフ（新しいかどうかを比べる相手）
+let knownMessage = null;
+// アイコンから出し直せるセリフ。今の気分と食い違う古いセリフは入れない
+let lastMessage = null;
+// 植物のセリフは読み終わるまで出し、触ったときの反応はすぐ消す
+const MESSAGE_MS = 8_000;
+const REACTION_MS = 2_200;
+// どのセリフまで見たかは鉢ごとに覚える。共有すると、別の鉢の新しいセリフで「もう見た」になる
+const SEEN_KEY = `planterai:lastSeenMessageAt:${POT}`;
 
 function showReaction(kind) {
+  // ?emotion= などで固定した練習の操作は、本物の鉢の記憶に混ぜない
+  if (!isForced) {
+    recordTouch(kind).catch((err) => console.error("触った記録に失敗:", err));
+  }
   const pool = REACTIONS[currentEmotion]?.[kind] ?? REACTIONS["満足"][kind];
   showBubble(pool[Math.floor(Math.random() * pool.length)]);
 }
 
-function showBubble(line) {
+function showBubble(line, durationMs = REACTION_MS) {
   bubble.textContent = line;
   bubble.classList.add("is-visible");
+  recall.hidden = true;
   clearTimeout(bubbleTimeout);
-  bubbleTimeout = setTimeout(() => bubble.classList.remove("is-visible"), 2200);
+  bubbleTimeout = setTimeout(hideBubble, durationMs);
+}
+
+function hideBubble() {
+  bubble.classList.remove("is-visible");
+  recall.hidden = lastMessage === null;
+}
+
+function showMessage(message) {
+  knownMessage = message;
+  lastMessage = message;
+  showBubble(message.message, MESSAGE_MS);
+  // どのセリフまで見たかは、この端末にだけ覚えておけばよい
+  try {
+    localStorage.setItem(SEEN_KEY, message.created_at);
+  } catch {
+    // 保存できない（プライベートブラウズなど）ときは、次に開いたときにもう一度出るだけ
+  }
+}
+
+function lastSeenAt() {
+  try {
+    return localStorage.getItem(SEEN_KEY);
+  } catch {
+    return null;
+  }
 }
 
 // 3D が使えないときの 2D 版
@@ -159,9 +223,11 @@ async function setup3d() {
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   let press = null;
   canvas.addEventListener("pointerdown", (e) => {
-    // 見学会で何人も同時に触るので、2本目以降の指と左ボタン以外は無視する
-    // （座標が混ざって激しく回ったり、離したことに気づけなくなったりする）
-    if (press || !e.isPrimary || e.button !== 0) return;
+    // 見学会で何人も同時に触るので、触っている指が離れるまで次の指は無視する
+    // （座標が混ざって激しく回ったり、離したことに気づけなくなったりする）。
+    // isPrimary では見ない。カラ美の外に置かれた1本目の指が、ほかの人の指を弾いてしまう
+    if (press || e.button !== 0) return;
+    if (!karami3d.touches(e.clientX, e.clientY)) return;
     canvas.setPointerCapture(e.pointerId);
     press = {
       pointerId: e.pointerId,
@@ -210,19 +276,34 @@ async function setup3d() {
   canvas.addEventListener("pointercancel", (e) => release(e, true));
 }
 
-function describeState(complaint) {
-  const mood = complaint
-    ? `いまの気分：${currentEmotion}（${complaint}）`
-    : `いまの気分：${currentEmotion}`;
-  const water = currentMoisture === null
-    ? ""
-    : `　土の水分：${Math.round(currentMoisture)}/100`;
-  return mood + water + (isForced ? "（固定）" : "");
+function describeForced() {
+  plantName.textContent = "カラ美";
+  statusMood.textContent = currentEmotion;
+  statusMoodNote.textContent = "（固定）";
 }
+
+function renderStatus(data, latest) {
+  plantName.textContent = data.device.plant_name;
+  renderPotSwitcher(document.getElementById("potSwitcher"), data.pots);
+  chatInput.placeholder = `${data.device.plant_name}に話しかける`;
+  plantDays.textContent = `一緒に過ごして ${
+    daysTogether(data.device.created_at)
+  }日目`;
+  statusMood.textContent = currentEmotion;
+  statusMoodNote.textContent = latest?.complaint ?? "";
+  statusNextWatering.textContent = describeForecast(
+    data.trends?.moisture.forecast,
+  );
+  statusWatering.textContent = data.latest_watering
+    ? describeAgo(data.latest_watering.created_at)
+    : "まだ記録なし";
+}
+
+let firstLoad = true;
 
 async function refreshState() {
   if (isForced) {
-    stateLabel.textContent = describeState(null);
+    describeForced();
     return;
   }
   try {
@@ -236,7 +317,7 @@ async function refreshState() {
       emotion: currentEmotion,
       moistureScore: currentMoisture,
     });
-    stateLabel.textContent = describeState(latest?.complaint);
+    renderStatus(data, latest);
 
     const wateringAt = data.latest_watering?.created_at ?? null;
     if (lastWateringAt !== undefined && wateringAt !== lastWateringAt) {
@@ -244,11 +325,51 @@ async function refreshState() {
       showBubble("お水ありがとう！");
     }
     lastWateringAt = wateringAt;
+
+    const bubbleState = decideBubble({
+      known: knownMessage,
+      message: data.last_plant_message,
+      latestEmotion: latest,
+      firstLoad,
+      seenAt: lastSeenAt(),
+    });
+    knownMessage = bubbleState.known;
+    lastMessage = bubbleState.recallable;
+    if (bubbleState.show) showMessage(bubbleState.known);
+    if (!bubble.classList.contains("is-visible")) {
+      recall.hidden = lastMessage === null;
+    }
+    firstLoad = false;
   } catch (err) {
     console.error(err);
-    stateLabel.textContent = "状態を取得できませんでした";
+    statusMood.textContent = "—";
+    statusMoodNote.textContent = "状態を取得できませんでした";
   }
 }
+
+recall.addEventListener("click", () => {
+  if (lastMessage) showBubble(lastMessage.message, MESSAGE_MS);
+});
+
+chatForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const text = chatInput.value.trim();
+  if (!text) return;
+  chatInput.value = "";
+  showBubble("……", 30_000);
+  try {
+    const data = await sendChatMessage(text);
+    // 気分も渡し、気分が変わったら返事も古いセリフとして扱う（読み込み直したときと同じに）
+    showMessage({
+      message: data.reply,
+      emotion: data.emotion,
+      created_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error(err);
+    showBubble("返事を受け取れませんでした");
+  }
+});
 
 // iPhone の Safari は、touch-action: none でもカラ美のダブルタップで拡大する。
 // 指を離したときの既定の動作を止める（触る操作は pointer イベントで受けているので消えない）

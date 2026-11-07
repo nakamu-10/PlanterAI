@@ -7,6 +7,7 @@ import {
 import {
   evaluateEmotion,
   hasTransitioned,
+  stateFromLog,
 } from "../supabase/functions/_shared/emotionEngine.ts";
 import {
   PLANT_PROFILES,
@@ -389,6 +390,69 @@ assert(
 assert(
   "回復（満足に戻る）も通知する",
   hasTransitioned(s1, { emotion: "不満", complaint: "水分不足" }) === true,
+);
+
+console.log("--- 返事に使う今の状態（感情ログの最新行から） ---");
+const reachedLight = stateFromLog({
+  emotion: "満足",
+  complaint: "日照不足",
+  urgency: "none",
+  duration_hours: 0,
+});
+assert(
+  "日照の目標に届いた行（満足・日照不足）は、主訴なしにする",
+  reachedLight.complaint === null && reachedLight.emotion === "満足",
+  JSON.stringify(reachedLight),
+);
+const thirsty = stateFromLog({
+  emotion: "不満",
+  complaint: "水分不足",
+  urgency: "medium",
+  duration_hours: "30.5",
+});
+assert(
+  "不調の行は主訴と継続時間をそのまま使う（numeric は文字列で届く）",
+  thirsty.complaint === "水分不足" && thirsty.duration_hours === 30.5 &&
+    thirsty.duration_label === "1日",
+  JSON.stringify(thirsty),
+);
+assert(
+  "感情ログがまだ無いときは満足",
+  stateFromLog(null).emotion === "満足" &&
+    stateFromLog(null).complaint === null,
+);
+
+console.log("\n--- 植物プロファイル ---");
+// toScore は6点が小さい順に並んでいる前提で補間する
+for (const [id, p] of Object.entries(PLANT_PROFILES)) {
+  for (
+    const sensor of ["moisture", "temp", "light", "lightDaily", "humidity"]
+  ) {
+    const t = p[sensor as keyof typeof p] as typeof p.moisture;
+    const points = [
+      t.dangerLow,
+      t.cautionLow,
+      t.comfortLow,
+      t.comfortHigh,
+      t.cautionHigh,
+      t.dangerHigh,
+    ];
+    assert(
+      `${id}.${sensor} の閾値は小さい順`,
+      points.every((v, i) => i === 0 || points[i - 1] <= v),
+      points.join(","),
+    );
+  }
+}
+const cactus = PLANT_PROFILES.cactus;
+assert(
+  "サボテンは、土の水分20%で快適",
+  toScore(20, cactus.moisture) === 100,
+);
+assert(
+  "サボテンは、カラテアに快適な土の水分（60%）で困る",
+  toScore(60, cactus.moisture) < 100 &&
+    toScore(60, PLANT_PROFILES.calathea.moisture) === 100,
 );
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);

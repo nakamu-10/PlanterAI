@@ -173,6 +173,57 @@ export const PLANT_PROFILES: Record<string, PlantProfile> = {
       dangerHigh: 100,
     },
   },
+  // サボテン。乾燥地の植物で、困るのは乾きより水のやりすぎ（根腐れ）。
+  // 実測はまだ無いので、どれも一般的な栽培ガイドに基づく仮値。
+  // 置き場所が決まって1週間ほど測ったら、ここを見直す
+  cactus: {
+    displayName: "サボテン",
+    // 土が乾ききってから水をやる。快適帯は低く、多い側を厳しめに
+    moisture: {
+      dangerLow: 3,
+      cautionLow: 5,
+      comfortLow: 10,
+      comfortHigh: 40,
+      cautionHigh: 60,
+      dangerHigh: 80,
+    },
+    // 暑さには強く、寒さは5℃あたりまで耐える
+    temp: {
+      dangerLow: 3,
+      cautionLow: 8,
+      comfortLow: 15,
+      comfortHigh: 32,
+      cautionHigh: 38,
+      dangerHigh: 42,
+    },
+    // 過剰側のみ有効。室内で急に直射日光に当てると焼けるが、カラテアよりずっと強い
+    light: {
+      dangerLow: NO_LOW,
+      cautionLow: NO_LOW,
+      comfortLow: NO_LOW,
+      comfortHigh: 50_000,
+      cautionHigh: 80_000,
+      dangerHigh: 100_000,
+    },
+    // 不足側のみ有効。日なたを好むので、目標をカラテア（10,000）より高くする
+    lightDaily: {
+      dangerLow: 4_000,
+      cautionLow: 8_000,
+      comfortLow: 15_000,
+      comfortHigh: NO_HIGH,
+      cautionHigh: NO_HIGH + 1,
+      dangerHigh: NO_HIGH + 2,
+    },
+    // 乾いた空気を好む。多湿側を早めに知らせる
+    humidity: {
+      dangerLow: 5,
+      cautionLow: 10,
+      comfortLow: 20,
+      comfortHigh: 60,
+      cautionHigh: 75,
+      dangerHigh: 90,
+    },
+  },
 };
 
 // 中央値フィルタで参照する直近サンプル数（今回の値を含む）

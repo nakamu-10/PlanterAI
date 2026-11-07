@@ -79,10 +79,17 @@ verify_jwt = false
 [functions.weekly-summary]
 verify_jwt = false
 
+[functions.daily-diary]
+verify_jwt = false
+
 [functions.app-data]
 verify_jwt = false
 
 [functions.app-chat]
+verify_jwt = false
+
+# 展示用に鍵なしで読む。読み取りだけ（ADR 0006）
+[functions.app-public]
 verify_jwt = false
 
 [db.network_restrictions]
