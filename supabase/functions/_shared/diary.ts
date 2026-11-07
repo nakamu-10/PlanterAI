@@ -4,7 +4,7 @@
 import type { PlantProfile } from "./config.ts";
 import { integrateLuxHours, jstDateKey } from "./dailyLight.ts";
 import type { LineFlexMessage } from "./line.ts";
-import { CHARACTERS } from "./llm.ts";
+import { CHARACTERS, complaintCaution } from "./llm.ts";
 
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
@@ -213,6 +213,10 @@ export function buildDiaryPrompt(opts: {
 }): string {
   const character = CHARACTERS[opts.characterId] ?? CHARACTERS.amaenbo;
   const { stats } = opts;
+  const longComplaint =
+    stats.top_complaint && stats.top_complaint.share >= COMPLAINT_MIN_SHARE
+      ? stats.top_complaint.complaint
+      : null;
   const moods = stats.moods
     .slice(0, 2)
     .map((m) => `${m.emotion}（${Math.round(m.share * 100)}%）`)
@@ -221,9 +225,7 @@ export function buildDiaryPrompt(opts: {
     `今日のできごと: ${PICTURE_EVENTS[opts.picture]}`,
     `一緒に過ごして${stats.day_number}日目`,
     `気分: ${moods}`,
-    stats.top_complaint && stats.top_complaint.share >= COMPLAINT_MIN_SHARE
-      ? `長く続いた不調: ${stats.top_complaint.complaint}`
-      : null,
+    longComplaint ? `長く続いた不調: ${longComplaint}` : null,
     `水やり: ${stats.watering_count}回`,
     stats.light_ratio === null
       ? null
@@ -250,7 +252,9 @@ ${recent}
 - 最近の日記と、同じ言い回しや同じ文末を使わないでください。
 - 絵文字は使わないでください。
 - 文は必ず「。」「！」「？」のどれかで終えてください。
-- 70文字以内。文だけを出力し、日付や引用符や説明は付けないでください。`;
+- 70文字以内。文だけを出力し、日付や引用符や説明は付けないでください。${
+    // セリフと同じ注意。空気の乾燥を「のど」「お水」と書くと、土の水やりと取り違えさせる
+    complaintCaution(longComplaint)}`;
 }
 
 export function isSundayJst(d: Date): boolean {
