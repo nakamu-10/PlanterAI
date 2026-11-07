@@ -15,7 +15,8 @@
 - /app/ は本番で動いている（https://planterai.vercel.app/app/ ）。鍵が無いと
   `app-public` で読み、`?pot=` で鉢を選ぶ（無ければ `karami`）。展示は C
   （見る専用で、話しかける欄は出さない。設定のページは名前と性格を見せるだけ）。
-  ホームは 3D のカラ美と吹き出し。サボテンの鉢はサボテンのモデルで出る（#53）
+  ホームは 3D のカラ美と吹き出し。`plant_profile` が `cactus` の鉢はサボテンの
+  モデルで出る（#53）が、本番にはまだサボテンの鉢が無い
 - サイトとアプリは Vercel（中村のチーム planter-ai）で GitHub とつないだ。本番は
   https://planterai.vercel.app/ 。main へのマージで本番に、PR
   ごとにプレビューが出る
