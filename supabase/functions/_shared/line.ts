@@ -6,6 +6,18 @@
 const LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
 const LINE_TIMEOUT_MS = 8_000;
 
+export class LineHttpError extends Error {
+  constructor(public status: number, body: string) {
+    super(`LINE送信エラー: HTTP ${status} — ${body}`);
+    this.name = "LineHttpError";
+  }
+}
+
+// LINE がメッセージの形を受け付けなかった。届いていないので、別の形で送り直してよい
+export function isRejectedByLine(err: unknown): boolean {
+  return err instanceof LineHttpError && err.status === 400;
+}
+
 export interface LineFlexMessage {
   type: "flex";
   altText: string;
@@ -53,7 +65,7 @@ export async function pushLineMessages(
   if (!res.ok) {
     const body = await res.text();
     // 400系（ユーザーIDが不正など）はリトライしても無駄なのでそのままエラーに
-    throw new Error(`LINE送信エラー: HTTP ${res.status} — ${body}`);
+    throw new LineHttpError(res.status, body);
   }
 }
 const LINE_REPLY_URL = "https://api.line.me/v2/bot/message/reply";
