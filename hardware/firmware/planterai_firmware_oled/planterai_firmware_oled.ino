@@ -367,7 +367,9 @@ void readAllSensors() {
   if (tslOk) {
     uint32_t lum = tsl.getFullLuminosity();
     lastLux = tsl.calculateLux(lum & 0xFFFF, lum >> 16);
-    if (lastLux < 0) lastLux = LUX_SATURATED; // 飽和すると -1 が返る
+    // 真っ暗だと ch0=0 で 0÷0 になり nan が返る。そのまま送ると JSON が壊れて 400 になる
+    if (isnan(lastLux)) lastLux = 0;
+    else if (lastLux < 0) lastLux = LUX_SATURATED; // 飽和すると -1 が返る
     wdtFeed();
   }
 }
