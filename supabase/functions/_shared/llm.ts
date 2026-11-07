@@ -412,6 +412,12 @@ export function enforceMessageLength(text: string, maxChars: number): string {
 }
 
 // 週次サマリー生成用プロンプト
+// 飼い主が話していない週は、関係のまとめを作り直さない。植物のセリフだけから作ると、
+// 実際には無かった関係を Gemini が書いてしまう（LINE を結んでいない鉢は毎週こうなる）
+export function hasOwnerMessage(conversation: { role: string }[]): boolean {
+  return conversation.some((entry) => entry.role === "user");
+}
+
 export function buildSummaryPrompt(
   plantName: string,
   conversation: ConversationEntry[],
