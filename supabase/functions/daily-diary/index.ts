@@ -22,7 +22,11 @@ import {
   weeklyDiaryFlex,
   weeklyDiaryMessage,
 } from "../_shared/diary.ts";
-import { pushLineMessage, pushLineMessages } from "../_shared/line.ts";
+import {
+  isRejectedByLine,
+  pushLineMessage,
+  pushLineMessages,
+} from "../_shared/line.ts";
 import { enforceMessageLength, generateMessage } from "../_shared/llm.ts";
 
 const supabase = createClient(
@@ -241,7 +245,9 @@ async function pushWeeklyMessage(
     ]);
     return "sent";
   } catch (err) {
-    // カードを LINE に断られても、その週の知らせは届ける
+    // カードを LINE に断られても、その週の知らせは届ける。待ちきれなかったときなどは
+    // 届いているかもしれず、送り直すとカードと文字の両方が届くので、送り直さない
+    if (!isRejectedByLine(err)) throw err;
     console.error(`[${device.id}] 週の日記のカードを送れません:`, err);
     await pushLineMessage(
       device.line_user_id,

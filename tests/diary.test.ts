@@ -17,6 +17,10 @@ import {
   weeklyDiaryFlex,
   weeklyDiaryMessage,
 } from "../supabase/functions/_shared/diary.ts";
+import {
+  isRejectedByLine,
+  LineHttpError,
+} from "../supabase/functions/_shared/line.ts";
 import { endsSentence } from "../supabase/functions/_shared/llm.ts";
 
 let pass = 0, fail = 0;
@@ -429,6 +433,21 @@ console.log("--- 週の LINE のカード ---");
     String(JSON.stringify(fullWeek.contents).length),
   );
 }
+
+console.log("--- 週の LINE を文字で送り直すか ---");
+assert(
+  "LINE に断られた（400）ときは送り直す",
+  isRejectedByLine(new LineHttpError(400, "{}")),
+);
+assert(
+  "LINE の一時的なエラーや鍵の誤りでは送り直さない",
+  !isRejectedByLine(new LineHttpError(500, "")) &&
+    !isRejectedByLine(new LineHttpError(401, "")),
+);
+assert(
+  "待ちきれなかったときは送り直さない（届いているかもしれない）",
+  !isRejectedByLine(new DOMException("timeout", "TimeoutError")),
+);
 
 console.log("--- 曜日・水やり・変化 ---");
 assert(
