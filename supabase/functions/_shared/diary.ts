@@ -3,6 +3,7 @@
 
 import type { PlantProfile } from "./config.ts";
 import { integrateLuxHours, jstDateKey } from "./dailyLight.ts";
+import type { LineFlexMessage } from "./line.ts";
 import { CHARACTERS } from "./llm.ts";
 
 const HOUR_MS = 3_600_000;
@@ -256,7 +257,7 @@ export function isSundayJst(d: Date): boolean {
   return new Date(d.getTime() + JST_MS).getUTCDay() === 0;
 }
 
-// 週に1回の LINE。定型文で、文の種類は絵の数え方だけ
+// 週に1回の LINE の、絵の数え方の文。カードの通知文（altText）と、カードを送れないときの代わりに使う
 export function weeklyDiaryMessage(opts: {
   pictures: string[];
   recordsUrl: string | null;
@@ -276,6 +277,79 @@ export function weeklyDiaryMessage(opts: {
     summary ? `${summary}あったの。` : null,
     opts.recordsUrl ? `読んでみてね。\n${opts.recordsUrl}` : null,
   ].filter((line) => line !== null).join("\n");
+}
+
+const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+
+function formatDiaryDay(day: string): string {
+  const date = new Date(`${day}T00:00:00Z`);
+  return `${date.getUTCMonth() + 1}/${date.getUTCDate()}（${
+    WEEKDAYS[date.getUTCDay()]
+  }）`;
+}
+
+export interface WeeklyDiaryEntry {
+  day: string; // "2026-11-02"
+  picture: string;
+  body: string;
+}
+
+// 週に1回の LINE（ADR 0010）。1日1枚のカードを古い順に横へ並べ、1通で送る。
+// LINE の画像は JPEG か PNG だけなので、記録のページの webp ではなく jpg を指す
+export function weeklyDiaryFlex(opts: {
+  entries: WeeklyDiaryEntry[];
+  imageBaseUrl: string;
+  recordsUrl: string | null;
+}): LineFlexMessage {
+  const footer = opts.recordsUrl
+    ? {
+      type: "box",
+      layout: "vertical",
+      contents: [{
+        type: "button",
+        style: "link",
+        height: "sm",
+        color: "#1F6B4A",
+        action: { type: "uri", label: "記録を見る", uri: opts.recordsUrl },
+      }],
+    }
+    : undefined;
+  return {
+    type: "flex",
+    altText: weeklyDiaryMessage({
+      pictures: opts.entries.map((entry) => entry.picture),
+      recordsUrl: null,
+    }),
+    contents: {
+      type: "carousel",
+      contents: opts.entries.map((entry) => ({
+        type: "bubble",
+        size: "kilo",
+        hero: {
+          type: "image",
+          url: `${opts.imageBaseUrl}/${entry.picture}.jpg`,
+          size: "full",
+          aspectRatio: "3:2",
+          aspectMode: "cover",
+        },
+        body: {
+          type: "box",
+          layout: "vertical",
+          spacing: "sm",
+          contents: [
+            {
+              type: "text",
+              text: formatDiaryDay(entry.day),
+              size: "xs",
+              color: "#56645A",
+            },
+            { type: "text", text: entry.body, size: "sm", wrap: true },
+          ],
+        },
+        footer,
+      })),
+    },
+  };
 }
 
 // 記録のページの「最近の変化」（新しい順）。日照の目標に届いた行は、重複判定のため
