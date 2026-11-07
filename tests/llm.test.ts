@@ -11,10 +11,13 @@
 //   4. フォールバック文面が emotion で変わること。
 //      通知は (emotion, complaint) の変化で発火するので、complaint 据え置きで
 //      emotion だけ変わる再通知のとき、旧実装は毎回まったく同じ文字列を送っていた。
+import { CHARACTER_LABELS } from "../app/src/characters.js";
 import {
   buildPrompt,
+  CHARACTERS,
   describeLlmFailure,
   endsSentence,
+  hasOwnerMessage,
   LLM_PROFILES,
   LLM_RETRY_CONFIG,
   LlmEmptyResponseError,
@@ -259,6 +262,28 @@ console.log("--- プロンプト ---");
     ),
   );
 }
+
+console.log("--- 週のまとめを作るか ---");
+assert(
+  "飼い主の発言があれば作る",
+  hasOwnerMessage([{ role: "plant" }, { role: "user" }]),
+);
+assert(
+  "植物のセリフだけの週は作らない",
+  !hasOwnerMessage([{ role: "plant" }, { role: "plant" }]),
+);
+assert("会話が無い週は作らない", !hasOwnerMessage([]));
+
+console.log("--- 性格の一覧 ---");
+assert(
+  "アプリの性格の一覧が、サーバーの CHARACTERS と同じ",
+  JSON.stringify(CHARACTER_LABELS) ===
+    JSON.stringify(
+      Object.fromEntries(
+        Object.entries(CHARACTERS).map(([id, c]) => [id, c.name]),
+      ),
+    ),
+);
 
 console.log("--- 文末 ---");
 for (

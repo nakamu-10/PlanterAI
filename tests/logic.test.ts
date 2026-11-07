@@ -5,6 +5,7 @@ import {
   toScore,
 } from "../supabase/functions/_shared/normalize.ts";
 import {
+  calcDurationHours,
   evaluateEmotion,
   hasTransitioned,
   stateFromLog,
@@ -459,6 +460,56 @@ assert(
   "エバーフレッシュは寒さに弱く、サボテンが平気な12℃で注意になる",
   toScore(12, everfresh.temp) <= 50 && toScore(12, cactus.temp) > 50,
 );
+
+console.log("--- 継続時間と、日照の日次判定の行 ---");
+{
+  const hoursAgo = (h: number) =>
+    new Date(Date.now() - h * 3_600_000).toISOString();
+  const dry = (h: number) => ({
+    emotion: "不満",
+    complaint: "水分不足",
+    created_at: hoursAgo(h),
+  });
+  const dailyLight = (h: number) => ({
+    emotion: "軽い不満",
+    complaint: "日照不足",
+    created_at: hoursAgo(h),
+    daily_light: { kind: "warning" },
+  });
+  const near = (actual: number, expected: number) =>
+    Math.abs(actual - expected) < 0.01;
+
+  assert(
+    "同じ主訴が続いている間の、一番古い行から数える",
+    near(calcDurationHours("水分不足", [dry(1), dry(24), dry(48)]), 48),
+  );
+  assert(
+    "日照の日次判定の行を挟んでも、続きは途切れない",
+    near(
+      calcDurationHours("水分不足", [dry(1), dailyLight(5), dry(24), dry(48)]),
+      48,
+    ),
+  );
+  assert(
+    "最新が日照の日次判定の行でも、その前から数える",
+    near(calcDurationHours("水分不足", [dailyLight(1), dry(24), dry(48)]), 48),
+  );
+  assert(
+    "違う主訴を挟んだら、そこで途切れる",
+    near(
+      calcDurationHours("水分不足", [
+        dry(1),
+        { emotion: "満足", complaint: null, created_at: hoursAgo(5) },
+        dry(24),
+      ]),
+      1,
+    ),
+  );
+  assert(
+    "日照の日次判定の行しか無ければ、今回が初めて",
+    calcDurationHours("水分不足", [dailyLight(1)]) === 0,
+  );
+}
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

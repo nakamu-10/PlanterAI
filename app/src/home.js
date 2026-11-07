@@ -12,6 +12,7 @@ import {
   decideBubble,
   describeAgo,
   describeForecast,
+  modelFor,
 } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
 import { keepQueryOnLinks, renderPotSwitcher } from "./potSwitcher.js";
@@ -206,8 +207,8 @@ function setup2d() {
 }
 
 // 3D 版：短く押して離す＝つつく、頭をドラッグ＝なでる、体をドラッグ＝回す、長押し＝持ち上げる
-async function setup3d() {
-  karami3d = await createKarami(stage);
+async function setup3d(model) {
+  karami3d = await createKarami(stage, model);
   loading.remove();
   karami3d.setMood({
     emotion: currentEmotion,
@@ -274,6 +275,9 @@ async function setup3d() {
   };
   canvas.addEventListener("pointerup", (e) => release(e, false));
   canvas.addEventListener("pointercancel", (e) => release(e, true));
+  // 離した合図が来ないまま指を見失っても、press が残ると次から触れなくなる。
+  // 普通に離したときは pointerup のあとに来るが、press が空なので何もしない
+  canvas.addEventListener("lostpointercapture", (e) => release(e, true));
 }
 
 function describeForced() {
@@ -301,10 +305,11 @@ function renderStatus(data, latest) {
 
 let firstLoad = true;
 
+// 読み込んだ鉢のデータを返す（読めなかったときと、気分を固定しているときは null）
 async function refreshState() {
   if (isForced) {
     describeForced();
-    return;
+    return null;
   }
   try {
     const data = await fetchDashboard();
@@ -340,10 +345,12 @@ async function refreshState() {
       recall.hidden = lastMessage === null;
     }
     firstLoad = false;
+    return data;
   } catch (err) {
     console.error(err);
     statusMood.textContent = "—";
     statusMoodNote.textContent = "状態を取得できませんでした";
+    return null;
   }
 }
 
@@ -377,9 +384,11 @@ stage.addEventListener("touchend", (e) => e.preventDefault(), {
   passive: false,
 });
 
-setup3d().catch((err) => {
-  console.error("3Dモデルを表示できないので、画像で表示します:", err);
-  setup2d();
-});
-refreshState();
+// どのモデルを出すかは鉢の植物で決まるので、最初のデータを読んでから 3D を用意する
+refreshState()
+  .then((data) => setup3d(modelFor(data?.device.plant_profile)))
+  .catch((err) => {
+    console.error("3Dモデルを表示できないので、画像で表示します:", err);
+    setup2d();
+  });
 setInterval(refreshState, REFRESH_MS);

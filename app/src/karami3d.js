@@ -16,7 +16,9 @@ const TOUCH_OFFSETS = [
 ];
 
 // 動きを足したら v を上げる。古い glb がキャッシュに残った端末で、足した動きが無くて 2D に落ちるため
-const MODEL_URL = `${import.meta.env.BASE_URL}models/karami.glb?v=2`;
+const MODEL_VERSIONS = { karami: 2, cactus: 1 };
+const modelUrl = (name) =>
+  `${import.meta.env.BASE_URL}models/${name}.glb?v=${MODEL_VERSIONS[name]}`;
 
 // 葉とマントの骨。しおれの動きのうち、ここだけ土の水分で動かす
 const isLeafTrack = (track) => /^(leaf|cape)_/.test(track.name);
@@ -29,10 +31,11 @@ const keepTracks = (clip, name, keep) =>
 // 持ち上げられる高さ（足元の高さ）。カメラの写す範囲に合わせる
 const MAX_LIFT = 0.35;
 
-// 動きは Blender で作り、glb に入れてある（app/models-src/karami.blend）。
+// 動きは Blender で作り、glb に入れてある（app/models-src/*.blend）。
+// どのモデルも骨と動きの名前をカラ美にそろえてあるので、同じ操作で動く。
 // 待機（Idle）としおれ（Wilt）は常に流して混ぜ、ほかは1回だけ流す
-export async function createKarami(container) {
-  const gltf = await new GLTFLoader().loadAsync(MODEL_URL);
+export async function createKarami(container, modelName = "karami") {
+  const gltf = await new GLTFLoader().loadAsync(modelUrl(modelName));
   const model = gltf.scene;
 
   // glb に足りないものがあれば、画面に何も足さないうちに投げる

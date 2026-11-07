@@ -11,9 +11,9 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(root, "index.html"),
-        dashboard: resolve(root, "dashboard.html"),
         numbers: resolve(root, "numbers.html"),
         records: resolve(root, "records.html"),
+        settings: resolve(root, "settings.html"),
       },
     },
   },
