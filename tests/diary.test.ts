@@ -1,5 +1,6 @@
 // カラ美の日記（supabase/functions/_shared/diary.ts）の検証
 // 実行: npx tsx tests/diary.test.ts
+import { existsSync, readFileSync } from "node:fs";
 import { PLANT_PROFILES } from "../supabase/functions/_shared/config.ts";
 import {
   buildDayStats,
@@ -412,6 +413,20 @@ assert(
     changes.length === 2 && changes[0].created_at === "2026-11-05T11:00:00Z" &&
       changes[1].emotion === "不満",
     JSON.stringify(changes),
+  );
+}
+
+console.log("--- 絵のファイル ---");
+for (const picture of DIARY_PICTURES) {
+  assert(
+    `${picture}.webp が記録のページ用にある`,
+    existsSync(`app/public/images/diary/${picture}.webp`),
+  );
+  // LINE の画像は JPEG か PNG だけ。1枚 1MB 以下を勧められている
+  const jpeg = readFileSync(`app/public/images/diary/${picture}.jpg`);
+  assert(
+    `${picture}.jpg は JPEG で 1MB 以下`,
+    jpeg[0] === 0xff && jpeg[1] === 0xd8 && jpeg.length <= 1_000_000,
   );
 }
 
