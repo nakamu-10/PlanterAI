@@ -1,5 +1,13 @@
 // ホームの表示を決める計算。DOM と three.js に依存しないので、ここだけテストできる
 
+// 植物の種類ごとの 3D モデル（app/public/models/ のファイル名）。
+// モデルがまだ無い植物は、カラ美で表す
+const MODELS = { cactus: "cactus" };
+
+export function modelFor(plantProfile) {
+  return MODELS[plantProfile] ?? "karami";
+}
+
 // セリフのあとに気分が変わっていたら、今と食い違う古いセリフ
 // （「お水ちょうだい」のあとに水をもらって満足になった、など）
 export function isStaleMessage(message, latestEmotion) {

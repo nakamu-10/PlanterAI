@@ -6,6 +6,7 @@ import {
   describeAgo,
   describeForecast,
   isStaleMessage,
+  modelFor,
   shouldShowLastMessage,
 } from "../app/src/home.logic.js";
 
@@ -187,6 +188,12 @@ assert(
     seenAt: reply.created_at,
   }).show,
 );
+
+console.log("--- 3D モデル ---");
+assert("サボテンの鉢はサボテンのモデル", modelFor("cactus") === "cactus");
+assert("カラテアの鉢はカラ美", modelFor("calathea") === "karami");
+assert("モデルがまだ無い植物はカラ美", modelFor("everfresh") === "karami");
+assert("植物が分からないときもカラ美", modelFor(undefined) === "karami");
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
