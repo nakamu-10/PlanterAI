@@ -53,8 +53,9 @@ def place(name, mesh, mats, bone):
     parent_to_bone(new_object(name, mesh, mats), bone, Matrix.Identity(4))
 
 
-def finish(bm, name):
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+def finish(bm, name, recalc=True):
+    if recalc:
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     me = bpy.data.meshes.new(name)
     bm.to_mesh(me)
     bm.free()
@@ -82,8 +83,9 @@ def along(a, b):
 
 # 色（画像から拾った値）
 SKIN = material("Skin", "67a6a3")
-LEAF = material("Frond", "72ac62", 0.8)
-STEM = material("FrondStem", "4f8a4a", 0.8)
+# 画像の葉は 7caf6c だが、アプリの背景の緑とほぼ同じで溶けるので、少し濃くする
+LEAF = material("Frond", "4e9443", 0.8)
+STEM = material("FrondStem", "3a7034", 0.8)
 material("Boot", "22334c")
 PILLOW = material("Pillow", "ece4cc", 0.9)
 MOON = material("Moon", "22334c", 0.7)
@@ -197,16 +199,31 @@ def spline(points, n):
 
 
 def leaflet(bm, base, direction, normal, length, width, mat):
-    """小さな葉1枚。付け根 base から direction へ伸びる、平たいしずく形"""
+    """小さな葉1枚。付け根 base から direction へ伸びる、平たいしずく形。
+    小葉は数が多いので、厚みを付けずに1枚の面にする（glb の材質は両面を描くので裏からも見える）。
+    真ん中の筋を少し手前に出して、光の当たり方で葉らしく見せる"""
     side = direction.cross(normal).normalized()
-    ret = bmesh.ops.create_uvsphere(bm, u_segments=6, v_segments=4, radius=1.0)
-    for v in ret["verts"]:
-        x, y, z = v.co
-        t = (z + 1) / 2                         # 0=付け根 1=先
-        w = width / 2 * math.sin(math.pi * min(1.0, t * 1.1)) ** 0.8
-        v.co = base + direction * (t * length) + side * (x * w) + normal * (y * 0.0025)
-    for f in {f for v in ret["verts"] for f in v.link_faces}:
-        f.material_index = mat
+    root = bm.verts.new(base)
+    tip = bm.verts.new(base + direction * length)
+    rows = []
+    for t in (0.25, 0.5, 0.75):
+        w = width / 2 * math.sin(math.pi * t) ** 0.8
+        p = base + direction * (t * length)
+        rows.append((bm.verts.new(p + side * w), bm.verts.new(p - normal * 0.002), bm.verts.new(p - side * w)))
+    left = [root] + [r[0] for r in rows] + [tip]
+    mid = [root] + [r[1] for r in rows] + [tip]
+    right = [root] + [r[2] for r in rows] + [tip]
+    for edge in (left, right):
+        for k in range(len(mid) - 1):
+            quad = [edge[k], edge[k + 1], mid[k + 1], mid[k]]
+            for f in ([quad[0], quad[1], quad[2]], [quad[0], quad[2], quad[3]]):
+                if len({id(v) for v in f}) == 3:
+                    face = bm.faces.new(f)
+                    face.material_index = mat
+                    # 面の表を手前（normal の向き＝カメラの側）にそろえ、光の当たり方をそろえる
+                    face.normal_update()
+                    if face.normal.dot(normal) < 0:
+                        face.normal_flip()
 
 
 def frond_mesh(name, path, spacing=0.019, leaf_len=0.05, leaf_w=0.024, start=0.05):
@@ -225,10 +242,14 @@ def frond_mesh(name, path, spacing=0.019, leaf_len=0.05, leaf_w=0.024, start=0.0
         r = 0.0045 * (1 - 0.5 * lengths[k] / total)
         rings.append([bm.verts.new(p + (a * math.cos(t) + b * math.sin(t)) * r)
                       for t in [2 * math.pi * s / 6 for s in range(6)]])
-    for r0, r1 in zip(rings, rings[1:]):
+    for k, (r0, r1) in enumerate(zip(rings, rings[1:])):
         for s in range(6):
             f = bm.faces.new([r0[s], r1[s], r1[(s + 1) % 6], r0[(s + 1) % 6]])
             f.material_index = 1
+            # 管の面は外向きにする
+            f.normal_update()
+            if f.normal.dot(f.calc_center_median() - pts[k]) < 0:
+                f.normal_flip()
     # 小葉。付け根の近くは頭に埋まるので start から並べ、先ほど小さくする
     s = start
     k = 0
@@ -250,7 +271,8 @@ def frond_mesh(name, path, spacing=0.019, leaf_len=0.05, leaf_w=0.024, start=0.0
     d = (pts[-1] - pts[-3]).normalized()
     normal = (Vector((0, -1, 0)) - d * d.y * -1).normalized()
     leaflet(bm, pts[-1], d, normal, leaf_len * 0.6, leaf_w * 0.6, 0)
-    return finish(bm, name)
+    # 小葉は1枚の面なので、向きを自動でそろえ直すと表裏がばらばらになる
+    return finish(bm, name, recalc=False)
 
 
 # 骨の名前: (画像上の経路, 奥行き（付け根, 先）)。左側で決め、右は x を反転する
@@ -295,13 +317,15 @@ for name, path in paths.items():
 # マント：両肩から腕の後ろへ、羽のような葉を扇形に垂らす（画像の肩の葉）。
 # カラ美のマントの骨（cape_L・cape_R）を肩に置き直して付ける
 CAPE_BASE = Vector((0.12, 0.03, 0.43))
-CAPE_FRONDS = [(15, 0.24), (32, 0.25), (50, 0.22), (68, 0.17)]   # 真下から外への角度[度]、長さ
+# 真下から外への角度[度]、長さ。すき間なく見えるよう、少しずつ奥へずらして重ねる
+CAPE_FRONDS = [(6, 0.25), (18, 0.26), (30, 0.25), (42, 0.23), (54, 0.2), (66, 0.16)]
+CAPE_LEAF = {"spacing": 0.014, "leaf_len": 0.05, "leaf_w": 0.026, "start": 0.015}
 
 
-def cape_path(sx, angle, length):
+def cape_path(sx, angle, length, depth):
     t = math.radians(angle)
     out, down = sx * math.sin(t), -math.cos(t)
-    base = Vector((sx * CAPE_BASE.x, CAPE_BASE.y, CAPE_BASE.z))
+    base = Vector((sx * CAPE_BASE.x, CAPE_BASE.y + depth, CAPE_BASE.z))
     # 先へ行くほど重さで下へ曲がる
     return [base,
             base + Vector((out * 0.5 * length, 0.015, down * 0.5 * length - 0.02)),
@@ -318,15 +342,25 @@ for side, sx in (("L", 1), ("R", -1)):
 bpy.ops.object.mode_set(mode="OBJECT")
 for n in ["Frond_ShoulderL", "Frond_ShoulderR"]:
     remove(n)
+
+
+def back_y(x, z):
+    """背中の表面の奥行き（胴の楕円体の後ろ側）に、葉の厚みの分だけ足した値"""
+    k = 1 - 0.15 * (z - 0.3) / 0.15          # 胴は下ほど太い（cactus_build.py の taper）
+    rx, ry = 0.17 * k, 0.15 * k
+    return ry * math.sqrt(max(0.0, 1 - (x / rx) ** 2 - ((z - 0.3) / 0.15) ** 2 * 0.6)) + 0.035
+
+
 # 背中にも垂らす（後ろから見て体がむき出しにならないように）。背中の骨 cape_Back に付ける
-for k, x in enumerate((-0.06, 0.0, 0.06)):
-    path = [Vector((x, 0.12, 0.44)), Vector((x * 1.2, 0.185, 0.33)), Vector((x * 1.4, 0.19, 0.2))]
-    place(f"Cape_Back{k}", frond_mesh("CapeFrond", path, spacing=0.017, leaf_len=0.042, leaf_w=0.02, start=0.02),
-          [LEAF, STEM], "cape_Back")
+for k, x in enumerate((-0.12, -0.08, -0.04, 0.0, 0.04, 0.08, 0.12)):
+    path = [Vector((x * 0.7, back_y(x * 0.7, 0.44) - 0.01, 0.44)),
+            Vector((x * 0.9, back_y(x * 0.9, 0.33), 0.33)),
+            Vector((x * 1.05, back_y(x * 1.05, 0.21), 0.19 + 0.02 * (k % 2)))]
+    place(f"Cape_Back{k}", frond_mesh("CapeFrond", path, **CAPE_LEAF), [LEAF, STEM], "cape_Back")
 for side, sx in (("L", 1), ("R", -1)):
     for k, (angle, length) in enumerate(CAPE_FRONDS):
-        place(f"Cape_{side}{k}", frond_mesh("CapeFrond", cape_path(sx, angle, length), spacing=0.017,
-                                             leaf_len=0.042, leaf_w=0.02, start=0.02), [LEAF, STEM], "cape_" + side)
+        path = cape_path(sx, angle, length, 0.012 * (k % 3))
+        place(f"Cape_{side}{k}", frond_mesh("CapeFrond", path, **CAPE_LEAF), [LEAF, STEM], "cape_" + side)
 
 
 # 枕：ふくらんだ四角で、四隅が少し尖る。前に紺の三日月
