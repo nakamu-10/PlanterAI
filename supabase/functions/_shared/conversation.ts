@@ -16,6 +16,7 @@ import { describeTouches, TOUCH_MEMORY_HOURS } from "./touches.ts";
 export interface ConversationDevice {
   id: string;
   plant_name: string;
+  plant_profile: string;
   character_id: string;
 }
 
@@ -79,6 +80,7 @@ export async function createReply(
   const state = stateFromLog(emotionResult.data);
   const replyPrompt = buildReplyPrompt({
     plantName: device.plant_name,
+    plantProfile: device.plant_profile,
     characterId: device.character_id,
     state,
     recentConversation: (convoResult.data ?? []) as ConversationEntry[],
