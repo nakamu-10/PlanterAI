@@ -16,7 +16,7 @@
   `app-public` で読み、`?pot=` で鉢を選ぶ（無ければ `karami`）。展示は C
   （見る専用で、話しかける欄は出さない。設定のページは名前と性格を見せるだけ）。
   ホームは 3D のカラ美と吹き出し。`plant_profile` が `cactus` の鉢はサボテンの
-  モデルで出る（#53）が、本番にはまだサボテンの鉢が無い
+  モデルで出る（#53）。サボテンの鉢は本番に登録済みだが、まだ公開していない
 - サイトとアプリは Vercel（中村のチーム planter-ai）で GitHub とつないだ。本番は
   https://planterai.vercel.app/ 。main へのマージで本番に、PR
   ごとにプレビューが出る
@@ -96,6 +96,18 @@ Docs「PlanterAI 開発計画」）にある。公開リポジトリには書か
       （`app/models-src/cactus.blend`、`scripts/cactus_build.py`
       でカラ美から組み替える。骨と動きはカラ美と同じ。#53）で出す。
       エバーフレッシュのモデルと、日記の絵を鉢ごとに分けるのは凍結のあと
+  - [x] サボテンの鉢を本番の `devices` に登録した（11/7
+        夜。名前は仮の「サボテン」、 元気者、LINE なし）。キーは SQL
+        の中で乱数から作り、どこにも出していない。 `public_slug`
+        を付けるとカラ美の画面に鉢の切り替えが出て、通し練習と
+        デモ動画に空の鉢が映るので、まだ付けていない
+  - [ ] ESP32 をつないだら：SQL Editor で
+        `select device_key from devices where plant_profile = 'cactus'`
+        を読んでその ESP32 の `secrets.h` に入れ、書き込んで `sensor_logs`
+        に入るのを見る。そのあと
+        `update devices set public_slug = 'cactus', created_at = now() where plant_profile = 'cactus'`
+        で `/app/?pot=cactus` に出す（日数をつないだ日から数えるため
+        `created_at` も直す）。名前が決まったら `plant_name` も変える
 - [x] 11/7 先読み予測（あと何時間で乾くか）と、キャラ⇄数値の切替（#43）
 - [x] 11/7 設定のページ（名前と性格だけ。鍵なしでは見せるだけ）を足し、
       ダッシュボードを消した（#61、#62。#36）
