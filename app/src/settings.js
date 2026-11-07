@@ -26,10 +26,19 @@ form.addEventListener("submit", async (event) => {
       plant_name: nameField.value,
       character_id: characterField.value,
     });
+  } catch (err) {
+    formStatus.textContent = `保存に失敗しました: ${err.message}`;
+    saveButton.disabled = false;
+    return;
+  }
+  // 保存はできている。読み直しだけ失敗したときに「保存に失敗」と出すと、もう一度保存させてしまう
+  try {
     await load();
     formStatus.textContent = "保存しました";
   } catch (err) {
-    formStatus.textContent = `保存に失敗しました: ${err.message}`;
+    console.error(err);
+    formStatus.textContent =
+      "保存しました。表示を読み直せなかったので、ページを開き直してください。";
   }
   saveButton.disabled = false;
 });
