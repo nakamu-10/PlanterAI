@@ -50,6 +50,17 @@ assert(
   moodLevels({ emotion: "満足", moistureScore: 0 }).tears === 0,
 );
 assert(
+  "満足と軽い不満は、笑った口だけを出す",
+  moodLevels({ emotion: "満足" }).frown === 0 &&
+    moodLevels({ emotion: "軽い不満" }).frown === 0,
+);
+assert(
+  "不満・不安・苛立ちは、への字の口だけを出す",
+  ["不満", "不安", "苛立ち"].every((emotion) =>
+    moodLevels({ emotion }).frown === 1
+  ),
+);
+assert(
   "知らない気分は元気として扱う",
   moodLevels({ emotion: "謎" }).body === 0,
 );
