@@ -3,7 +3,7 @@
 # 頭・体・目の作りはサボテンと同じ作風なので引き継ぎ、色・葉・まぶた・枕・腕を変える。
 # 骨と動きの名前はそのままなので、アプリ側は glb を差し替えるだけで動く
 import bpy, bmesh, math
-from mathutils import Vector, Matrix
+from mathutils import Matrix, Quaternion, Vector
 
 rig = bpy.data.objects["Karami"]
 DOWN = Vector((0, 0, -1))
@@ -199,7 +199,7 @@ def spline(points, n):
 def leaflet(bm, base, direction, normal, length, width, mat):
     """小さな葉1枚。付け根 base から direction へ伸びる、平たいしずく形"""
     side = direction.cross(normal).normalized()
-    ret = bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=4, radius=1.0)
+    ret = bmesh.ops.create_uvsphere(bm, u_segments=6, v_segments=4, radius=1.0)
     for v in ret["verts"]:
         x, y, z = v.co
         t = (z + 1) / 2                         # 0=付け根 1=先
@@ -292,12 +292,41 @@ for n in ["Leaf_UpL", "Leaf_UpR", "Leaf_BackL", "Leaf_BackR", "Leaf_FrontL", "Le
 for name, path in paths.items():
     place("Frond_" + name, frond_mesh("Frond_" + name, path), [LEAF, STEM], "leaf_" + name)
 
-# 肩の後ろの小さな葉（体に付ける）
-SHOULDER_FROND = [(385, 610), (350, 680), (330, 780)]
+# マント：両肩から腕の後ろへ、羽のような葉を扇形に垂らす（画像の肩の葉）。
+# カラ美のマントの骨（cape_L・cape_R）を肩に置き直して付ける
+CAPE_BASE = Vector((0.12, 0.03, 0.43))
+CAPE_FRONDS = [(15, 0.24), (32, 0.25), (50, 0.22), (68, 0.17)]   # 真下から外への角度[度]、長さ
+
+
+def cape_path(sx, angle, length):
+    t = math.radians(angle)
+    out, down = sx * math.sin(t), -math.cos(t)
+    base = Vector((sx * CAPE_BASE.x, CAPE_BASE.y, CAPE_BASE.z))
+    # 先へ行くほど重さで下へ曲がる
+    return [base,
+            base + Vector((out * 0.5 * length, 0.015, down * 0.5 * length - 0.02)),
+            base + Vector((out * 0.85 * length, 0.035, down * length - 0.07 * math.sin(t)))]
+
+
+bpy.context.view_layer.objects.active = rig
+bpy.ops.object.mode_set(mode="EDIT")
+eb = rig.data.edit_bones
 for side, sx in (("L", 1), ("R", -1)):
-    path = [Vector((sx * (0.15 + 0.012 * k), 0.06, 0.40 - 0.09 * k)) for k in range(3)]
-    place("Frond_Shoulder" + side, frond_mesh("FrondShoulder", path, spacing=0.017, leaf_len=0.036,
-                                              leaf_w=0.017, start=0.0), [LEAF, STEM], "body")
+    b = eb["cape_" + side]
+    b.head = Vector((sx * CAPE_BASE.x, CAPE_BASE.y, CAPE_BASE.z))
+    b.tail = b.head + Vector((sx * 0.06, 0.0, -0.1))
+bpy.ops.object.mode_set(mode="OBJECT")
+for n in ["Frond_ShoulderL", "Frond_ShoulderR"]:
+    remove(n)
+# 背中にも垂らす（後ろから見て体がむき出しにならないように）。背中の骨 cape_Back に付ける
+for k, x in enumerate((-0.06, 0.0, 0.06)):
+    path = [Vector((x, 0.12, 0.44)), Vector((x * 1.2, 0.185, 0.33)), Vector((x * 1.4, 0.19, 0.2))]
+    place(f"Cape_Back{k}", frond_mesh("CapeFrond", path, spacing=0.017, leaf_len=0.042, leaf_w=0.02, start=0.02),
+          [LEAF, STEM], "cape_Back")
+for side, sx in (("L", 1), ("R", -1)):
+    for k, (angle, length) in enumerate(CAPE_FRONDS):
+        place(f"Cape_{side}{k}", frond_mesh("CapeFrond", cape_path(sx, angle, length), spacing=0.017,
+                                             leaf_len=0.042, leaf_w=0.02, start=0.02), [LEAF, STEM], "cape_" + side)
 
 
 # 枕：ふくらんだ四角で、四隅が少し尖る。前に紺の三日月
@@ -411,3 +440,20 @@ for fc in bpy.data.actions["Wilt"].fcurves:
                 continue
             k.co[1] = value
             k.handle_left[1] = k.handle_right[1] = value
+
+
+# 腕の振りを小さくして、どの動きでも枕を抱えたままにする。
+# カラ美の腕は喜ぶ・驚く・ジタバタで大きく回り、エバーフレッシュでは枕が胸の前に浮いて見えた
+ARM_SCALE = 0.15
+for action in bpy.data.actions:
+    for side in "LR":
+        path = f"pose.bones[{Q}arm_{side}{Q}].rotation_quaternion"
+        fcs = sorted((fc for fc in action.fcurves if fc.data_path == path), key=lambda fc: fc.array_index)
+        if len(fcs) != 4:
+            continue
+        for keys in zip(*(fc.keyframe_points for fc in fcs)):
+            q = Quaternion([k.co[1] for k in keys])
+            small = Quaternion().slerp(q, ARM_SCALE)
+            for k, value in zip(keys, small):
+                k.co[1] = value
+                k.handle_left[1] = k.handle_right[1] = value
