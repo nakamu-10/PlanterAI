@@ -35,6 +35,7 @@ export interface PastEmotionLog {
   emotion: string;
   complaint: string | null;
   created_at: string; // ISO文字列
+  daily_light?: unknown; // 日照の日次判定の行なら入っている（scores->daily_light）
 }
 
 // スコア + フィルタ済み値 → 主訴の候補リスト
@@ -109,6 +110,9 @@ export function calcDurationHours(
 ): number {
   let oldestSameComplaint: string | null = null;
   for (const log of pastLogs) {
+    // 日照の日次判定は1日の光の結果で、今の状態の記録ではない。ここで途切れさせると、
+    // 2日続いた水分不足でも、日照の通知のたびに「さっきから」に戻ってしまう
+    if (log.daily_light) continue;
     if (log.complaint === complaint) {
       oldestSameComplaint = log.created_at; // 連続している限り更新
     } else {

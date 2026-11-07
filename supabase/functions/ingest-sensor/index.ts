@@ -163,7 +163,7 @@ Deno.serve(async (req: Request) => {
     // 4. Layer 2: 感情判定 + 状態遷移の検出
     const { data: pastLogRows, error: pastLogError } = await supabase
       .from("emotion_logs")
-      .select("emotion, complaint, created_at")
+      .select("emotion, complaint, created_at, daily_light:scores->daily_light")
       .eq("device_id", device.id)
       .order("created_at", { ascending: false })
       .limit(500);
