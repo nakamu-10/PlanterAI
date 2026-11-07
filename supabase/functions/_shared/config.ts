@@ -224,6 +224,58 @@ export const PLANT_PROFILES: Record<string, PlantProfile> = {
       dangerHigh: 90,
     },
   },
+  // エバーフレッシュ（アカサヤネムノキ）。夜に葉を閉じる。
+  // 特徴: 水と光を好み、寒さに弱い（10℃を下回ると葉を落としやすい）。
+  // 実測はまだ無いので、どれも一般的な栽培ガイドに基づく仮値。
+  // 置き場所が決まって1週間ほど測ったら、ここを見直す
+  everfresh: {
+    displayName: "エバーフレッシュ",
+    // 水切れすると昼でも葉を閉じる。乾かしすぎない
+    moisture: {
+      dangerLow: 15,
+      cautionLow: 25,
+      comfortLow: 40,
+      comfortHigh: 75,
+      cautionHigh: 88,
+      dangerHigh: 95,
+    },
+    // 寒さに弱いので、低温側をサボテンより早めに知らせる
+    temp: {
+      dangerLow: 8,
+      cautionLow: 12,
+      comfortLow: 18,
+      comfortHigh: 30,
+      cautionHigh: 35,
+      dangerHigh: 38,
+    },
+    // 過剰側のみ有効。日なたを好むが、真夏の直射では若い葉が焼ける
+    light: {
+      dangerLow: NO_LOW,
+      cautionLow: NO_LOW,
+      comfortLow: NO_LOW,
+      comfortHigh: 30_000,
+      cautionHigh: 60_000,
+      dangerHigh: 90_000,
+    },
+    // 不足側のみ有効。光が足りないと葉を落とすので、目標はカラテアより高い
+    lightDaily: {
+      dangerLow: 3_000,
+      cautionLow: 6_000,
+      comfortLow: 12_000,
+      comfortHigh: NO_HIGH,
+      cautionHigh: NO_HIGH + 1,
+      dangerHigh: NO_HIGH + 2,
+    },
+    // 乾燥しすぎると葉先が傷む。カラテアほどは要らない
+    humidity: {
+      dangerLow: 20,
+      cautionLow: 30,
+      comfortLow: 40,
+      comfortHigh: 80,
+      cautionHigh: 90,
+      dangerHigh: 97,
+    },
+  },
 };
 
 // 中央値フィルタで参照する直近サンプル数（今回の値を含む）

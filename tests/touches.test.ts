@@ -62,6 +62,7 @@ assert("それ以外は受け付けない", !isTouchKind("kick") && !isTouchKind
 console.log("--- 返事のプロンプト ---");
 const base = {
   plantName: "カラ美",
+  plantProfile: "calathea",
   characterId: "amaenbo",
   state: stateFromLog(null),
   recentConversation: [],
@@ -86,6 +87,11 @@ const withoutTouches = buildReplyPrompt({ ...base, touchMemory: null });
 assert(
   "触られていなければ、見出しも指示も入れない",
   !withoutTouches.includes("触られた"),
+);
+assert(
+  "返事のプロンプトにも植物の種類を伝える",
+  buildReplyPrompt({ ...base, plantProfile: "cactus", touchMemory: null })
+    .includes("サボテンです"),
 );
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);

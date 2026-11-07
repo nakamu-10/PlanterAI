@@ -275,6 +275,9 @@ async function setup3d(model) {
   };
   canvas.addEventListener("pointerup", (e) => release(e, false));
   canvas.addEventListener("pointercancel", (e) => release(e, true));
+  // 離した合図が来ないまま指を見失っても、press が残ると次から触れなくなる。
+  // 普通に離したときは pointerup のあとに来るが、press が空なので何もしない
+  canvas.addEventListener("lostpointercapture", (e) => release(e, true));
 }
 
 function describeForced() {
