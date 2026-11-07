@@ -253,6 +253,19 @@ curl -X POST https://<プロジェクトID>.supabase.co/functions/v1/daily-diary
   -d '{"backfill_days": 7}'
 ```
 
+週の LINE（ADR
+0010）は、日曜の実行で送る。確かめるときやデモでは、日記を書かずに今すぐ送れる（LINE
+を結んだ鉢に1通ずつ届く）：
+
+```sh
+curl -X POST https://<プロジェクトID>.supabase.co/functions/v1/daily-diary \
+  -H "x-cron-key: CRON_SECRETの値" \
+  -d '{"send_weekly": true}'
+```
+
+応答の `weekly_line` が `sent` ならカードで届いた。`sent-text` はカードを LINE
+に断られて文字で送ったので、関数のログを見る。
+
 ## テスト
 
 APIキー不要。閾値やエスカレーション表を書き換えたら、まずこれを流す。

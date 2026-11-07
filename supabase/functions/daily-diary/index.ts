@@ -6,6 +6,7 @@
 // 起動方法: pg_cron で毎晩21時（README参照）。手動で curl してもよい。
 //   {"backfill_days": 7} を付けると、今日は書かず、過去7日の分をさかのぼって作る（もうある日は飛ばす）。
 //   今日を入れないのは、昼に書くと途中までの記録で日記ができ、夜の分が飛ばされてしまうため
+//   {"send_weekly": true} を付けると、日記は書かず、週の LINE だけを今すぐ送る（確かめるときとデモ用）
 // 認証: x-cron-key ヘッダーが CRON_SECRET と一致した場合のみ実行
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -207,7 +208,7 @@ async function writeDiary(
   return (inserted ?? []).length > 0 ? "written" : "exists";
 }
 
-type WeeklyLineResult = "sent" | "sent-text" | "no-line";
+type WeeklyLineResult = "sent" | "sent-text" | "no-line" | "no-entries";
 
 // 会話の履歴（conversation_logs）には入れない。入れると、カードの文が吹き出しに出て、
 // 次のセリフの言い回しの参考にもされてしまう
@@ -225,6 +226,7 @@ async function pushWeeklyMessage(
     .order("day", { ascending: true });
   if (error) throw error;
   const entries = data ?? [];
+  if (entries.length === 0) return "no-entries";
 
   const recordsUrl = device.public_slug
     ? `${APP_URL}/app/records.html?pot=${device.public_slug}`
@@ -266,6 +268,7 @@ Deno.serve(async (req: Request) => {
       Math.max(0, Math.floor(Number(body?.backfill_days) || 0)),
       MAX_BACKFILL_DAYS,
     );
+    const sendWeeklyOnly = body?.send_weekly === true;
 
     const { data: devices, error } = await supabase
       .from("devices")
@@ -281,21 +284,26 @@ Deno.serve(async (req: Request) => {
     for (const device of (devices ?? []) as Device[]) {
       const deviceResults: Record<string, DiaryResult | string> = {};
       results[device.plant_name] = deviceResults;
-      // 古い日から書くと、新しい日の文が前の日の文と重ならないように書ける
-      const newestBack = backfillDays > 0 ? 1 : 0;
-      for (let back = backfillDays; back >= newestBack; back--) {
-        const dayStart = new Date(today.getTime() - back * DAY_MS);
-        const day = jstDateKey(dayStart);
-        try {
-          deviceResults[day] = await writeDiary(device, dayStart, now);
-        } catch (err) {
-          // 1日・1台失敗しても、ほかは続ける
-          console.error(`[${device.id}] ${day} の日記でエラー:`, err);
-          deviceResults[day] = `エラー: ${err}`;
+      if (!sendWeeklyOnly) {
+        // 古い日から書くと、新しい日の文が前の日の文と重ならないように書ける
+        const newestBack = backfillDays > 0 ? 1 : 0;
+        for (let back = backfillDays; back >= newestBack; back--) {
+          const dayStart = new Date(today.getTime() - back * DAY_MS);
+          const day = jstDateKey(dayStart);
+          try {
+            deviceResults[day] = await writeDiary(device, dayStart, now);
+          } catch (err) {
+            // 1日・1台失敗しても、ほかは続ける
+            console.error(`[${device.id}] ${day} の日記でエラー:`, err);
+            deviceResults[day] = `エラー: ${err}`;
+          }
         }
       }
 
-      if (deviceResults[jstDateKey(today)] === "written" && isSundayJst(now)) {
+      const wroteTodayOnSunday =
+        deviceResults[jstDateKey(today)] === "written" &&
+        isSundayJst(now);
+      if (sendWeeklyOnly || wroteTodayOnSunday) {
         try {
           deviceResults.weekly_line = await pushWeeklyMessage(device, today);
         } catch (err) {
