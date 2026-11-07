@@ -90,7 +90,7 @@ async function processEvent(event: LineEvent): Promise<void> {
 
   const { data: device, error: deviceError } = await supabase
     .from("devices")
-    .select("id, plant_name, character_id")
+    .select("id, plant_name, plant_profile, character_id")
     .eq("line_user_id", lineUserId)
     .maybeSingle();
   if (deviceError) throw deviceError;

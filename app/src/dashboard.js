@@ -7,7 +7,8 @@ const CHARACTER_LABELS = {
   amaenbo: "甘えん坊",
   tsundere: "ツンデレ",
   keigo: "執事風",
-  nonbiri: "のんびり屋",
+  genki: "元気者",
+  nemutagari: "眠たがり",
 };
 const SCORE_LABELS = {
   moisture: "土の水分",
