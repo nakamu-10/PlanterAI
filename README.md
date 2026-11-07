@@ -123,6 +123,7 @@ supabase db push
 supabase functions deploy ingest-sensor  --no-verify-jwt
 supabase functions deploy line-webhook   --no-verify-jwt
 supabase functions deploy weekly-summary --no-verify-jwt
+supabase functions deploy daily-diary    --no-verify-jwt
 
 # 3. シークレットを登録
 supabase secrets set \
@@ -223,6 +224,33 @@ select cron.schedule(
   );
   $$
 );
+```
+
+## 日記の自動実行（pg_cron）
+
+カラ美の日記（ADR 0009）を毎晩21時 JST（12:00 UTC）に作る。週次サマリーと同じく
+SQL Editor で登録する。Gemini を待つので、`timeout_milliseconds` を長めにする。
+
+```sql
+select cron.schedule(
+  'daily-diary',
+  '0 12 * * *',
+  $$
+  select net.http_post(
+    url := 'https://<プロジェクトID>.supabase.co/functions/v1/daily-diary',
+    headers := '{"x-cron-key": "CRON_SECRETの値"}'::jsonb,
+    timeout_milliseconds := 60000
+  );
+  $$
+);
+```
+
+過去の分をさかのぼって作るとき（今日は入れない。もうある日は飛ばすので、途中で止まってもやり直せる）：
+
+```sh
+curl -X POST https://<プロジェクトID>.supabase.co/functions/v1/daily-diary \
+  -H "x-cron-key: CRON_SECRETの値" \
+  -d '{"backfill_days": 7}'
 ```
 
 ## テスト

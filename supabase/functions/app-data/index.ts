@@ -1,4 +1,4 @@
-// app-data — 専用Webアプリ用のダッシュボード取得・設定更新・触った記録API
+// app-data — 専用Webアプリ用のダッシュボード・記録の取得と、設定更新・触った記録のAPI
 //
 // 認証: ingest-sensor と同じ x-device-key ヘッダー方式
 //       （--no-verify-jwt でデプロイ）
@@ -6,6 +6,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PLANT_PROFILES } from "../_shared/config.ts";
 import { CHARACTERS } from "../_shared/llm.ts";
+import { fetchRecords } from "../_shared/records.ts";
 import { isTouchKind } from "../_shared/touches.ts";
 import { buildTrends, TREND_HOURS, TREND_MAX_ROWS } from "../_shared/trends.ts";
 
@@ -142,6 +143,23 @@ async function handleDashboard(device: Device): Promise<Response> {
   });
 }
 
+async function handleRecords(device: Device): Promise<Response> {
+  const records = await fetchRecords(supabase, device.id);
+  return json({
+    device: {
+      plant_name: device.plant_name,
+      character_id: device.character_id,
+      created_at: device.created_at,
+    },
+    ...records,
+    conversation: records.conversation.map((row) => ({
+      role: row.role,
+      message: row.message,
+      created_at: row.created_at,
+    })),
+  });
+}
+
 // 触った記録は返事で触れるためだけのものなので、失敗しても画面の反応は止めない
 async function handleTouch(
   device: Device,
@@ -228,6 +246,8 @@ Deno.serve(async (req: Request) => {
     switch (body.action) {
       case "dashboard":
         return await handleDashboard(device);
+      case "records":
+        return await handleRecords(device);
       case "update_settings":
         return await handleUpdateSettings(device, body);
       case "touch":
