@@ -2,7 +2,7 @@
 
 // 植物の種類ごとの 3D モデル（app/public/models/ のファイル名）。
 // モデルがまだ無い植物は、カラ美で表す
-const MODELS = { cactus: "cactus" };
+const MODELS = { cactus: "cactus", everfresh: "everfresh" };
 
 export function modelFor(plantProfile) {
   return MODELS[plantProfile] ?? "karami";
