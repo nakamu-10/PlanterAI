@@ -6,9 +6,24 @@
 const LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
 const LINE_TIMEOUT_MS = 8_000;
 
+export interface LineFlexMessage {
+  type: "flex";
+  altText: string;
+  contents: unknown;
+}
+
+type LineMessage = { type: "text"; text: string } | LineFlexMessage;
+
 export async function pushLineMessage(
   lineUserId: string,
   text: string,
+): Promise<void> {
+  await pushLineMessages(lineUserId, [{ type: "text", text }]);
+}
+
+export async function pushLineMessages(
+  lineUserId: string,
+  messages: LineMessage[],
 ): Promise<void> {
   const token = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN");
   if (!token) {
@@ -23,10 +38,7 @@ export async function pushLineMessage(
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        to: lineUserId,
-        messages: [{ type: "text", text }],
-      }),
+      body: JSON.stringify({ to: lineUserId, messages }),
     });
 
   let res = await send();

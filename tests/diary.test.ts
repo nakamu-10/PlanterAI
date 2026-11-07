@@ -14,6 +14,7 @@ import {
   isSundayJst,
   moodShares,
   wateringByDay,
+  weeklyDiaryFlex,
   weeklyDiaryMessage,
 } from "../supabase/functions/_shared/diary.ts";
 import { endsSentence } from "../supabase/functions/_shared/llm.ts";
@@ -354,6 +355,79 @@ console.log("--- 週の LINE ---");
     recordsUrl: null,
   });
   assert("公開していない鉢にはリンクを付けない", !message.includes("http"));
+}
+
+console.log("--- 週の LINE のカード ---");
+{
+  const entries = [
+    { day: "2026-11-02", picture: "hinatabokko", body: "ぽかぽかだったの。" },
+    { day: "2026-11-03", picture: "mizumoratta", body: "お水がおいしかった。" },
+    { day: "2026-11-08", picture: "kumori", body: "しずかな一日だったよ。" },
+  ];
+  const message = weeklyDiaryFlex({
+    entries,
+    imageBaseUrl: "https://example.test/app/images/diary",
+    recordsUrl: "https://example.test/app/records.html?pot=karami",
+  });
+  // deno-lint-ignore no-explicit-any
+  const bubbles = (message.contents as any).contents;
+  assert("1日1枚のカードを、古い順に並べる", bubbles.length === 3);
+  assert(
+    "カードに日付と曜日、絵、文が入る",
+    bubbles[0].body.contents[0].text === "11/2（月）" &&
+      bubbles[0].hero.url ===
+        "https://example.test/app/images/diary/hinatabokko.jpg" &&
+      bubbles[0].body.contents[1].text === "ぽかぽかだったの。" &&
+      bubbles[0].body.contents[1].wrap === true,
+    JSON.stringify(bubbles[0]),
+  );
+  assert(
+    "最後のカードが最後の日になる",
+    bubbles[2].body.contents[0].text === "11/8（日）",
+  );
+  assert(
+    "記録のページへのボタンが付く",
+    bubbles[0].footer.contents[0].action.uri ===
+      "https://example.test/app/records.html?pot=karami",
+  );
+  assert(
+    "カードの幅をそろえる（LINE は幅の違うカードを並べられない）",
+    bubbles.every((bubble: { size: string }) => bubble.size === "kilo"),
+  );
+  assert(
+    "通知に出る文は絵の数え方で、URL を入れない",
+    message.altText.includes("今週の日記がそろったよ。") &&
+      !message.altText.includes("http"),
+    message.altText,
+  );
+
+  const withoutLink = weeklyDiaryFlex({
+    entries,
+    imageBaseUrl: "https://example.test",
+    recordsUrl: null,
+  });
+  // deno-lint-ignore no-explicit-any
+  const plainBubbles = (withoutLink.contents as any).contents;
+  assert(
+    "公開していない鉢のカードにはボタンを付けない",
+    plainBubbles[0].footer === undefined,
+  );
+
+  const fullWeek = weeklyDiaryFlex({
+    entries: Array.from({ length: 7 }, (_, i) => ({
+      day: `2026-11-0${i + 2}`,
+      picture: "kumori",
+      body: "あ".repeat(90),
+    })),
+    imageBaseUrl: "https://planterai.vercel.app/app/images/diary",
+    recordsUrl: "https://planterai.vercel.app/app/records.html?pot=karami",
+  });
+  assert(
+    "7日分でも LINE の上限（カルーセル 50KB、代替文 1500字）に収まる",
+    JSON.stringify(fullWeek.contents).length < 50_000 &&
+      fullWeek.altText.length <= 1500,
+    String(JSON.stringify(fullWeek.contents).length),
+  );
 }
 
 console.log("--- 曜日・水やり・変化 ---");
