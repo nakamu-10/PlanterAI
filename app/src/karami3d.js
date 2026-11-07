@@ -22,6 +22,9 @@ const modelUrl = (name) =>
 
 // 葉とマントの骨。しおれの動きのうち、ここだけ土の水分で動かす
 const isLeafTrack = (track) => /^(leaf|cape)_/.test(track.name);
+// 口の骨。笑った口とへの字の口は大きさで出し入れしているので、混ぜると両方が縮んで重なって見える。
+// 口だけは、待機としおれのどちらか一方から取る
+const isMouthTrack = (track) => /^mouth(_frown)?\./.test(track.name);
 // 涙の骨。glb の書き出しで全部の動きに止まったままのトラックが入るので、
 // 涙の動きは Cry からだけ取り、ほかの動きからは外す（混ぜると流れる距離が縮む）
 const isTearTrack = (track) => /^(cry|tear)_/.test(track.name);
@@ -60,10 +63,15 @@ export async function createKarami(container, modelName = "karami") {
         (t) => !isTearTrack(t) && keep(t),
       ),
     );
-  // 1本の動きを、葉・マントの部分とそれ以外に分けて流す
+  // 1本の動きを、葉・マントの部分と口と、それ以外に分けて流す
   const split = (name) => ({
     leaves: playBody(name, "_leaves", isLeafTrack).play(),
-    body: playBody(name, "_body", (t) => !isLeafTrack(t)).play(),
+    mouth: playBody(name, "_mouth", isMouthTrack).play(),
+    body: playBody(
+      name,
+      "_body",
+      (t) => !isLeafTrack(t) && !isMouthTrack(t),
+    ).play(),
   });
   const idle = split("Idle");
   const wiltLoop = split("Wilt");
@@ -104,7 +112,7 @@ export async function createKarami(container, modelName = "karami") {
 
   // 葉（土の水分）・体（気分）・涙を別々に、目標へなめらかに近づける
   const level = { leaves: 0, body: 0, tears: 0 };
-  const target = { leaves: 0, body: 0, tears: 0 };
+  const target = { leaves: 0, body: 0, tears: 0, frown: 0 };
   // 1回だけの動きと、その重み。待機・しおれと合わせた重みがいつも 1 になるよう自前で持つ
   // （足りない分は three.js が初期ポーズで埋め、隠している顔のパーツが全部出てしまう）
   let current = null;
@@ -176,6 +184,8 @@ export async function createKarami(container, modelName = "karami") {
       // しおれているほど、ゆっくり動く
       idle[part].timeScale = wiltLoop[part].timeScale = 1 - 0.5 * level[part];
     }
+    idle.mouth.setEffectiveWeight((1 - target.frown) * (1 - shot));
+    wiltLoop.mouth.setEffectiveWeight(target.frown * (1 - shot));
 
     if (turning) {
       sinceTurn = 0;
@@ -240,6 +250,7 @@ export async function createKarami(container, modelName = "karami") {
       target.leaves = next.leaves;
       target.body = next.body;
       target.tears = next.tears;
+      target.frown = next.frown;
     },
     // 画面のこの点のそばに、カラ美の体（葉・マント・足を含む）があるか。
     // キャンバスはステージ全体に広がっているので、何もない所を触っても反応させない。
