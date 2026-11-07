@@ -34,6 +34,7 @@ function json(body: unknown, status = 200): Response {
 interface Device {
   id: string;
   plant_name: string;
+  plant_profile: string;
   character_id: string;
 }
 
@@ -43,7 +44,7 @@ async function authenticate(req: Request): Promise<Device | null> {
 
   const { data, error } = await supabase
     .from("devices")
-    .select("id, plant_name, character_id")
+    .select("id, plant_name, plant_profile, character_id")
     .eq("device_key", deviceKey)
     .maybeSingle();
   if (error) throw error;

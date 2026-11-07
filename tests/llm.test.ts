@@ -177,6 +177,7 @@ console.log("--- プロンプト ---");
 {
   const base = {
     plantName: "カラ美",
+    plantProfile: "calathea",
     characterId: "amaenbo",
     state: {
       emotion: "満足" as Emotion,
@@ -237,6 +238,25 @@ console.log("--- プロンプト ---");
   assert(
     "文を句読点で終えさせる",
     prompt.includes("「。」「！」「？」のどれかで終えて"),
+  );
+  // 種類を伝えないと、サボテンでも「葉っぱが…」と話してしまう
+  assert(
+    "植物の種類を伝える",
+    buildPrompt(base).includes("「カラ美」で、カラテアです") &&
+      buildPrompt({ ...base, plantProfile: "cactus" }).includes("サボテンです"),
+  );
+  assert(
+    "元気者と眠たがりは、それぞれの一人称で話させる",
+    buildPrompt({ ...base, characterId: "genki" }).includes("「オレ」") &&
+      buildPrompt({ ...base, characterId: "nemutagari" }).includes(
+        "眠たがり",
+      ),
+  );
+  assert(
+    "知らない種類なら、種類は書かずに名前だけ伝える",
+    buildPrompt({ ...base, plantProfile: "unknown" }).includes(
+      "あなたの名前は「カラ美」です。",
+    ),
   );
 }
 

@@ -285,6 +285,7 @@ Deno.serve(async (req: Request) => {
 
         const prompt = buildPrompt({
           plantName: device.plant_name,
+          plantProfile: device.plant_profile,
           characterId: device.character_id,
           state,
           recentConversation: (convoRows ?? []) as ConversationEntry[],

@@ -156,6 +156,7 @@ export async function runDailyLightCheck(
 
   const prompt = buildPrompt({
     plantName: device.plant_name,
+    plantProfile: device.plant_profile,
     characterId: device.character_id,
     state,
     recentConversation: (convo ?? []) as ConversationEntry[],
