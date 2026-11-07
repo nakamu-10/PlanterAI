@@ -6,6 +6,7 @@ import {
   type ConversationRow,
   lastPlantNotice,
   parsePot,
+  plantNotices,
 } from "../supabase/functions/app-public/view.ts";
 
 let pass = 0, fail = 0;
@@ -139,6 +140,42 @@ assert("会話が無ければ返さない", lastPlantNotice([]) === null);
       notice?.created_at === "2026-11-05T08:00:00.000Z" &&
       !("role" in notice),
     JSON.stringify(notice),
+  );
+}
+
+console.log("--- 記録のページの会話 ---");
+{
+  const notices = plantNotices(
+    [
+      plant("2026-11-05T10:00:00.000Z", "満足に戻った"),
+      plant("2026-11-05T09:00:00.001Z", "返事"),
+      user("2026-11-05T09:00:00.000Z"),
+      plant("2026-11-05T08:00:00.000Z", "最初の通知"),
+    ],
+    60,
+  );
+  assert(
+    "植物が自分から送ったセリフだけを、新しい順に返す",
+    notices.map((n) => n.message).join() === "満足に戻った,最初の通知",
+    JSON.stringify(notices),
+  );
+  assert(
+    "人が書いた文は入らない",
+    !JSON.stringify(notices).includes("人が書いた文"),
+  );
+}
+{
+  const notices = plantNotices(
+    [
+      plant("2026-11-05T09:00:00.000Z", "通知"),
+      plant("2026-11-05T08:00:00.000Z", "範囲の端"),
+    ],
+    2,
+  );
+  assert(
+    "上限まで取れたときは、一番古い行を返事かもしれないとして飛ばす",
+    notices.map((n) => n.message).join() === "通知",
+    JSON.stringify(notices),
   );
 }
 
