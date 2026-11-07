@@ -4,6 +4,7 @@
 # 骨と動きの名前はそのままなので、アプリ側は glb を差し替えるだけで動く
 import bpy, bmesh, math
 from mathutils import Matrix, Quaternion, Vector
+from mathutils.bvhtree import BVHTree
 
 rig = bpy.data.objects["Karami"]
 DOWN = Vector((0, 0, -1))
@@ -226,7 +227,8 @@ def leaflet(bm, base, direction, normal, length, width, mat):
                         face.normal_flip()
 
 
-def frond_mesh(name, path, spacing=0.019, leaf_len=0.05, leaf_w=0.024, start=0.05):
+def frond_mesh(name, path, spacing=0.019, leaf_len=0.05, leaf_w=0.024, start=0.05, facing=lambda p: FRONT):
+    """facing(p) は、軸の点 p で葉の表を向ける向き"""
     bm = bmesh.new()
     pts = spline(path, 60)
     lengths = [0.0]
@@ -257,7 +259,7 @@ def frond_mesh(name, path, spacing=0.019, leaf_len=0.05, leaf_w=0.024, start=0.0
         i = next(j for j in range(len(lengths)) if lengths[j] >= s)
         p = pts[i]
         d = (pts[min(i + 1, len(pts) - 1)] - pts[max(i - 1, 0)]).normalized()
-        normal = Vector((0, -1, 0))
+        normal = facing(p)
         normal = (normal - d * normal.dot(d)).normalized()
         out = d.cross(normal).normalized()
         size = 0.55 + 0.45 * math.sin(math.pi * min(1.0, 0.25 + 0.75 * s / total))
@@ -269,7 +271,8 @@ def frond_mesh(name, path, spacing=0.019, leaf_len=0.05, leaf_w=0.024, start=0.0
         k += 1
     # 先端の1枚
     d = (pts[-1] - pts[-3]).normalized()
-    normal = (Vector((0, -1, 0)) - d * d.y * -1).normalized()
+    normal = facing(pts[-1])
+    normal = (normal - d * normal.dot(d)).normalized()
     leaflet(bm, pts[-1], d, normal, leaf_len * 0.6, leaf_w * 0.6, 0)
     # 小葉は1枚の面なので、向きを自動でそろえ直すと表裏がばらばらになる
     return finish(bm, name, recalc=False)
@@ -314,53 +317,8 @@ for n in ["Leaf_UpL", "Leaf_UpR", "Leaf_BackL", "Leaf_BackR", "Leaf_FrontL", "Le
 for name, path in paths.items():
     place("Frond_" + name, frond_mesh("Frond_" + name, path), [LEAF, STEM], "leaf_" + name)
 
-# マント：両肩から腕の後ろへ、羽のような葉を扇形に垂らす（画像の肩の葉）。
-# カラ美のマントの骨（cape_L・cape_R）を肩に置き直して付ける
-CAPE_BASE = Vector((0.12, 0.03, 0.43))
-# 真下から外への角度[度]、長さ。すき間なく見えるよう、少しずつ奥へずらして重ねる
-CAPE_FRONDS = [(6, 0.25), (18, 0.26), (30, 0.25), (42, 0.23), (54, 0.2), (66, 0.16)]
-CAPE_LEAF = {"spacing": 0.014, "leaf_len": 0.05, "leaf_w": 0.026, "start": 0.015}
-
-
-def cape_path(sx, angle, length, depth):
-    t = math.radians(angle)
-    out, down = sx * math.sin(t), -math.cos(t)
-    base = Vector((sx * CAPE_BASE.x, CAPE_BASE.y + depth, CAPE_BASE.z))
-    # 先へ行くほど重さで下へ曲がる
-    return [base,
-            base + Vector((out * 0.5 * length, 0.015, down * 0.5 * length - 0.02)),
-            base + Vector((out * 0.85 * length, 0.035, down * length - 0.07 * math.sin(t)))]
-
-
-bpy.context.view_layer.objects.active = rig
-bpy.ops.object.mode_set(mode="EDIT")
-eb = rig.data.edit_bones
-for side, sx in (("L", 1), ("R", -1)):
-    b = eb["cape_" + side]
-    b.head = Vector((sx * CAPE_BASE.x, CAPE_BASE.y, CAPE_BASE.z))
-    b.tail = b.head + Vector((sx * 0.06, 0.0, -0.1))
-bpy.ops.object.mode_set(mode="OBJECT")
 for n in ["Frond_ShoulderL", "Frond_ShoulderR"]:
     remove(n)
-
-
-def back_y(x, z):
-    """背中の表面の奥行き（胴の楕円体の後ろ側）に、葉の厚みの分だけ足した値"""
-    k = 1 - 0.15 * (z - 0.3) / 0.15          # 胴は下ほど太い（cactus_build.py の taper）
-    rx, ry = 0.17 * k, 0.15 * k
-    return ry * math.sqrt(max(0.0, 1 - (x / rx) ** 2 - ((z - 0.3) / 0.15) ** 2 * 0.6)) + 0.035
-
-
-# 背中にも垂らす（後ろから見て体がむき出しにならないように）。背中の骨 cape_Back に付ける
-for k, x in enumerate((-0.12, -0.08, -0.04, 0.0, 0.04, 0.08, 0.12)):
-    path = [Vector((x * 0.7, back_y(x * 0.7, 0.44) - 0.01, 0.44)),
-            Vector((x * 0.9, back_y(x * 0.9, 0.33), 0.33)),
-            Vector((x * 1.05, back_y(x * 1.05, 0.21), 0.19 + 0.02 * (k % 2)))]
-    place(f"Cape_Back{k}", frond_mesh("CapeFrond", path, **CAPE_LEAF), [LEAF, STEM], "cape_Back")
-for side, sx in (("L", 1), ("R", -1)):
-    for k, (angle, length) in enumerate(CAPE_FRONDS):
-        path = cape_path(sx, angle, length, 0.012 * (k % 3))
-        place(f"Cape_{side}{k}", frond_mesh("CapeFrond", path, **CAPE_LEAF), [LEAF, STEM], "cape_" + side)
 
 
 # 枕：ふくらんだ四角で、四隅が少し尖る。前に紺の三日月
@@ -451,6 +409,67 @@ for side, sx in (("L", 1), ("R", -1)):
     parent_to_bone(new_object("Arm_" + side, ellipsoid("Arm", (0.05, 0.047, (h - s).length / 2 + 0.03), taper=0.15),
                               [SKIN]), "arm_" + side, along(h, s))
 
+
+# マント：首元から肩・脇・背中を包むように、羽のような葉を体に沿って垂らす（画像の肩の葉）。
+# 葉の面を体の外へ向けるので、横や斜めから見てもすき間ができない。
+# 正面に向けた葉を扇形に並べると、横から見て細い線になり、裾も外へ広がってしまう
+def body_surface(names):
+    verts, polys = [], []
+    for n in names:
+        o = bpy.data.objects[n]
+        offset = len(verts)
+        verts += [o.matrix_world @ v.co for v in o.data.vertices]
+        polys += [[offset + i for i in p.vertices] for p in o.data.polygons]
+    return BVHTree.FromPolygons(verts, polys)
+
+
+BODY = body_surface(["Torso", "Arm_L", "Arm_R"])
+CAPE_TOP, CAPE_WAIST = 0.44, 0.3          # 首元と、胴のいちばん太い高さ
+CAPE_LEAF = {"spacing": 0.016, "leaf_len": 0.05, "leaf_w": 0.026, "start": 0.01}
+
+
+def on_body(phi, z):
+    """後ろ（+y）から phi だけ回った向きで、高さ z の体の表面と外向きの向き"""
+    out = Vector((math.sin(phi), math.cos(phi), 0))
+    hit, normal, _, _ = BODY.ray_cast(Vector((0, 0, z)) + out * 0.6, -out)
+    if normal.dot(out) < 0:
+        normal = -normal
+    return hit, normal
+
+
+def cape_path(phi, bottom, lift):
+    """首元から胴のいちばん太いところまでは体に沿わせ、その下はまっすぐ垂らす（裾をすぼめない）"""
+    path = []
+    # 肩では腕の付け根の上を通るので、細かく測って腕に沿わせる
+    for z in (CAPE_TOP, 0.425, 0.41, 0.39, 0.37, 0.35, 0.33, CAPE_WAIST):
+        hit, normal = on_body(phi, z)
+        path.append(hit + normal * lift)
+    waist = path[-1]
+    for z in (0.25, bottom):
+        path.append(Vector((waist.x, waist.y, z)) + Vector((waist.x, waist.y, 0)).normalized() * 0.004)
+    return path
+
+
+def cape_facing(p):
+    return Vector((p.x, p.y, 0)).normalized()
+
+
+# 体の後ろ半分と脇（真後ろから左右 112 度まで。正面から見て腕の外に葉がのぞく）を、
+# すき間なく重なる間隔で覆う。胴の骨と一緒に動けばよいので、すべて cape_Back に付ける
+CAPE_SPREAD, CAPE_COUNT = 112, 17
+for k in range(CAPE_COUNT):
+    phi = math.radians(CAPE_SPREAD * (2 * k / (CAPE_COUNT - 1) - 1))
+    # 脇の葉は、腕の付け根の丸みに小葉が刺さらないよう少し浮かせる
+    lift = 0.014 + 0.006 * (k % 2) + 0.03 * max(0.0, abs(math.sin(phi)) - 0.6)
+    path = cape_path(phi, 0.2 + 0.015 * (k % 2), lift)
+    place(f"Cape_{k}", frond_mesh("CapeFrond", path, facing=cape_facing, **CAPE_LEAF), [LEAF, STEM], "cape_Back")
+
+# 腕の付け根の上は体より太く、葉の間が開いて腕がのぞくので、短い葉を重ねてふさぐ（画像の肩の葉）
+for k, deg in enumerate((70, 84, 98, 112, -70, -84, -98, -112)):
+    path = cape_path(math.radians(deg), 0.2, 0.03)[:-2]     # 胴のいちばん太いところまで
+    place(f"CapeShoulder_{k}", frond_mesh("CapeFrond", path, facing=cape_facing, **CAPE_LEAF),
+          [LEAF, STEM], "cape_Back")
+
 rig.data.pose_position = "POSE"
 
 
@@ -472,6 +491,14 @@ for fc in bpy.data.actions["Wilt"].fcurves:
                 value = math.sin(angle * scale / 2)
             else:
                 continue
+            k.co[1] = value
+            k.handle_left[1] = k.handle_right[1] = value
+
+# マントは体に沿わせているので、しおれでも回さない（回すと背中から浮くか、体にめり込む）
+for fc in bpy.data.actions["Wilt"].fcurves:
+    if fc.data_path == f"pose.bones[{Q}cape_Back{Q}].rotation_quaternion":
+        for k in fc.keyframe_points:
+            value = 1.0 if fc.array_index == 0 else 0.0
             k.co[1] = value
             k.handle_left[1] = k.handle_right[1] = value
 
