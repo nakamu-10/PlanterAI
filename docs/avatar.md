@@ -62,7 +62,7 @@
 3. 葉の模様はテクスチャを計算で描く（`karami_tex.py`）
 4. 表情は、パーツを差し替えて出す。笑い目・まぶた・開いた口・への字口・涙は別のメッシュにし、それぞれの骨の大きさを
    0.001 にして隠し、使う動きの中だけで 1
-   にする（`karami_expr.py`・`karami_cry.py`）
+   にする（`karami_expr.py`・`karami_cry.py`）。黒目の光（`Highlight_*`）は目の骨に付け、両目とも見る側から右上に置く。泣くときの光もこの向きにそろえる（`karami_highlight.py`）
 5. 動きは `karami_anim.py`
    の関数（`rot_world`・`droop`・`key`・`new_action`・`smooth`）で、キーを打って作る。例は
    `karami_struggle.py`

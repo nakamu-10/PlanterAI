@@ -328,7 +328,7 @@ head.matrix_world = Matrix.Translation(HEAD_C)
 EYE_X, EYE_Z, EYE_RX, EYE_RZ = 0.108, 0.525 + LIFT, 0.066, 0.064
 LID_TOP = EYE_Z + EYE_RZ
 for n in ("EyeWhite", "EyeRim", "Pupil", "Lid", "LidLine", "HappyEye", "Cheek",
-          "Shine", "Shine2", "TearPool"):
+          "Shine", "Shine2", "TearPool", "Highlight"):
     for side in ("L", "R"):
         remove(f"{n}_{side}")
 
