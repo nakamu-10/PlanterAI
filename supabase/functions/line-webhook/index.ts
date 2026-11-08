@@ -4,6 +4,8 @@ import { replyLineMessage } from "../_shared/line.ts";
 import {
   isGroupTalk,
   type LineSource,
+  type LineTextMessage,
+  mentionsBot,
   pickDevice,
   talkIdOf,
 } from "../_shared/lineTalk.ts";
@@ -18,7 +20,7 @@ interface LineEvent {
   type?: string;
   replyToken?: string;
   source?: LineSource;
-  message?: { type?: string; text?: string };
+  message?: LineTextMessage & { type?: string };
 }
 
 function requiredEnv(name: string): string {
@@ -107,7 +109,10 @@ async function processEvent(event: LineEvent): Promise<void> {
     .eq("line_user_id", talkId)
     .order("created_at", { ascending: true });
   if (deviceError) throw deviceError;
-  const device = pickDevice(devices ?? [], userText, isGroupTalk(event.source));
+  const device = pickDevice(devices ?? [], userText, {
+    group: isGroupTalk(event.source),
+    mentioned: mentionsBot(event.message),
+  });
   if (!device) {
     console.log("返事をする鉢のないLINEイベントをスキップしました");
     return;
