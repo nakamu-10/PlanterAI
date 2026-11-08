@@ -328,7 +328,7 @@ head.matrix_world = Matrix.Translation(HEAD_C)
 EYE_X, EYE_Z, EYE_RX, EYE_RZ = 0.108, 0.525 + LIFT, 0.066, 0.064
 LID_TOP = EYE_Z + EYE_RZ
 for n in ("EyeWhite", "EyeRim", "Pupil", "Lid", "LidLine", "HappyEye", "Cheek",
-          "Shine", "Shine2", "TearPool"):
+          "Shine", "Shine2", "TearPool", "Highlight"):
     for side in ("L", "R"):
         remove(f"{n}_{side}")
 
@@ -371,17 +371,22 @@ for side, sx in (("L", 1), ("R", -1)):
     place("EyeRim_" + side, oval_patch("EyeRim", cx, EYE_Z, EYE_RX, EYE_RZ, 0.002, shape), [EYE_LINE], "eye_" + side)
     place("EyeWhite_" + side, oval_patch("EyeWhite", cx, EYE_Z, EYE_RX * 0.9, EYE_RZ * 0.89, 0.004, shape), [EYE_WHITE], "eye_" + side)
     # 黒目は大きな丸で、少し内側・下に寄せる
-    place("Pupil_" + side, oval_patch("Pupil", cx - sx * 0.008, EYE_Z - 0.006, 0.034, 0.034, 0.006), [BLACK], "eye_" + side)
+    px = cx - sx * 0.008
+    place("Pupil_" + side, oval_patch("Pupil", px, EYE_Z - 0.006, 0.034, 0.034, 0.006), [BLACK], "eye_" + side)
+    # 黒目の光。カラ美と同じく、両目とも見る側から右上に置く（光が片側から当たって見える）。
+    # 目の骨に付けるので、笑い目のときは目と一緒に隠れる
+    place("Highlight_" + side, oval_patch("Highlight", px + 0.016, EYE_Z + 0.006, 0.009, 0.011, 0.008), [EYE_WHITE], "eye_" + side)
     # まぶた：上半分を覆う肌色の板。骨を縮めると目のふちの上端に畳まれる。
     # ふちの線は付けない（畳んだときに、目より幅の広い線として見えてしまう）
     place("Lid_" + side, band_patch("Lid", cx, EYE_Z, EYE_RX * 1.08, EYE_RZ * 1.08, 0.012, 0.02, outline=shape), [SKIN], "lid_" + side)
     arch = [surface(cx + EYE_RX * 0.8 * math.cos(t), EYE_Z - 0.01 + EYE_RZ * 0.45 * math.sin(t), 0.006)
             for t in [math.pi * (0.1 + 0.8 * k / 24) for k in range(25)]]
     place("HappyEye_" + side, tube_on_surface("HappyEye", arch, 0.006), [EYE_LINE], "eye_happy_" + side)
-    # 泣くときのうるみ（骨 cry_* の大きさで出し入れする）。白目の下にたまる涙と、黒目の光
+    # 泣くときのうるみ（骨 cry_* の大きさで出し入れする）。白目の下にたまる涙と、黒目の光。
+    # 大きな光はハイライトに重ね、小さな光は黒目の左下に置く
     place("TearPool_" + side, band_patch("TearPool", cx, EYE_Z, EYE_RX * 0.9, EYE_RZ * 0.89, 0.005, 0.3, flip=-1, outline=shape), [TEAR], "cry_" + side)
-    place("Shine_" + side, oval_patch("Shine", cx - sx * 0.024, EYE_Z + 0.006, 0.009, 0.011, 0.008), [EYE_WHITE], "cry_" + side)
-    place("Shine2_" + side, oval_patch("Shine2", cx - sx * 0.002, EYE_Z - 0.02, 0.005, 0.005, 0.008), [EYE_WHITE], "cry_" + side)
+    place("Shine_" + side, oval_patch("Shine", px + 0.016, EYE_Z + 0.006, 0.009, 0.011, 0.008), [EYE_WHITE], "cry_" + side)
+    place("Shine2_" + side, oval_patch("Shine2", px - 0.006, EYE_Z - 0.02, 0.005, 0.005, 0.008), [EYE_WHITE], "cry_" + side)
     place("Cheek_" + side, oval_patch("Cheek", sx * 0.152, 0.435 + LIFT, 0.037, 0.022, 0.003), [CHEEK], "head")
 
 # 頭のてっぺんから額へ下りる縫い目（画像のぬいぐるみの縫い目）。細い線を頭の表面に沿わせる
