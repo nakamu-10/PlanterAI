@@ -1,6 +1,12 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { createReply, saveExchange } from "../_shared/conversation.ts";
 import { replyLineMessage } from "../_shared/line.ts";
+import {
+  isGroupTalk,
+  type LineSource,
+  pickDevice,
+  talkIdOf,
+} from "../_shared/lineTalk.ts";
 
 const supabase = createClient(
   requiredEnv("SUPABASE_URL"),
@@ -11,7 +17,7 @@ interface LineEvent {
   webhookEventId?: string;
   type?: string;
   replyToken?: string;
-  source?: { userId?: string };
+  source?: LineSource;
   message?: { type?: string; text?: string };
 }
 
@@ -76,26 +82,34 @@ async function setEventStatus(
 }
 
 async function processEvent(event: LineEvent): Promise<void> {
+  // グループと鉢を結ぶのは SQL で行う（README の「家族のグループと結ぶ」）。
+  // そのときに使うグループの ID を、ログで分かるようにしておく
+  if (event.type === "join") {
+    console.log("LINE のグループに招待されました:", talkIdOf(event.source));
+    return;
+  }
   if (event.type !== "message" || event.message?.type !== "text") {
     console.log("非対応のイベント種別をスキップ:", event.type ?? "unknown");
     return;
   }
 
-  const lineUserId = event.source?.userId;
+  const talkId = talkIdOf(event.source);
   const userText = event.message.text;
   const replyToken = event.replyToken;
-  if (!lineUserId || typeof userText !== "string" || !replyToken) {
+  if (!talkId || typeof userText !== "string" || !replyToken) {
     throw new Error("LINEイベントの必須項目が不足しています");
   }
 
-  const { data: device, error: deviceError } = await supabase
+  // 1つのトーク（家族のグループなど）に、複数の鉢を結べる
+  const { data: devices, error: deviceError } = await supabase
     .from("devices")
     .select("id, plant_name, plant_profile, character_id")
-    .eq("line_user_id", lineUserId)
-    .maybeSingle();
+    .eq("line_user_id", talkId)
+    .order("created_at", { ascending: true });
   if (deviceError) throw deviceError;
+  const device = pickDevice(devices ?? [], userText, isGroupTalk(event.source));
   if (!device) {
-    console.warn("該当デバイスのないLINEイベントをスキップしました");
+    console.log("返事をする鉢のないLINEイベントをスキップしました");
     return;
   }
 
