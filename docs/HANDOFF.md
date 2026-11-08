@@ -110,6 +110,9 @@ Docs「PlanterAI 開発計画」）にある。公開リポジトリには書か
         `update devices set public_slug = 'cactus', created_at = now() where plant_profile = 'cactus'`
         で `/app/?pot=cactus` に出す（日数をつないだ日から数えるため
         `created_at` も直す）。名前が決まったら `plant_name` も変える
+  - [x] エバーフレッシュの鉢も同じように登録した（11/8。名前は仮の
+        「エバーフレッシュ」、眠たがり、LINE なし、`public_slug` なし）。 ESP32
+        をつなぐ手順はサボテンと同じで、`'cactus'` を `'everfresh'` に読み替える
 - [x] 11/7 先読み予測（あと何時間で乾くか）と、キャラ⇄数値の切替（#43）
 - [x] 11/7 設定のページ（名前と性格だけ。鍵なしでは見せるだけ）を足し、
       ダッシュボードを消した（#61、#62。#36）
