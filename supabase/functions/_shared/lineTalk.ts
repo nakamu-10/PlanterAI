@@ -14,10 +14,10 @@ export function talkIdOf(source: LineSource | undefined): string | null {
 
 export interface LineTextMessage {
   text?: string;
-  mention?: { mentionees?: { isSelf?: boolean }[] };
+  mention?: { mentionees?: { type?: string; isSelf?: boolean }[] };
 }
 
-// 公式アカウント（植物）にメンションしたか
+// 公式アカウント（植物）にメンションしたか。@All（type が all）には isSelf が無いので数えない
 export function mentionsBot(message: LineTextMessage | undefined): boolean {
   return message?.mention?.mentionees?.some((m) => m.isSelf === true) ?? false;
 }

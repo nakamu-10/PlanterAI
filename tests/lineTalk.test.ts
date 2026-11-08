@@ -92,6 +92,10 @@ assert(
   "家族へのメンションは数えない",
   !mentionsBot({ mention: { mentionees: [{ isSelf: false }] } }),
 );
+assert(
+  "@All には反応しない",
+  !mentionsBot({ mention: { mentionees: [{ type: "all" }] } }),
+);
 assert("メンションがなければ false", !mentionsBot({ text: "おはよう" }));
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
