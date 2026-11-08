@@ -153,6 +153,31 @@ LINE User ID は LINE Developers
 の「チャネル基本設定」→「あなたのユーザーID」（`U` で始まる文字列）。
 **LINE公式アカウントを自分の LINE で友だち追加しておかないと通知が届かない。**
 
+## 本番へのデプロイ（GitHub Actions）
+
+画面（`site/`・`app/`）は、main にマージすると Vercel が出す。Supabase
+のマイグレーションと Edge Functions は、`.github/workflows/supabase-deploy.yml`
+が出す（ADR 0011）。
+
+1. main に `supabase/` の変更が入ると動く。Actions
+   の画面から手で動かすこともできる
+2. `plan` が、入るマイグレーションと入れ直す関数を、実行の Summary に書き出す
+3. `deploy` が `production` の承認を待つ。Summary
+   を読んでから承認すると、マイグレーション → 全部の関数の順に入る
+
+はじめの設定（リポジトリの管理者が1回だけ。この順番で）：
+
+1. Settings → Environments で `production` を作り、Required reviewers
+   に2人を入れる。先に鍵を入れると、`production`
+   が承認なしで作られ、そのままデプロイされてしまう
+2. Settings → Secrets and variables → Actions に入れる
+   - Secrets：`SUPABASE_ACCESS_TOKEN`（Supabase の Account → Access Tokens
+     で作る）、`SUPABASE_DB_PASSWORD`
+   - Variables：`SUPABASE_PROJECT_ID`（本番のプロジェクトの ref）
+
+鍵が無いあいだは、`check` が飛ばして終わる（失敗にはしない）。pg_cron
+の登録と、関数の環境変数（`supabase secrets set`）は今までどおり手で入れる。
+
 ## ローカルで動かす
 
 ```sh
