@@ -167,6 +167,15 @@ for side, sx in (("L", 1), ("R", -1)):
     place("EyeWhite_" + side, oval_patch("EyeWhite", cx, EYE_Z, EYE_RX * 0.88, EYE_RZ * 0.88, 0.004),
           [bpy.data.materials["EyeWhite"]], "eye_" + side)
     place("SleepyLid_" + side, lid_mesh("SleepyLid", cx, sx, 0.3, 0.007), [SKIN], "eye_" + side)
+    # 黒目の光。向きはサボテンと同じ右上だが、サボテンの高さでは半分のまぶたの縁に重なるので、
+    # まぶたのすぐ下に下げる。泣くときの光も同じ所にそろえる
+    px = cx - sx * 0.004
+    place("Highlight_" + side, oval_patch("Highlight", px + 0.018, EYE_Z - 0.002, 0.009, 0.011, 0.008),
+          [bpy.data.materials["EyeWhite"]], "eye_" + side)
+    place("Shine_" + side, oval_patch("Shine", px + 0.018, EYE_Z - 0.002, 0.009, 0.011, 0.008),
+          [bpy.data.materials["EyeWhite"]], "cry_" + side)
+    place("Shine2_" + side, oval_patch("Shine2", px - 0.008, EYE_Z - 0.035, 0.005, 0.005, 0.008),
+          [bpy.data.materials["EyeWhite"]], "cry_" + side)
     lid = bpy.data.objects["Lid_" + side]
     old = lid.data
     lid.data = lid_mesh("Lid", cx, sx, -0.35, 0.009)
