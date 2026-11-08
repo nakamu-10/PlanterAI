@@ -95,7 +95,9 @@ Docs「PlanterAI 開発計画」）にある。公開リポジトリには書か
       に間に合えばよい。サボテンの鉢は、サボテンの 3D モデル
       （`app/models-src/cactus.blend`、`scripts/cactus_build.py`
       でカラ美から組み替える。骨と動きはカラ美と同じ。#53）で出す。
-      エバーフレッシュのモデルと、日記の絵を鉢ごとに分けるのは凍結のあと
+      エバーフレッシュの鉢は、エバーフレッシュの 3D モデル（`everfresh.blend`、
+      `scripts/everfresh_build.py` でサボテンから組み替える）で出す。日記の絵を
+      鉢ごとに分けるのは凍結のあと
   - [x] サボテンの鉢を本番の `devices` に登録した（11/7
         夜。名前は仮の「サボテン」、 元気者、LINE なし）。キーは SQL
         の中で乱数から作り、どこにも出していない。 `public_slug`
@@ -108,6 +110,9 @@ Docs「PlanterAI 開発計画」）にある。公開リポジトリには書か
         `update devices set public_slug = 'cactus', created_at = now() where plant_profile = 'cactus'`
         で `/app/?pot=cactus` に出す（日数をつないだ日から数えるため
         `created_at` も直す）。名前が決まったら `plant_name` も変える
+  - [x] エバーフレッシュの鉢も同じように登録した（11/8。名前は仮の
+        「エバーフレッシュ」、眠たがり、LINE なし、`public_slug` なし）。 ESP32
+        をつなぐ手順はサボテンと同じで、`'cactus'` を `'everfresh'` に読み替える
 - [x] 11/7 先読み予測（あと何時間で乾くか）と、キャラ⇄数値の切替（#43）
 - [x] 11/7 設定のページ（名前と性格だけ。鍵なしでは見せるだけ）を足し、
       ダッシュボードを消した（#61、#62。#36）

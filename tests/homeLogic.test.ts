@@ -192,7 +192,11 @@ assert(
 console.log("--- 3D モデル ---");
 assert("サボテンの鉢はサボテンのモデル", modelFor("cactus") === "cactus");
 assert("カラテアの鉢はカラ美", modelFor("calathea") === "karami");
-assert("モデルがまだ無い植物はカラ美", modelFor("everfresh") === "karami");
+assert(
+  "エバーフレッシュの鉢はエバーフレッシュのモデル",
+  modelFor("everfresh") === "everfresh",
+);
+assert("モデルがまだ無い植物はカラ美", modelFor("pothos") === "karami");
 assert("植物が分からないときもカラ美", modelFor(undefined) === "karami");
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
