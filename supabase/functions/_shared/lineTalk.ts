@@ -14,12 +14,33 @@ export function talkIdOf(source: LineSource | undefined): string | null {
 
 export interface LineTextMessage {
   text?: string;
-  mention?: { mentionees?: { type?: string; isSelf?: boolean }[] };
+  mention?: {
+    mentionees?: {
+      type?: string;
+      isSelf?: boolean;
+      index?: number;
+      length?: number;
+    }[];
+  };
 }
 
 // 公式アカウント（植物）にメンションしたか。@All（type が all）には isSelf が無いので数えない
 export function mentionsBot(message: LineTextMessage | undefined): boolean {
   return message?.mention?.mentionees?.some((m) => m.isSelf === true) ?? false;
+}
+
+// 「@PlanterAI おはよう」から公式アカウントへのメンションを除き、植物への言葉だけにする。
+// 残すと Gemini と会話の記録に「@PlanterAI」が入る
+export function withoutBotMention(message: LineTextMessage): string {
+  let text = message.text ?? "";
+  const mine = (message.mention?.mentionees ?? [])
+    .filter((m) => m.isSelf === true && m.index !== undefined && m.length)
+    .sort((a, b) => (b.index ?? 0) - (a.index ?? 0));
+  for (const m of mine) {
+    text = text.slice(0, m.index) +
+      text.slice((m.index ?? 0) + (m.length ?? 0));
+  }
+  return text.trim();
 }
 
 export function isGroupTalk(source: LineSource | undefined): boolean {

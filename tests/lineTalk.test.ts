@@ -5,6 +5,7 @@ import {
   mentionsBot,
   pickDevice,
   talkIdOf,
+  withoutBotMention,
 } from "../supabase/functions/_shared/lineTalk.ts";
 
 let pass = 0;
@@ -97,6 +98,31 @@ assert(
   !mentionsBot({ mention: { mentionees: [{ type: "all" }] } }),
 );
 assert("メンションがなければ false", !mentionsBot({ text: "おはよう" }));
+
+console.log("--- メンションを除く ---");
+assert(
+  "公式アカウントへのメンションを除く",
+  withoutBotMention({
+    text: "@PlanterAI おはよう",
+    mention: { mentionees: [{ isSelf: true, index: 0, length: 10 }] },
+  }) === "おはよう",
+);
+assert(
+  "家族へのメンションは残す",
+  withoutBotMention({
+    text: "@PlanterAI @母 見て",
+    mention: {
+      mentionees: [
+        { isSelf: true, index: 0, length: 10 },
+        { isSelf: false, index: 11, length: 2 },
+      ],
+    },
+  }) === "@母 見て",
+);
+assert(
+  "メンションがなければそのまま",
+  withoutBotMention({ text: "カラ美、元気？" }) === "カラ美、元気？",
+);
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

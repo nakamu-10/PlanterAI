@@ -8,6 +8,7 @@ import {
   mentionsBot,
   pickDevice,
   talkIdOf,
+  withoutBotMention,
 } from "../_shared/lineTalk.ts";
 
 const supabase = createClient(
@@ -118,11 +119,13 @@ async function processEvent(event: LineEvent): Promise<void> {
     return;
   }
 
-  const reply = await createReply(supabase, device, userText);
+  // 「@PlanterAI」は植物への言葉ではないので、Gemini にも記録にも渡さない
+  const plantText = withoutBotMention(event.message) || userText;
+  const reply = await createReply(supabase, device, plantText);
   await replyLineMessage(replyToken, reply.text);
   // LINE送信後に2発言をまとめて保存する。送信前にユーザー発言だけを保存すると、
   // LINE側の一時障害でWebhookが再送された際に同じ発言が重複してしまう。
-  await saveExchange(supabase, device.id, userText, reply);
+  await saveExchange(supabase, device.id, plantText, reply);
 
   console.log(`[${device.id}] LINE返信を送信しました`);
 }
