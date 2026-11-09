@@ -1,4 +1,5 @@
 const fs = require("fs");
+const path = require("path");
 const pptx = require("pptxgenjs");
 const p = new pptx();
 
@@ -8,6 +9,8 @@ p.layout = "A0";
 const s = p.addSlide();
 const OUT = [];
 const plain = (t) => t.replace(/\*\*/g, "");
+// どこから実行しても、画像はリポジトリから読み、出力はこのスクリプトの隣に書く
+const here = (...parts) => path.join(__dirname, ...parts);
 
 // palette (CUD-safe, same as ver1)
 const DARK = "1E4A38", GREEN = "03AF7A", ORANGE = "F6AA00";
@@ -562,7 +565,15 @@ const faceFiles = [
 faceFiles.forEach((fn, i) => {
   const ix = (i === 4) ? RX + (fw - iw) / 2 : RX + (i % 2) * (iw + 0.45);
   const iy = gy0 + Math.floor(i / 2) * (ih + 0.62);
-  s.addImage({ path: fn, x: ix, y: iy, w: iw, h: ih });
+  // altText を付けないと、手元の絶対パス（ユーザー名を含む）が代わりに入る
+  s.addImage({
+    path: here("poster_assets", fn),
+    altText: fn,
+    x: ix,
+    y: iy,
+    w: iw,
+    h: ih,
+  });
   s.addText(faceLabels[i], {
     x: ix,
     y: iy + ih + 0.02,
@@ -577,7 +588,8 @@ faceFiles.forEach((fn, i) => {
 });
 const g5h = Math.min(fh - 0.5, (gw - 0.5) * 1032 / 804), g5w = g5h * 804 / 1032;
 s.addImage({
-  path: "line_ver2.jpg",
+  path: here("../../../site/public/images/line-chat.jpg"),
+  altText: "line-chat.jpg",
   x: RX + fw + 0.4 + (gw - g5w) / 2,
   y: r + (fh - g5h) / 2,
   w: g5w,
@@ -793,9 +805,9 @@ OUT.push(
 );
 
 fs.writeFileSync(
-  "PlanterAI_poster_ver3.txt",
+  here("PlanterAI_poster_ver3.txt"),
   OUT.join("\n").replace(/\n{4,}/g, "\n\n\n") + "\n",
 );
-p.writeFile({ fileName: "PlanterAI_poster_ver3.pptx" }).then(() =>
+p.writeFile({ fileName: here("PlanterAI_poster_ver3.pptx") }).then(() =>
   console.log("ok")
 );
