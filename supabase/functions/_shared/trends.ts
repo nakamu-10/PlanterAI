@@ -8,6 +8,7 @@ export interface TrendSensorRow {
   filtered: {
     moisture_pct?: number | null;
     temp?: number | null;
+    humidity_pct?: number | null;
     lux?: number | null;
   } | null;
   created_at: string;
@@ -17,6 +18,7 @@ export interface HourPoint {
   at: string; // その1時間の始まり
   moisture_pct: number | null;
   temp: number | null;
+  humidity_pct: number | null;
 }
 
 const HOUR_MS = 3_600_000;
@@ -50,7 +52,11 @@ export function hourlyMeans(
   const start = end - hours * HOUR_MS;
   const buckets = Array.from(
     { length: hours },
-    () => ({ moisture: [] as number[], temp: [] as number[] }),
+    () => ({
+      moisture: [] as number[],
+      temp: [] as number[],
+      humidity: [] as number[],
+    }),
   );
   for (const row of rows) {
     const i = Math.floor((Date.parse(row.created_at) - start) / HOUR_MS);
@@ -59,11 +65,14 @@ export function hourlyMeans(
     const t = row.filtered?.temp;
     if (typeof m === "number") buckets[i].moisture.push(m);
     if (typeof t === "number") buckets[i].temp.push(t);
+    const h = row.filtered?.humidity_pct;
+    if (typeof h === "number") buckets[i].humidity.push(h);
   }
   return buckets.map((b, i) => ({
     at: new Date(start + i * HOUR_MS).toISOString(),
     moisture_pct: mean(b.moisture),
     temp: mean(b.temp),
+    humidity_pct: mean(b.humidity),
   }));
 }
 
