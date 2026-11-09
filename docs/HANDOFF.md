@@ -55,6 +55,9 @@ Docs「PlanterAI 開発計画」）にある。公開リポジトリには書か
 - [x] #41（古いセリフを出し直さない）、#43（数値の画面）、#46（3鉢の準備）、
       #49（`app-public` の最初の通知と `Cache-Control`）をマージし、本番へ出した
       （11/6。migration 2つ → Edge Functions 6つ）
+- [ ] Supabase の自動デプロイ（`.github/workflows/supabase-deploy.yml`、ADR
+      0011、#14）：中村が `production` の承認者 → 鍵の順に設定する（README の
+      「本番へのデプロイ」）。設定するまでは今までどおり手で入れる
 - [ ] #43 は `DEMO_MODE`
       を約83分より長く動かすと、数値の画面の範囲と日照がずれる（#43 に試算）。
       発表や動画の前に、運用で避けるか、DB で集計するかを決める
