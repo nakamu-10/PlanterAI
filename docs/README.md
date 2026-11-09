@@ -1,8 +1,9 @@
 # ドキュメント
 
 - `proposal/`：U☆PoC応募提案書のLaTeXソースと図版
-- `slides/poster/`：展示ポスター（ver3 は `poster_ver3_gen.js` で
-  `poster_assets/` から生成）
+- `slides/poster/`：展示ポスター（ver3 は `poster_ver3_gen.cjs` で
+  `poster_assets/` から生成。`pptxgenjs` を別に入れて
+  `node docs/slides/poster/poster_ver3_gen.cjs`）
 - `slides/presentation/`：発表用スライド。最新は
   `PlanterAI_presentation_ver3.pptx` （29枚、8/27
   版）。8枚目の実機デモ動画は、リポジトリを軽くするため外した

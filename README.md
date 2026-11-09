@@ -162,8 +162,9 @@ LINE User ID は LINE Developers
 1. LINE Official Account Manager
    の「設定」→「アカウント設定」で、「グループ・複数人チャットへの参加を許可する」をオンにする
 2. 家族のグループに、PlanterAI の公式アカウントを招待する
-3. Supabase の Edge Functions のログ（`line-webhook`）に出る「LINE
-   のグループに招待されました: C…」から、グループの ID を読む
+3. 招待したらすぐ、Supabase の Edge Functions
+   のログ（`line-webhook`）に出る「LINE のグループに招待されました:
+   C…」から、グループの ID を読む（無料プランのログは1日で消える）
 4. SQL Editor で鉢と結ぶ
 
 ```sql
@@ -172,6 +173,36 @@ update devices set line_user_id = 'グループの ID' where id = '鉢の id';
 
 グループでは、植物の名前を呼んだときか、公式アカウントにメンションしたときだけ返事をする（「カラ美、元気？」「@PlanterAI
 元気？」）。家族どうしの会話に毎回割り込まないため。1つのトークに複数の鉢を結ぶと、名前を呼ばれた鉢が答える。
+
+グループへのプッシュ（状態の通知、15時の日照、週の日記）は、グループの人数分の通数として数えられる（[料金](https://developers.line.biz/ja/docs/messaging-api/pricing/)）。無料プランは月200通で、超えるとプッシュが失敗し、そのセリフはアプリの吹き出しにも出ない。招待する前に
+LINE Official Account Manager
+で今月の残りを見て、グループは少ない人数にする。返事（reply）は数えない。
+
+## 本番へのデプロイ（GitHub Actions）
+
+画面（`site/`・`app/`）は、main にマージすると Vercel が出す。Supabase
+のマイグレーションと Edge Functions は、`.github/workflows/supabase-deploy.yml`
+が出す（ADR 0011）。
+
+1. main に `supabase/` の変更が入ると動く。Actions
+   の画面から手で動かすこともできる。手で動かすときに main
+   以外のブランチを選ぶと、`plan` までで止まる
+2. `plan` が、入るマイグレーションと入れ直す関数を、実行の Summary に書き出す
+3. `deploy` が `production` の承認を待つ。Summary
+   を読んでから承認すると、マイグレーション → 全部の関数の順に入る
+
+はじめの設定（リポジトリの管理者が1回だけ。この順番で）：
+
+1. Settings → Environments で `production` を作り、Required reviewers
+   に2人を登録する（どちらか1人が押せば通る）。先に鍵を入れると、`production`
+   が承認なしで作られ、そのままデプロイされてしまう
+2. Settings → Secrets and variables → Actions に入れる
+   - Secrets：`SUPABASE_ACCESS_TOKEN`（Supabase の Account → Access Tokens
+     で作る）、`SUPABASE_DB_PASSWORD`
+   - Variables：`SUPABASE_PROJECT_ID`（本番のプロジェクトの ref）
+
+鍵が無いあいだは、`check` が飛ばして終わる（失敗にはしない）。pg_cron
+の登録と、関数の環境変数（`supabase secrets set`）は今までどおり手で入れる。
 
 ## ローカルで動かす
 
