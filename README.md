@@ -160,7 +160,8 @@ LINE User ID は LINE Developers
 が出す（ADR 0011）。
 
 1. main に `supabase/` の変更が入ると動く。Actions
-   の画面から手で動かすこともできる
+   の画面から手で動かすこともできる。手で動かすときに main
+   以外のブランチを選ぶと、`plan` までで止まる
 2. `plan` が、入るマイグレーションと入れ直す関数を、実行の Summary に書き出す
 3. `deploy` が `production` の承認を待つ。Summary
    を読んでから承認すると、マイグレーション → 全部の関数の順に入る
@@ -168,7 +169,7 @@ LINE User ID は LINE Developers
 はじめの設定（リポジトリの管理者が1回だけ。この順番で）：
 
 1. Settings → Environments で `production` を作り、Required reviewers
-   に2人を入れる。先に鍵を入れると、`production`
+   に2人を登録する（どちらか1人が押せば通る）。先に鍵を入れると、`production`
    が承認なしで作られ、そのままデプロイされてしまう
 2. Settings → Secrets and variables → Actions に入れる
    - Secrets：`SUPABASE_ACCESS_TOKEN`（Supabase の Account → Access Tokens

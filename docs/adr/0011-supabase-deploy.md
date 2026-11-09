@@ -18,7 +18,8 @@
   - `plan`：`supabase db push --dry-run` の結果と、入れ直す関数を、実行の
     Summary に書き出す
   - `deploy`：GitHub の Environments の `production`
-    で承認を待ち、マイグレーション → 全部の関数の順に入れる
+    で承認を待ち、マイグレーション → 全部の関数の順に入れる。main
+    のときだけ動く（手で動かすときは、ほかのブランチも選べるため）
 - 鍵（`SUPABASE_ACCESS_TOKEN`・`SUPABASE_DB_PASSWORD`）は GitHub の Secrets
   に、プロジェクトの ref は Variables に置く。鍵が無いあいだは飛ばして終わる
 - Supabase CLI は 2.122.1 に固定する

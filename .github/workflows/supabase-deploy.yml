@@ -66,6 +66,8 @@ jobs:
 
   deploy:
     needs: plan
+    # 手で動かすときは main 以外のブランチも選べる。マージ前のものは本番に入れない
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     # Settings → Environments の production に、承認する人を設定しておく
     environment: production
