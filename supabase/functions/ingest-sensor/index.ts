@@ -299,6 +299,7 @@ Deno.serve(async (req: Request) => {
         // 無料プランだと1日で消えるため、痕跡をDB側に持たせる）。
         let source: "llm" | "fallback" = "llm";
         let finishReason = "STOP";
+        const startedAt = Date.now();
         try {
           message = enforceMessageLength(
             await generateMessage(prompt, "interactive"),
@@ -313,6 +314,7 @@ Deno.serve(async (req: Request) => {
           finishReason = describeLlmFailure(genErr);
           message = fallbackMessage(state.complaint, state.emotion);
         }
+        const llmMs = Date.now() - startedAt;
         // LINE と結んでいない鉢は送らない。セリフは下で記録し、アプリの吹き出しに出る
         if (device.line_user_id) {
           await pushLineMessage(device.line_user_id, message);
@@ -343,6 +345,7 @@ Deno.serve(async (req: Request) => {
           complaint: state.complaint,
           source,
           finish_reason: finishReason,
+          llm_ms: llmMs,
         });
         if (convoInsertError) {
           // LINE送信済みなので再送はせず、状態ログの保存を優先する。
