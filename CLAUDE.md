@@ -37,16 +37,23 @@
   を読み、終わりに「今の状態」と「次にすること」を更新する。急がないタスクと相談は
   GitHub Issues に書く
 - `_shared/` を変えたら、それを使う Edge Functions
-  を全部デプロイし直す（デプロイ時にバンドルされるため）
+  を全部デプロイし直す（デプロイ時にバンドルされるため）。自動デプロイは毎回全部を入れ直す
 - マイグレーションは追加だけにする。適用済みのファイルは書き換えない
 
 ### 本番（Supabase）
 
-- 本番の状態はコードから推測しない。`supabase db query --remote --read-only` や
-  `supabase functions list` で確かめてから話す
-- `supabase db push` と `supabase functions deploy` は、必ず `--dry-run`
-  などで中身を見せ、確認を取ってから実行する
-- マイグレーションを先に、関数のデプロイを後にする
+- 本番の状態はコードから推測しない。`supabase db query --linked`（`select`
+  だけ）や `supabase functions list` で確かめてから話す
+- 本番へのデプロイは GitHub Actions の `supabase-deploy` で行う（ADR
+  0011）。main に `supabase/` の変更が入ると、入るマイグレーションを実行の
+  Summary に書き出して止まる
+- `production` の承認は、Summary を読んだ人が押す。Claude からは承認しない
+- 手で `supabase db push`・`supabase functions deploy`
+  をするのは、自動デプロイが使えないとき（鍵を設定する前など）だけ。そのときは
+  `--dry-run` などで中身を見せ、確認を取ってから実行する
+- マイグレーションを先に、関数のデプロイを後にする（自動デプロイもこの順）
+- pg_cron
+  の登録と、関数の環境変数（`supabase secrets set`）は自動デプロイに含まれない。手で入れる
 
 ### commit
 
