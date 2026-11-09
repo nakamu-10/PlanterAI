@@ -196,7 +196,7 @@ async function writeDiary(
     );
   } catch (err) {
     console.error(`[${device.id}] 日記の生成に失敗。定型文にします:`, err);
-    body = fallbackDiaryBody(picture);
+    body = fallbackDiaryBody(picture, stats);
     source = "fallback";
   }
 

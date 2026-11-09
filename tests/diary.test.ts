@@ -316,9 +316,62 @@ console.log("--- プロンプト ---");
   assert("未知の性格は甘えん坊にする", prompt.includes("一人称は「ボク」"));
 }
 
+console.log("--- 絵の無い不調が続いた日（#82） ---");
+for (const complaint of ["湿度低すぎ", "湿度高すぎ"]) {
+  // 11/8 のカラ美：一日中、湿度の不調で、日照は目標の約88%
+  const dryAir = stats({
+    light_ratio: 0.88,
+    moods: [{ emotion: "不満", share: 1 }],
+    top_complaint: { complaint, share: 1 },
+  });
+  const picture = choosePicture(dryAir);
+  assert(`${complaint}の日は、おだやかな日の絵`, picture === "kumori", picture);
+  const prompt = buildDiaryPrompt({
+    plantName: "カラ美",
+    plantKind: "カラテア",
+    characterId: "amaenbo",
+    picture,
+    stats: dryAir,
+    recentBodies: [],
+  });
+  assert(
+    `${complaint}の日は、できごとを「おだやか」と書かせない`,
+    prompt.includes("今日のできごと: 目立ったできごとはなかった") &&
+      !prompt.includes("おだやか"),
+    prompt,
+  );
+  assert(
+    `${complaint}の日も、不調は渡す`,
+    prompt.includes(`長く続いた不調: ${complaint}`),
+  );
+  const body = fallbackDiaryBody(picture, dryAir);
+  assert(
+    `${complaint}の日の定型文は「おだやか」と書かず、水やりの話もしない`,
+    !body.includes("おだやか") && !body.includes("水") &&
+      !body.includes("のど") && endsSentence(body) && [...body].length <= 70,
+    body,
+  );
+}
+{
+  const calm = stats({ light_ratio: 0.88 });
+  const prompt = buildDiaryPrompt({
+    plantName: "カラ美",
+    plantKind: "カラテア",
+    characterId: "amaenbo",
+    picture: choosePicture(calm),
+    stats: calm,
+    recentBodies: [],
+  });
+  assert(
+    "不調の無い日は、今までどおりおだやかな日と書かせる",
+    prompt.includes("おだやかな日だった") &&
+      fallbackDiaryBody("kumori", calm).includes("おだやか"),
+  );
+}
+
 console.log("--- 定型文 ---");
 for (const picture of DIARY_PICTURES) {
-  const body = fallbackDiaryBody(picture);
+  const body = fallbackDiaryBody(picture, stats());
   assert(
     `${picture} の定型文は文の形で、70文字以内`,
     Boolean(body) && endsSentence(body) && [...body].length <= 70,

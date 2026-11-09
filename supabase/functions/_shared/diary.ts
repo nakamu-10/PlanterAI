@@ -79,6 +79,11 @@ const COMPLAINT_PICTURES: Record<string, DiaryPicture> = {
 
 // 1日のうち、これより長く続いた主訴を「その日のできごと」とみなす
 const COMPLAINT_MIN_SHARE = 0.25;
+// おだやかな日の絵は、絵の無い不調（湿度・日照不足）が続いた日にも選ばれる。
+// その日に「おだやか」と書くと、気分のグラフや不調の行と食い違う（#82）
+const UNEVENTFUL_EVENT = "目立ったできごとはなかった";
+const UNEVENTFUL_FALLBACK =
+  "今日は目立ったことのない一日だったの。明日はもっと過ごしやすいといいな。";
 // これ以上話しかけられた日を「おしゃべりした日」とみなす
 const TALKATIVE_COUNT = 3;
 // 日照が目標のこれより少なければ「暗かった日」
@@ -186,9 +191,9 @@ export function isAnniversary(dayNumber: number): boolean {
 export function choosePicture(stats: DiaryStats): DiaryPicture {
   if (isAnniversary(stats.day_number)) return "kinenbi";
   if (stats.watering_count > 0) return "mizumoratta";
-  const complaint = stats.top_complaint;
-  if (complaint && complaint.share >= COMPLAINT_MIN_SHARE) {
-    const picture = COMPLAINT_PICTURES[complaint.complaint];
+  const complaint = longComplaintOf(stats);
+  if (complaint) {
+    const picture = COMPLAINT_PICTURES[complaint];
     if (picture) return picture;
   }
   if (stats.talk_count >= TALKATIVE_COUNT) return "osyaberi";
@@ -199,8 +204,28 @@ export function choosePicture(stats: DiaryStats): DiaryPicture {
   return "kumori";
 }
 
-export const fallbackDiaryBody = (picture: DiaryPicture) =>
-  FALLBACK_BODIES[picture];
+function longComplaintOf(stats: DiaryStats): string | null {
+  const complaint = stats.top_complaint;
+  return complaint && complaint.share >= COMPLAINT_MIN_SHARE
+    ? complaint.complaint
+    : null;
+}
+
+function isUneventfulWithComplaint(
+  picture: DiaryPicture,
+  stats: DiaryStats,
+): boolean {
+  return picture === "kumori" && longComplaintOf(stats) !== null;
+}
+
+export function fallbackDiaryBody(
+  picture: DiaryPicture,
+  stats: DiaryStats,
+): string {
+  return isUneventfulWithComplaint(picture, stats)
+    ? UNEVENTFUL_FALLBACK
+    : FALLBACK_BODIES[picture];
+}
 
 // 会話の中身と関係のまとめは渡さない。人が書いた文が混ざらないので、鍵なしの画面でも出せる（ADR 0006）
 export function buildDiaryPrompt(opts: {
@@ -213,16 +238,16 @@ export function buildDiaryPrompt(opts: {
 }): string {
   const character = CHARACTERS[opts.characterId] ?? CHARACTERS.amaenbo;
   const { stats } = opts;
-  const longComplaint =
-    stats.top_complaint && stats.top_complaint.share >= COMPLAINT_MIN_SHARE
-      ? stats.top_complaint.complaint
-      : null;
+  const longComplaint = longComplaintOf(stats);
+  const event = isUneventfulWithComplaint(opts.picture, stats)
+    ? UNEVENTFUL_EVENT
+    : PICTURE_EVENTS[opts.picture];
   const moods = stats.moods
     .slice(0, 2)
     .map((m) => `${m.emotion}（${Math.round(m.share * 100)}%）`)
     .join("、") || "記録なし";
   const facts = [
-    `今日のできごと: ${PICTURE_EVENTS[opts.picture]}`,
+    `今日のできごと: ${event}`,
     `一緒に過ごして${stats.day_number}日目`,
     `気分: ${moods}`,
     longComplaint ? `長く続いた不調: ${longComplaint}` : null,
