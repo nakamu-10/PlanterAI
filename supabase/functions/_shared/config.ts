@@ -149,13 +149,13 @@ export const PLANT_PROFILES: Record<string, PlantProfile> = {
       dangerHigh: 40_000,
     },
     // 不足側のみ有効。comfortLow が「1日の目標積算光量」を兼ねる（唯一の真実）。
-    // 実測（2026-08-10〜23）に基づく確定値（v2）。
-    //   日次積算は 647〜4,033（暗所群）と 12,608〜36,724（現在地群）に
-    //   3倍の断絶があり、後者の最小値 12,608 の約8割 → comfortLow = 10,000。
+    // 8月の実測から 10,000 にしていたが、10〜11月は日が短く、4日に3日が不足になった。
+    // 10/1〜11/9 に足りていた日は、昼の明るさが 1,000〜2,000 lux だった。
+    // カラテアに合う明るい日陰（約 1,000 lux）が8時間続く量 → 8,000。
     lightDaily: {
       dangerLow: 2_000,
       cautionLow: 5_000,
-      comfortLow: 10_000,
+      comfortLow: 8_000,
       comfortHigh: NO_HIGH,
       cautionHigh: NO_HIGH + 1,
       dangerHigh: NO_HIGH + 2,
