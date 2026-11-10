@@ -38,8 +38,14 @@ function drying(startValue: number, perHour: number, hours: number) {
 console.log("--- 1時間ごとの平均 ---");
 {
   const rows = [
-    { filtered: { moisture_pct: 60, temp: 20 }, created_at: ago(0.2) },
-    { filtered: { moisture_pct: 62, temp: 22 }, created_at: ago(0.4) },
+    {
+      filtered: { moisture_pct: 60, temp: 20, humidity_pct: 40 },
+      created_at: ago(0.2),
+    },
+    {
+      filtered: { moisture_pct: 62, temp: 22, humidity_pct: 50 },
+      created_at: ago(0.4),
+    },
     { filtered: { moisture_pct: 70, temp: null }, created_at: ago(5) },
     { filtered: null, created_at: ago(5.1) },
     { filtered: { moisture_pct: 99, temp: 30 }, created_at: ago(80) },
@@ -51,6 +57,11 @@ console.log("--- 1時間ごとの平均 ---");
     "同じ1時間の値は平均する",
     last.moisture_pct === 61 && last.temp === 21,
     show(last),
+  );
+  assert("空気の湿度も平均する", last.humidity_pct === 45, show(last));
+  assert(
+    "湿度が欠測の時間は null",
+    hourly.some((h) => h.moisture_pct === 70 && h.humidity_pct === null),
   );
   assert(
     "温度が欠測の時間は null",

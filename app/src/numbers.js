@@ -301,37 +301,43 @@ function renderMoisture(trends, now) {
   }
 }
 
-function renderTemp(trends, now) {
-  const t = trends.temp;
-  const points = trends.hourly.slice(-24).map((h) => ({
+// 気温と空気の湿度の24時間。快適の帯と値の幅に合わせて縦軸を決める
+function renderDayChart(
+  elementId,
+  hourly,
+  now,
+  { range, key, unit, name, digits },
+) {
+  const points = hourly.slice(-24).map((h) => ({
     t: Date.parse(h.at) + HOUR_MS / 2,
-    v: h.temp,
+    // 古い関数は湿度を返さないので、無いときは欠測として扱う
+    v: h[key] ?? null,
   }));
   const values = points.map((p) => p.v).filter((v) => v !== null);
-  const yMin = Math.floor(Math.min(...values, t.comfort_low) - 1);
-  const yMax = Math.ceil(Math.max(...values, t.comfort_high) + 1);
-  lineChart($("tempChart"), {
+  const yMin = Math.floor(Math.min(...values, range.comfort_low) - 1);
+  const yMax = Math.ceil(Math.max(...values, range.comfort_high) + 1);
+  lineChart($(elementId), {
     points,
     start: now - 24 * HOUR_MS,
     end: now,
     yMin,
     yMax,
     band: {
-      low: t.comfort_low,
-      high: t.comfort_high,
-      label: `快適 ${t.comfort_low}–${t.comfort_high}℃`,
+      low: range.comfort_low,
+      high: range.comfort_high,
+      label: `快適 ${range.comfort_low}–${range.comfort_high}${unit}`,
     },
-    unit: "℃",
+    unit,
     xLabels: [
       { t: now - 24 * HOUR_MS, label: "24時間前" },
       { t: now - 12 * HOUR_MS, label: "12時間前" },
       { t: now, label: "今", strong: true },
     ],
     describe: values.length
-      ? `気温の24時間の推移。最低${Math.min(...values).toFixed(1)}℃、最高${
-        Math.max(...values).toFixed(1)
-      }℃`
-      : "気温の24時間の推移（データなし）",
+      ? `${name}の24時間の推移。最低${
+        Math.min(...values).toFixed(digits)
+      }${unit}、最高${Math.max(...values).toFixed(digits)}${unit}`
+      : `${name}の24時間の推移（データなし）`,
   });
 }
 
@@ -381,7 +387,20 @@ async function load() {
           : [`目標 ${light.target.toLocaleString("ja-JP")}`, INK_SOFT],
       );
       renderMoisture(trends, now);
-      renderTemp(trends, now);
+      renderDayChart("tempChart", trends.hourly, now, {
+        range: trends.temp,
+        key: "temp",
+        unit: "℃",
+        name: "気温",
+        digits: 1,
+      });
+      renderDayChart("humidityChart", trends.hourly, now, {
+        range: trends.humidity,
+        key: "humidity_pct",
+        unit: "%",
+        name: "空気の湿度",
+        digits: 0,
+      });
     }
     $("lastReceived").textContent = data.latest_sensor
       ? `鉢から最終受信：${describeAgo(data.latest_sensor.created_at)}`
