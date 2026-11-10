@@ -90,30 +90,41 @@ const base = { targetLuxHours: target, warnedToday: false, closedToday: false };
     samples: series(0, 10, () => 100),
     ...base,
   });
-  ok("15時前は判定しない", v.kind === "none");
+  ok("14時前は判定しない", v.kind === "none");
 }
 {
-  // 15時までずっと暗い（100lux）→ 1,500 lux·h、目標の15%
+  // 14時までずっと暗い（100lux）→ 1,400 lux·h、目標の18%
   const v = judgeDailyLight({
-    now: at(15),
-    samples: series(0, 15, () => 100),
+    now: at(14),
+    samples: series(0, 14, () => 100),
     ...base,
   });
-  ok("15時に不足見込みなら警告", v.kind === "warning", `→ ${v.kind}`);
+  ok("14時に不足見込みなら警告", v.kind === "warning", `→ ${v.kind}`);
 }
 {
-  // 15時までに2000lux×15h = 30,000 lux·h → 十分
+  // 14時に目標の0.35倍。午後の西日で追い上げる日があるので、まだ予告しない
   const v = judgeDailyLight({
-    now: at(15),
-    samples: series(0, 15, () => 2000),
+    now: at(14),
+    samples: series(0, 14, () => 200),
     ...base,
   });
-  ok("15時に順調なら黙る", v.kind === "none", `→ ${v.kind}`);
+  ok("14時に目標の3割を超えていれば黙る", v.kind === "none", `→ ${v.kind}`);
+}
+{
+  // 14時台の回が欠けても、日が傾いてから「今すぐ移して」とは言わない（11/10 は 19:50 に出た）
+  for (const hour of [15, 17, 19]) {
+    const v = judgeDailyLight({
+      now: at(hour),
+      samples: series(0, hour, () => 100),
+      ...base,
+    });
+    ok(`${hour}時には予告しない`, v.kind === "none", `→ ${v.kind}`);
+  }
 }
 {
   const v = judgeDailyLight({
-    now: at(15),
-    samples: series(0, 15, () => 100),
+    now: at(14, 30),
+    samples: series(0, 14.5, () => 100),
     ...base,
     warnedToday: true,
   });

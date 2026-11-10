@@ -1,6 +1,6 @@
 // dailyLightJob.ts — 日照不足判定の実行（Supabase I/O + 通知）
 //
-// ingest-sensor から毎サイクル呼ばれるが、判定時刻（15時）より前は
+// ingest-sensor から毎サイクル呼ばれるが、予告の14時台と20時以降の締め以外は
 // DBを一切叩かずに即returnする。実質的なコストは日に数回だけ。
 
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
@@ -31,8 +31,11 @@ import {
   describeWeather,
   fetchTodayWeather,
   isDimDay,
+  keepWaitingForWeather,
   placeFrom,
   TodayWeather,
+  weatherFromRow,
+  weatherToRow,
 } from "./weather.ts";
 
 export interface DeviceRow {
@@ -48,8 +51,14 @@ export async function runDailyLightCheck(
   device: DeviceRow,
   now: Date = new Date(),
 ): Promise<DailyLightVerdict | null> {
-  // 早期リターン: 判定時刻前はDBを叩かない
-  if (jstHour(now) < DAILY_LIGHT.checkpointHour) return null;
+  // 早期リターン: 予告の時間でも締めの時間でもなければDBを叩かない
+  const hour = jstHour(now);
+  if (hour < DAILY_LIGHT.checkpointHour) return null;
+  if (
+    hour >= DAILY_LIGHT.checkpointEndHour && hour < DAILY_LIGHT.deadlineHour
+  ) {
+    return null;
+  }
 
   const profile = PLANT_PROFILES[device.plant_profile];
   if (!profile) {
@@ -112,7 +121,21 @@ export async function runDailyLightCheck(
   if (verdict.kind === "none") return verdict;
 
   // 曇りや雨の日は、置き場所を変えても光はあまり増えない。予告はせず、締めでも責めない
-  const weather = verdict.kind === "recovered" ? null : await weatherToday();
+  const localDate = jstDateKey(now);
+  const lookup = verdict.kind === "recovered"
+    ? null
+    : await weatherToday(supabase, localDate);
+  if (
+    lookup === "unavailable" && verdict.kind !== "recovered" &&
+    keepWaitingForWeather(verdict.kind, hour)
+  ) {
+    return {
+      ...verdict,
+      kind: "none",
+      reason: "天気が取れないので次の回に回す",
+    };
+  }
+  const weather = lookup === "unavailable" ? null : lookup;
   const dimDay = weather !== null && isDimDay(weather);
   if (dimDay && verdict.kind === "warning") {
     return { ...verdict, kind: "none", reason: "曇りや雨の日なので予告しない" };
@@ -122,7 +145,6 @@ export async function runDailyLightCheck(
   const notificationSlot = verdict.kind === "warning"
     ? "checkpoint"
     : "deadline";
-  const localDate = jstDateKey(now);
   const { data: claimed, error: claimError } = await supabase.rpc(
     "claim_daily_light_notification",
     {
@@ -309,12 +331,42 @@ function buildState(
   };
 }
 
-async function weatherToday(): Promise<TodayWeather | null> {
+/**
+ * 今日の天気。場所が未設定なら null（天気を見ずに判定する）。
+ * 設定してあって取れなかったら "unavailable"。
+ * 最初に取れた予報を daily_weather に覚え、その日はそれを使い回す
+ */
+async function weatherToday(
+  supabase: SupabaseClient,
+  localDate: string,
+): Promise<TodayWeather | null | "unavailable"> {
   const place = placeFrom(
     Deno.env.get("WEATHER_LATITUDE"),
     Deno.env.get("WEATHER_LONGITUDE"),
   );
-  return place ? await fetchTodayWeather(place) : null;
+  if (!place) return null;
+
+  const key = { local_date: localDate, ...place };
+  const { data: saved, error: readError } = await supabase
+    .from("daily_weather")
+    .select("sunshine_hours, daylight_hours, weather_code")
+    .match(key)
+    .maybeSingle();
+  if (readError) throw readError;
+  if (saved) return weatherFromRow(saved);
+
+  const fetched = await fetchTodayWeather(place);
+  if (!fetched) return "unavailable";
+
+  // 複数の鉢が同時に取りに来ても、先に入った1行をその日の天気にする
+  const { error: saveError } = await supabase
+    .from("daily_weather")
+    .upsert({ ...key, ...weatherToRow(fetched) }, {
+      onConflict: "local_date,latitude,longitude",
+      ignoreDuplicates: true,
+    });
+  if (saveError) console.error("[weather] 天気の保存に失敗:", saveError);
+  return fetched;
 }
 
 const DIM_DAY_STATE: EmotionState = {

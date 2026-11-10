@@ -4,8 +4,11 @@ import {
   describeWeather,
   fetchTodayWeather,
   isDimDay,
+  keepWaitingForWeather,
   parseTodayWeather,
   placeFrom,
+  weatherFromRow,
+  weatherToRow,
 } from "../supabase/functions/_shared/weather.ts";
 import { DIM_DAY_FALLBACK } from "../supabase/functions/_shared/fallback.ts";
 
@@ -121,6 +124,29 @@ assert(
   "場所を変えてと頼まない",
   !/置いて|移して|場所/.test(DIM_DAY_FALLBACK),
   DIM_DAY_FALLBACK,
+);
+
+console.log("--- その日の天気を覚える ---");
+{
+  const rainy = { sunshineHours: 0.02, daylightHours: 10.4, code: 61 };
+  const back = weatherFromRow(weatherToRow(rainy));
+  assert(
+    "覚えた天気を読み戻すと同じ",
+    JSON.stringify(back) === JSON.stringify(rainy),
+    JSON.stringify(back),
+  );
+  assert("読み戻した天気でも雨の日になる", isDimDay(back));
+}
+
+console.log("--- 天気が取れなかったとき ---");
+assert("予告は天気が取れるまで送らない", keepWaitingForWeather("warning", 14));
+assert(
+  "締めは20時台なら次の回まで待つ",
+  keepWaitingForWeather("shortfall", 20),
+);
+assert(
+  "締めは21時になったら晴れ扱いで送る",
+  !keepWaitingForWeather("shortfall", 21),
 );
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);

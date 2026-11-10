@@ -389,7 +389,7 @@ Deno.serve(async (req: Request) => {
     if (emotionInsertError) throw emotionInsertError;
 
     // 8. Layer 2b: 日照不足の日次判定（積算光量方式）
-    // 毎サイクル呼ぶが、15時より前はDBを叩かずに即returnする。
+    // 毎サイクル呼ぶが、予告の14時台と締めの20時以降のほかはDBを叩かずに即returnする。
     // sensor_logs の insert より後に置くこと（今回のサンプルを積算に含めるため）。
     // 失敗しても通常の通知パイプラインは止めない。
     try {
