@@ -68,6 +68,25 @@ export async function pushLineMessages(
     throw new LineHttpError(res.status, body);
   }
 }
+// LINE と結んだ鉢なら送る。届かなくても（月の通数の上限など）例外にせず、理由を返す。
+// セリフはアプリの吹き出しにも出すので、LINE の失敗で記録まで止めないため
+export async function pushIfLinked(
+  lineTo: string | null,
+  text: string,
+): Promise<string | null> {
+  if (!lineTo) return null;
+  try {
+    await pushLineMessage(lineTo, text);
+    return null;
+  } catch (err) {
+    console.error(
+      "LINE に送れませんでした。アプリの吹き出しには出します:",
+      err,
+    );
+    return String(err).slice(0, 500);
+  }
+}
+
 const LINE_REPLY_URL = "https://api.line.me/v2/bot/message/reply";
 
 export async function replyLineMessage(
