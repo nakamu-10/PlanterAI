@@ -75,6 +75,10 @@ const FALLBACK_LINES: Record<Complaint, Record<Tone, string>> = {
   },
 };
 
+/** 曇りや雨で日照が足りなかった日。天気のせいなので、場所を変えてと頼まない */
+export const DIM_DAY_FALLBACK =
+  "今日はおひさまが少なかったね。明日は晴れるといいな";
+
 /** 不調がないとき（満足）の定型セリフ */
 const FALLBACK_SATISFIED = "今日はごきげんだよ。いつもありがとうね";
 
