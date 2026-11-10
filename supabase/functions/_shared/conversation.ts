@@ -3,13 +3,14 @@
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { CONVERSATION_WINDOW } from "./config.ts";
 import { type EmotionState, stateFromLog } from "./emotionEngine.ts";
-import { fallbackMessage } from "./fallback.ts";
+import { fallbackReply } from "./fallback.ts";
 import {
   buildReplyPrompt,
   type ConversationEntry,
   describeLlmFailure,
   enforceMessageLength,
   generateMessage,
+  REPLY_TIMEOUT_MS,
 } from "./llm.ts";
 import { describeTouches, TOUCH_MEMORY_HOURS } from "./touches.ts";
 
@@ -25,6 +26,8 @@ export interface Reply {
   state: EmotionState;
   source: "llm" | "fallback";
   finishReason: string;
+  // Gemini にかかった時間。定型文のときは、あきらめるまでの時間
+  llmMs: number;
 }
 
 export async function createReply(
@@ -92,21 +95,31 @@ export async function createReply(
   });
 
   // 返信は飼い主が待っているので interactive（思考は minimal）。
-  // それでも失敗したら黙って落とさず、テンプレを返して会話を途切れさせない。
+  // それでも失敗したら黙って落とさず、もう一度話してもらう定型文を返す。
   // どちらで返したかは conversation_logs に残す（フォールバック率の集計用）。
+  const startedAt = Date.now();
   try {
     const text = enforceMessageLength(
-      await generateMessage(replyPrompt, "interactive"),
+      await generateMessage(replyPrompt, "interactive", {
+        timeoutMs: REPLY_TIMEOUT_MS,
+      }),
       40,
     );
-    return { text, state, source: "llm", finishReason: "STOP" };
+    return {
+      text,
+      state,
+      source: "llm",
+      finishReason: "STOP",
+      llmMs: Date.now() - startedAt,
+    };
   } catch (err) {
     console.error("Gemini生成エラー。テンプレへ切り替えます:", err);
     return {
-      text: fallbackMessage(state.complaint, state.emotion),
+      text: fallbackReply(),
       state,
       source: "fallback",
       finishReason: describeLlmFailure(err),
+      llmMs: Date.now() - startedAt,
     };
   }
 }
@@ -138,6 +151,7 @@ export async function saveExchange(
       complaint: reply.state.complaint,
       source: reply.source,
       finish_reason: reply.finishReason,
+      llm_ms: reply.llmMs,
       created_at: plantCreatedAt.toISOString(),
     },
   ]);

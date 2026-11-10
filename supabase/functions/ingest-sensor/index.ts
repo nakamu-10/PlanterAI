@@ -37,7 +37,7 @@ import {
   generateMessage,
 } from "../_shared/llm.ts";
 import { fallbackMessage } from "../_shared/fallback.ts";
-import { pushLineMessage } from "../_shared/line.ts";
+import { pushIfLinked } from "../_shared/line.ts";
 import { runDailyLightCheck } from "../_shared/dailyLightJob.ts";
 import { validateRawReading } from "../_shared/validation.ts";
 import { detectWatering } from "../_shared/watering.ts";
@@ -299,6 +299,7 @@ Deno.serve(async (req: Request) => {
         // 無料プランだと1日で消えるため、痕跡をDB側に持たせる）。
         let source: "llm" | "fallback" = "llm";
         let finishReason = "STOP";
+        const startedAt = Date.now();
         try {
           message = enforceMessageLength(
             await generateMessage(prompt, "interactive"),
@@ -313,10 +314,10 @@ Deno.serve(async (req: Request) => {
           finishReason = describeLlmFailure(genErr);
           message = fallbackMessage(state.complaint, state.emotion);
         }
-        // LINE と結んでいない鉢は送らない。セリフは下で記録し、アプリの吹き出しに出る
-        if (device.line_user_id) {
-          await pushLineMessage(device.line_user_id, message);
-        }
+        const llmMs = Date.now() - startedAt;
+        // LINE に届かなくても、セリフは下で記録し、アプリの吹き出しに出す。
+        // 失敗の理由は通知の枠に残す（関数のログは1日で消えるため）
+        const lineError = await pushIfLinked(device.line_user_id, message);
         notified = true;
 
         try {
@@ -324,6 +325,7 @@ Deno.serve(async (req: Request) => {
             device.id,
             notificationSignature,
             "completed",
+            lineError,
           );
         } catch (statusError) {
           // LINE送信後の保存失敗を再送扱いにすると二重通知になるため継続する。
@@ -343,6 +345,7 @@ Deno.serve(async (req: Request) => {
           complaint: state.complaint,
           source,
           finish_reason: finishReason,
+          llm_ms: llmMs,
         });
         if (convoInsertError) {
           // LINE送信済みなので再送はせず、状態ログの保存を優先する。
@@ -365,7 +368,7 @@ Deno.serve(async (req: Request) => {
             statusError,
           );
         }
-        // LLM/LINE側の失敗はここで吸収し、状態記録自体は続行する
+        // 想定外の失敗（DB など）はここで吸収し、状態記録自体は続行する。LINE の失敗はここに来ない
         console.error(`[${device.id}] 通知生成エラー:`, err);
         message = null;
         notified = false;

@@ -380,14 +380,21 @@ async function callGeminiOnce(
  * フォールバックし、その事実を conversation_logs に記録すること。
  * 句読点で終える指示をしていないプロンプト（週次サマリー）は、文末を確かめない。
  */
+// 遷移通知（interactive）は ESP32 が応答を最大20秒しか待たないので短く、
+// バッチは誰も待っていないので長めに待つ
+const defaultTimeoutMs = (profile: LlmProfile) =>
+  profile === "interactive" ? 12_000 : 30_000;
+
+// 話しかけへの返事は、飼い主が待つだけなので通知より長く待つ。12秒では
+// 1割ほどが時間切れになり、かみ合わない定型文になっていた（#89）
+export const REPLY_TIMEOUT_MS = 20_000;
+
 export async function generateMessage(
   prompt: string,
   profile: LlmProfile = "batch",
-  { checkSentenceEnd = true } = {},
+  { checkSentenceEnd = true, timeoutMs = defaultTimeoutMs(profile) } = {},
 ): Promise<string> {
-  // 返信・遷移通知（interactive）は応答の速さを優先し、バッチは長めに待つ。
-  // 再試行も起点のプロファイルと同じ時間で打ち切る。
-  const timeoutMs = profile === "interactive" ? 12_000 : 30_000;
+  // 再試行も起点と同じ時間で打ち切る
   try {
     return await callGeminiOnce(
       prompt,

@@ -95,3 +95,16 @@ export function fallbackMessage(
   const tone = (emotion && TONE_BY_EMOTION[emotion]) ?? "mild";
   return FALLBACK_LINES[complaint][tone];
 }
+
+// 話しかけられたときの返事が作れなかったときの定型文。気分の定型文を返すと、
+// 話しかけた内容に関係なく「今日はごきげんだよ」になり、かみ合わない（#89）。
+// 何を言われたか分からないので、気分にも不調にも触れず、もう一度話してもらう
+export const FALLBACK_REPLIES = [
+  "ごめんね、いまちょっとぼーっとしてたの。もう一回話しかけてくれる？",
+  "あれ、うまく聞き取れなかったみたい。もう一回お話ししてくれる？",
+  "ちょっとうとうとしてたの。もう一回言ってくれる？",
+] as const;
+
+export function fallbackReply(random: () => number = Math.random): string {
+  return FALLBACK_REPLIES[Math.floor(random() * FALLBACK_REPLIES.length)];
+}
