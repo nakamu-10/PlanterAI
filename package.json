@@ -7,7 +7,7 @@
   },
   "scripts": {
     "check": "npm test && npm run test:lint && npm run typecheck && npm run lint && npm run format:check && npm run build:site",
-    "test": "npm run test:logic && npm run test:notify && npm run test:daily-light && npm run test:validation && npm run test:llm && npm run test:watering && npm run test:karami && npm run test:home && npm run test:app-public && npm run test:trends && npm run test:touches && npm run test:diary && npm run test:records && npm run test:line-talk && npm run test:line",
+    "test": "npm run test:logic && npm run test:notify && npm run test:daily-light && npm run test:validation && npm run test:llm && npm run test:watering && npm run test:karami && npm run test:home && npm run test:app-public && npm run test:trends && npm run test:touches && npm run test:diary && npm run test:records && npm run test:line-talk && npm run test:line && npm run test:llm-timeout",
     "test:logic": "tsx tests/logic.test.ts",
     "test:notify": "tsx tests/notify.test.ts",
     "test:daily-light": "tsx tests/dailyLight.test.ts",
@@ -20,6 +20,7 @@
     "test:trends": "tsx tests/trends.test.ts",
     "test:touches": "tsx tests/touches.test.ts",
     "test:line-talk": "tsx tests/lineTalk.test.ts",
+    "test:llm-timeout": "tsx tests/llmTimeout.test.ts",
     "test:line": "tsx tests/line.test.ts",
     "test:diary": "tsx tests/diary.test.ts",
     "test:records": "tsx tests/recordsLogic.test.ts",

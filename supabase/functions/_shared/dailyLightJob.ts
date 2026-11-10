@@ -168,6 +168,7 @@ export async function runDailyLightCheck(
   let message: string;
   let source: "llm" | "fallback" = "llm";
   let finishReason = "STOP";
+  const startedAt = Date.now();
   try {
     message = enforceMessageLength(await generateMessage(prompt, "batch"), 60);
   } catch (e) {
@@ -179,6 +180,7 @@ export async function runDailyLightCheck(
     finishReason = describeLlmFailure(e);
     message = fallbackMessage(state.complaint, state.emotion);
   }
+  const llmMs = Date.now() - startedAt;
 
   // 6. 送信 & 記録
   // LINE に届かなくても、セリフは下で記録し、アプリの吹き出しに出す
@@ -230,6 +232,7 @@ export async function runDailyLightCheck(
       complaint: "日照不足",
       source,
       finish_reason: finishReason,
+      llm_ms: llmMs,
     });
   if (convoInsertError) {
     console.error("[dailyLight] 会話ログの保存に失敗:", convoInsertError);
