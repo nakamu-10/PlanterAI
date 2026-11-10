@@ -24,7 +24,11 @@ import {
   LlmHttpError,
   LlmTruncatedError,
 } from "../supabase/functions/_shared/llm.ts";
-import { fallbackMessage } from "../supabase/functions/_shared/fallback.ts";
+import {
+  FALLBACK_REPLIES,
+  fallbackMessage,
+  fallbackReply,
+} from "../supabase/functions/_shared/fallback.ts";
 import {
   Complaint,
   Emotion,
@@ -299,6 +303,23 @@ for (
   assert(`「${line}」は終わった文`, endsSentence(line));
 }
 assert("「お水を少し」は途中で切れた文", !endsSentence("お水を少し"));
+
+console.log("--- 返事の定型文（#89） ---");
+for (const reply of FALLBACK_REPLIES) {
+  assert(
+    `返事の定型文は短く、文で終わる: ${reply}`,
+    [...reply].length <= 40 && endsSentence(reply),
+  );
+  assert(
+    `返事の定型文は気分や水やりに触れない: ${reply}`,
+    !/ごきげん|満足|水|のど|お日様/.test(reply),
+  );
+}
+assert(
+  "3つの定型文から選ぶ",
+  fallbackReply(() => 0) === FALLBACK_REPLIES[0] &&
+    fallbackReply(() => 0.99) === FALLBACK_REPLIES[2],
+);
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

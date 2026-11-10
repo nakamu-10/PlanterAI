@@ -16,7 +16,7 @@ import {
   generateMessage,
 } from "./llm.ts";
 import { fallbackMessage } from "./fallback.ts";
-import { pushLineMessage } from "./line.ts";
+import { pushIfLinked } from "./line.ts";
 import {
   countConsecutiveShortDays,
   DAILY_LIGHT,
@@ -183,37 +183,16 @@ export async function runDailyLightCheck(
   const llmMs = Date.now() - startedAt;
 
   // 6. 送信 & 記録
-  try {
-    // LINE と結んでいない鉢は送らない。セリフは下で記録し、アプリの吹き出しに出る
-    if (device.line_user_id) {
-      await pushLineMessage(device.line_user_id, message);
-    }
-  } catch (error) {
-    const { error: statusError } = await supabase
-      .from("daily_light_notification_slots")
-      .update({
-        status: "failed",
-        last_error: String(error).slice(0, 500),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("device_id", device.id)
-      .eq("local_date", localDate)
-      .eq("slot", notificationSlot);
-    if (statusError) {
-      console.error(
-        "[dailyLight] 失敗状態を保存できませんでした:",
-        statusError,
-      );
-    }
-    throw error;
-  }
+  // LINE に届かなくても、セリフは下で記録し、アプリの吹き出しに出す
+  const lineError = await pushIfLinked(device.line_user_id, message);
 
-  // 外部送信が成功した時点で完了扱いにし、その後のログ保存失敗による再送を防ぐ。
+  // 送った時点で完了扱いにし、その後のログ保存失敗による再送を防ぐ。
+  // LINE に届かなかった理由は残す（関数のログは1日で消えるため）
   const { error: completeError } = await supabase
     .from("daily_light_notification_slots")
     .update({
       status: "completed",
-      last_error: null,
+      last_error: lineError,
       updated_at: new Date().toISOString(),
     })
     .eq("device_id", device.id)

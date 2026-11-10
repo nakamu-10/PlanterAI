@@ -3,7 +3,7 @@
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { CONVERSATION_WINDOW } from "./config.ts";
 import { type EmotionState, stateFromLog } from "./emotionEngine.ts";
-import { fallbackMessage } from "./fallback.ts";
+import { fallbackReply } from "./fallback.ts";
 import {
   buildReplyPrompt,
   type ConversationEntry,
@@ -95,7 +95,7 @@ export async function createReply(
   });
 
   // 返信は飼い主が待っているので interactive（思考は minimal）。
-  // それでも失敗したら黙って落とさず、テンプレを返して会話を途切れさせない。
+  // それでも失敗したら黙って落とさず、もう一度話してもらう定型文を返す。
   // どちらで返したかは conversation_logs に残す（フォールバック率の集計用）。
   const startedAt = Date.now();
   try {
@@ -115,7 +115,7 @@ export async function createReply(
   } catch (err) {
     console.error("Gemini生成エラー。テンプレへ切り替えます:", err);
     return {
-      text: fallbackMessage(state.complaint, state.emotion),
+      text: fallbackReply(),
       state,
       source: "fallback",
       finishReason: describeLlmFailure(err),
