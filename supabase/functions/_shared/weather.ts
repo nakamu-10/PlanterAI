@@ -88,7 +88,7 @@ export async function fetchTodayWeather(
   }
 }
 
-/** daily_weather の1行。その日に最初に取れた予報を、その日の天気として使い回す */
+/** daily_weather の1行。0時と12時の枠で取った予報を、その日の天気として使う */
 export interface DailyWeatherRow {
   sunshine_hours: number;
   daylight_hours: number;
@@ -124,4 +124,17 @@ export function keepWaitingForWeather(
   jstHour: number,
 ): boolean {
   return kind === "warning" || jstHour < WEATHER_GIVE_UP_HOUR;
+}
+
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const HALF_DAY_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * 覚えている予報が、今の枠（日本時間の0時〜12時、12時〜24時）より前に取ったものか。
+ * 0時の予報で朝から天気が分かり、12時に取り直して外れを直す
+ */
+export function needsNewForecast(fetchedAt: Date, now: Date): boolean {
+  const slotStart = Math.floor((now.getTime() + JST_OFFSET_MS) / HALF_DAY_MS) *
+      HALF_DAY_MS - JST_OFFSET_MS;
+  return fetchedAt.getTime() < slotStart;
 }

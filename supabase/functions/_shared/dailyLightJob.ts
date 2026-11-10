@@ -29,14 +29,11 @@ import {
 } from "./dailyLight.ts";
 import {
   describeWeather,
-  fetchTodayWeather,
   isDimDay,
   keepWaitingForWeather,
-  placeFrom,
   TodayWeather,
-  weatherFromRow,
-  weatherToRow,
 } from "./weather.ts";
+import type { WeatherLookup } from "./dailyWeather.ts";
 
 export interface DeviceRow {
   id: string;
@@ -49,6 +46,7 @@ export interface DeviceRow {
 export async function runDailyLightCheck(
   supabase: SupabaseClient,
   device: DeviceRow,
+  todayWeather: WeatherLookup,
   now: Date = new Date(),
 ): Promise<DailyLightVerdict | null> {
   // 早期リターン: 予告の時間でも締めの時間でもなければDBを叩かない
@@ -122,9 +120,7 @@ export async function runDailyLightCheck(
 
   // 曇りや雨の日は、置き場所を変えても光はあまり増えない。予告はせず、締めでも責めない
   const localDate = jstDateKey(now);
-  const lookup = verdict.kind === "recovered"
-    ? null
-    : await weatherToday(supabase, localDate);
+  const lookup = verdict.kind === "recovered" ? null : todayWeather;
   if (
     lookup === "unavailable" && verdict.kind !== "recovered" &&
     keepWaitingForWeather(verdict.kind, hour)
@@ -329,44 +325,6 @@ function buildState(
     duration_hours: hours,
     duration_label: totalDays === 1 ? "今日" : `${totalDays}日`,
   };
-}
-
-/**
- * 今日の天気。場所が未設定なら null（天気を見ずに判定する）。
- * 設定してあって取れなかったら "unavailable"。
- * 最初に取れた予報を daily_weather に覚え、その日はそれを使い回す
- */
-async function weatherToday(
-  supabase: SupabaseClient,
-  localDate: string,
-): Promise<TodayWeather | null | "unavailable"> {
-  const place = placeFrom(
-    Deno.env.get("WEATHER_LATITUDE"),
-    Deno.env.get("WEATHER_LONGITUDE"),
-  );
-  if (!place) return null;
-
-  const key = { local_date: localDate, ...place };
-  const { data: saved, error: readError } = await supabase
-    .from("daily_weather")
-    .select("sunshine_hours, daylight_hours, weather_code")
-    .match(key)
-    .maybeSingle();
-  if (readError) throw readError;
-  if (saved) return weatherFromRow(saved);
-
-  const fetched = await fetchTodayWeather(place);
-  if (!fetched) return "unavailable";
-
-  // 複数の鉢が同時に取りに来ても、先に入った1行をその日の天気にする
-  const { error: saveError } = await supabase
-    .from("daily_weather")
-    .upsert({ ...key, ...weatherToRow(fetched) }, {
-      onConflict: "local_date,latitude,longitude",
-      ignoreDuplicates: true,
-    });
-  if (saveError) console.error("[weather] 天気の保存に失敗:", saveError);
-  return fetched;
 }
 
 const DIM_DAY_STATE: EmotionState = {

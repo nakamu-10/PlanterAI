@@ -5,6 +5,7 @@ import {
   fetchTodayWeather,
   isDimDay,
   keepWaitingForWeather,
+  needsNewForecast,
   parseTodayWeather,
   placeFrom,
   weatherFromRow,
@@ -136,6 +137,19 @@ console.log("--- その日の天気を覚える ---");
     JSON.stringify(back),
   );
   assert("読み戻した天気でも雨の日になる", isDimDay(back));
+}
+
+console.log("--- 0時と12時に取り直す ---");
+{
+  // 日本時間の 11/10 hh:mm
+  const jst = (h: number, m = 0) => new Date(Date.UTC(2026, 10, 10, h - 9, m));
+  assert(
+    "同じ午前のうちは取り直さない",
+    !needsNewForecast(jst(0, 5), jst(11, 50)),
+  );
+  assert("12時を過ぎたら取り直す", needsNewForecast(jst(0, 5), jst(12, 0)));
+  assert("12時に取ったら夜まで使う", !needsNewForecast(jst(12, 0), jst(20, 0)));
+  assert("日が変わったら取り直す", needsNewForecast(jst(23, 50), jst(24, 0)));
 }
 
 console.log("--- 天気が取れなかったとき ---");
