@@ -39,6 +39,7 @@ import {
 import { fallbackMessage } from "../_shared/fallback.ts";
 import { pushIfLinked } from "../_shared/line.ts";
 import { runDailyLightCheck } from "../_shared/dailyLightJob.ts";
+import { loadTodayWeather } from "../_shared/dailyWeather.ts";
 import { validateRawReading } from "../_shared/validation.ts";
 import { detectWatering } from "../_shared/watering.ts";
 
@@ -389,11 +390,16 @@ Deno.serve(async (req: Request) => {
     if (emotionInsertError) throw emotionInsertError;
 
     // 8. Layer 2b: 日照不足の日次判定（積算光量方式）
-    // 毎サイクル呼ぶが、15時より前はDBを叩かずに即returnする。
+    // 毎サイクル呼ぶが、予告の14時台と締めの20時以降のほかはDBを叩かずに即returnする。
     // sensor_logs の insert より後に置くこと（今回のサンプルを積算に含めるため）。
     // 失敗しても通常の通知パイプラインは止めない。
+    // 天気は0時と12時の枠ごとに1回だけ取り直す（毎回取ると、1回の失敗で晴れ扱いになる）
     try {
-      await runDailyLightCheck(supabase, device);
+      const todayWeather = await loadTodayWeather(supabase).catch((err) => {
+        console.error("[weather] 今日の天気を読めませんでした:", err);
+        return "unavailable" as const;
+      });
+      await runDailyLightCheck(supabase, device, todayWeather);
     } catch (err) {
       console.error("[dailyLight] 判定エラー:", err);
     }

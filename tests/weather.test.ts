@@ -4,8 +4,12 @@ import {
   describeWeather,
   fetchTodayWeather,
   isDimDay,
+  keepWaitingForWeather,
+  needsNewForecast,
   parseTodayWeather,
   placeFrom,
+  weatherFromRow,
+  weatherToRow,
 } from "../supabase/functions/_shared/weather.ts";
 import { DIM_DAY_FALLBACK } from "../supabase/functions/_shared/fallback.ts";
 
@@ -121,6 +125,42 @@ assert(
   "場所を変えてと頼まない",
   !/置いて|移して|場所/.test(DIM_DAY_FALLBACK),
   DIM_DAY_FALLBACK,
+);
+
+console.log("--- その日の天気を覚える ---");
+{
+  const rainy = { sunshineHours: 0.02, daylightHours: 10.4, code: 61 };
+  const back = weatherFromRow(weatherToRow(rainy));
+  assert(
+    "覚えた天気を読み戻すと同じ",
+    JSON.stringify(back) === JSON.stringify(rainy),
+    JSON.stringify(back),
+  );
+  assert("読み戻した天気でも雨の日になる", isDimDay(back));
+}
+
+console.log("--- 0時と12時に取り直す ---");
+{
+  // 日本時間の 11/10 hh:mm
+  const jst = (h: number, m = 0) => new Date(Date.UTC(2026, 10, 10, h - 9, m));
+  assert(
+    "同じ午前のうちは取り直さない",
+    !needsNewForecast(jst(0, 5), jst(11, 50)),
+  );
+  assert("12時を過ぎたら取り直す", needsNewForecast(jst(0, 5), jst(12, 0)));
+  assert("12時に取ったら夜まで使う", !needsNewForecast(jst(12, 0), jst(20, 0)));
+  assert("日が変わったら取り直す", needsNewForecast(jst(23, 50), jst(24, 0)));
+}
+
+console.log("--- 天気が取れなかったとき ---");
+assert("予告は天気が取れるまで送らない", keepWaitingForWeather("warning", 14));
+assert(
+  "締めは20時台なら次の回まで待つ",
+  keepWaitingForWeather("shortfall", 20),
+);
+assert(
+  "締めは21時になったら晴れ扱いで送る",
+  !keepWaitingForWeather("shortfall", 21),
 );
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);

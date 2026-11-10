@@ -15,6 +15,8 @@
 export interface DailyLightConfig {
   /** 途中経過をチェックする時刻（JST）。まだ移動して間に合う時間帯を選ぶ */
   checkpointHour: number;
+  /** 予告を出せる最後の時刻（JST）。これを過ぎたら、移しても今日の光はほとんど増えない */
+  checkpointEndHour: number;
   /** その時点で1日の目標の何割に達していれば「順調」とみなすか */
   checkpointRatio: number;
   /** 1日を締めて確定判定する時刻（JST） */
@@ -32,8 +34,11 @@ export interface DailyLightConfig {
 }
 
 export const DAILY_LIGHT: DailyLightConfig = {
-  checkpointHour: 15,
-  checkpointRatio: 0.6, // 実測で検証済み（達成日の15時最低=目標の1.07倍、不足日の最高=0.40倍）
+  checkpointHour: 14,
+  checkpointEndHour: 15,
+  // 10/2〜11/10 の実測（目標8,000）で、達成した日の14時の最低は目標の0.34倍。
+  // 午後の西日で追い上げる日があるので、それより下だけを予告し、達成する日には出さない
+  checkpointRatio: 0.3,
   deadlineHour: 20,
   deadlineRatio: 0.9, // 目標の9割に届けば達成扱い（惜しい日に通知しない不感帯）
   maxGapMinutes: 20, // POST間隔10分の2倍
@@ -169,7 +174,7 @@ function round2(x: number): number {
 
 // 判定
 //
-//   kind = "warning"   … 15時: このままだと今日は足りなさそう（まだ間に合う）
+//   kind = "warning"   … 14時台: このままだと今日は足りなさそう（まだ間に合う）
 //   kind = "shortfall" … 20時: 今日は足りなかった（明日の置き場所をお願い）
 //   kind = "recovered" … 20時: 警告後に飼い主が動かしてくれて目標達成
 //   kind = "none"      … 通知しない（理由は reason に入る）
@@ -252,7 +257,10 @@ export function judgeDailyLight(args: {
     };
   }
 
-  // チェックポイント枠（15時〜20時未満）
+  // チェックポイント枠（14時台）。遅れて予告しても、もう間に合わない
+  if (hour >= cfg.checkpointEndHour) {
+    return none("予告の時間を過ぎた", integral);
+  }
   if (args.warnedToday) return none("チェックポイントは通知済み", integral);
   if (!integral.reliable) {
     return none(

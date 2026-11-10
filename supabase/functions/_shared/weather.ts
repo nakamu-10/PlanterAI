@@ -87,3 +87,54 @@ export async function fetchTodayWeather(
     return null;
   }
 }
+
+/** daily_weather の1行。0時と12時の枠で取った予報を、その日の天気として使う */
+export interface DailyWeatherRow {
+  sunshine_hours: number;
+  daylight_hours: number;
+  weather_code: number;
+}
+
+export function weatherFromRow(row: DailyWeatherRow): TodayWeather {
+  return {
+    sunshineHours: row.sunshine_hours,
+    daylightHours: row.daylight_hours,
+    code: row.weather_code,
+  };
+}
+
+export function weatherToRow(weather: TodayWeather): DailyWeatherRow {
+  return {
+    sunshine_hours: weather.sunshineHours,
+    daylight_hours: weather.daylightHours,
+    weather_code: weather.code,
+  };
+}
+
+// 締めは、天気が取れないままでも21時にはあきらめて送る（晴れ扱い）
+const WEATHER_GIVE_UP_HOUR = 21;
+
+/**
+ * 場所は設定してあるのに天気が取れなかったとき、送るのを次の回に回すか。
+ * 晴れ扱いで送ると、雨の日に「場所を変えて」と頼んでしまう。
+ * 予告は予告の時間が過ぎれば出さないので、待ち続けてよい
+ */
+export function keepWaitingForWeather(
+  kind: "warning" | "shortfall",
+  jstHour: number,
+): boolean {
+  return kind === "warning" || jstHour < WEATHER_GIVE_UP_HOUR;
+}
+
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const HALF_DAY_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * 覚えている予報が、今の枠（日本時間の0時〜12時、12時〜24時）より前に取ったものか。
+ * 0時の予報で朝から天気が分かり、12時に取り直して外れを直す
+ */
+export function needsNewForecast(fetchedAt: Date, now: Date): boolean {
+  const slotStart = Math.floor((now.getTime() + JST_OFFSET_MS) / HALF_DAY_MS) *
+      HALF_DAY_MS - JST_OFFSET_MS;
+  return fetchedAt.getTime() < slotStart;
+}

@@ -1,6 +1,6 @@
 // dailyLightJob.ts — 日照不足判定の実行（Supabase I/O + 通知）
 //
-// ingest-sensor から毎サイクル呼ばれるが、判定時刻（15時）より前は
+// ingest-sensor から毎サイクル呼ばれるが、予告の14時台と20時以降の締め以外は
 // DBを一切叩かずに即returnする。実質的なコストは日に数回だけ。
 
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
@@ -29,11 +29,11 @@ import {
 } from "./dailyLight.ts";
 import {
   describeWeather,
-  fetchTodayWeather,
   isDimDay,
-  placeFrom,
+  keepWaitingForWeather,
   TodayWeather,
 } from "./weather.ts";
+import type { WeatherLookup } from "./dailyWeather.ts";
 
 export interface DeviceRow {
   id: string;
@@ -46,10 +46,17 @@ export interface DeviceRow {
 export async function runDailyLightCheck(
   supabase: SupabaseClient,
   device: DeviceRow,
+  todayWeather: WeatherLookup,
   now: Date = new Date(),
 ): Promise<DailyLightVerdict | null> {
-  // 早期リターン: 判定時刻前はDBを叩かない
-  if (jstHour(now) < DAILY_LIGHT.checkpointHour) return null;
+  // 早期リターン: 予告の時間でも締めの時間でもなければDBを叩かない
+  const hour = jstHour(now);
+  if (hour < DAILY_LIGHT.checkpointHour) return null;
+  if (
+    hour >= DAILY_LIGHT.checkpointEndHour && hour < DAILY_LIGHT.deadlineHour
+  ) {
+    return null;
+  }
 
   const profile = PLANT_PROFILES[device.plant_profile];
   if (!profile) {
@@ -112,7 +119,19 @@ export async function runDailyLightCheck(
   if (verdict.kind === "none") return verdict;
 
   // 曇りや雨の日は、置き場所を変えても光はあまり増えない。予告はせず、締めでも責めない
-  const weather = verdict.kind === "recovered" ? null : await weatherToday();
+  const localDate = jstDateKey(now);
+  const lookup = verdict.kind === "recovered" ? null : todayWeather;
+  if (
+    lookup === "unavailable" && verdict.kind !== "recovered" &&
+    keepWaitingForWeather(verdict.kind, hour)
+  ) {
+    return {
+      ...verdict,
+      kind: "none",
+      reason: "天気が取れないので次の回に回す",
+    };
+  }
+  const weather = lookup === "unavailable" ? null : lookup;
   const dimDay = weather !== null && isDimDay(weather);
   if (dimDay && verdict.kind === "warning") {
     return { ...verdict, kind: "none", reason: "曇りや雨の日なので予告しない" };
@@ -122,7 +141,6 @@ export async function runDailyLightCheck(
   const notificationSlot = verdict.kind === "warning"
     ? "checkpoint"
     : "deadline";
-  const localDate = jstDateKey(now);
   const { data: claimed, error: claimError } = await supabase.rpc(
     "claim_daily_light_notification",
     {
@@ -307,14 +325,6 @@ function buildState(
     duration_hours: hours,
     duration_label: totalDays === 1 ? "今日" : `${totalDays}日`,
   };
-}
-
-async function weatherToday(): Promise<TodayWeather | null> {
-  const place = placeFrom(
-    Deno.env.get("WEATHER_LATITUDE"),
-    Deno.env.get("WEATHER_LONGITUDE"),
-  );
-  return place ? await fetchTodayWeather(place) : null;
 }
 
 const DIM_DAY_STATE: EmotionState = {
