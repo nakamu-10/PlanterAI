@@ -92,6 +92,8 @@ archive/legacy-site/    旧シングルページLP
   `pothos`（ポトス）と `calathea`（カラテア）を定義。`devices.plant_profile`
   で切り替える。照度は非対称に扱い、瞬時値 lux で「日照過剰（葉焼け）」を、積算
   lux·h で「日照不足」を判定する。
+- **天気**（`_shared/weather.ts`）：`WEATHER_LATITUDE`・`WEATHER_LONGITUDE`
+  を入れると、Open-Meteo（鍵は要らない）で今日の天気を見る。日が差した時間が日の長さの半分に届かない日（曇りや雨）は、15時の予告を出さず、20時も置き場所を責めずに「明日は晴れるといいね」と言う。入れなければ天気を見ずに判定する。家の場所は細かく入れず、市くらいの粗さ（小数1〜2桁）で足りる
 - **キャラクター**（`_shared/llm.ts`）：`amaenbo`（甘えん坊）／`tsundere`（ツンデレ）／`keigo`（執事風）。`devices.character_id`
   で切り替える。
 - **土壌キャリブレーション**（`_shared/config.ts`）：`SOIL_CALIBRATION` に
@@ -130,7 +132,8 @@ supabase secrets set \
   GEMINI_API_KEY=... \
   LINE_CHANNEL_ACCESS_TOKEN=... \
   LINE_CHANNEL_SECRET=... \
-  CRON_SECRET=...
+  CRON_SECRET=...   WEATHER_LATITUDE=35.66   WEATHER_LONGITUDE=139.54
+# WEATHER_* は日照不足を天気のせいにするかの判断に使う（なくても動く）
 # （SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY は自動で注入される）
 ```
 

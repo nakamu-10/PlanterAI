@@ -15,7 +15,7 @@ import {
   enforceMessageLength,
   generateMessage,
 } from "./llm.ts";
-import { fallbackMessage } from "./fallback.ts";
+import { DIM_DAY_FALLBACK, fallbackMessage } from "./fallback.ts";
 import { pushIfLinked } from "./line.ts";
 import {
   countConsecutiveShortDays,
@@ -27,6 +27,13 @@ import {
   judgeDailyLight,
   LuxSample,
 } from "./dailyLight.ts";
+import {
+  describeWeather,
+  fetchTodayWeather,
+  isDimDay,
+  placeFrom,
+  TodayWeather,
+} from "./weather.ts";
 
 export interface DeviceRow {
   id: string;
@@ -104,6 +111,13 @@ export async function runDailyLightCheck(
 
   if (verdict.kind === "none") return verdict;
 
+  // 曇りや雨の日は、置き場所を変えても光はあまり増えない。予告はせず、締めでも責めない
+  const weather = verdict.kind === "recovered" ? null : await weatherToday();
+  const dimDay = weather !== null && isDimDay(weather);
+  if (dimDay && verdict.kind === "warning") {
+    return { ...verdict, kind: "none", reason: "曇りや雨の日なので予告しない" };
+  }
+
   // 同時POSTでも同じ判定枠から二重送信しないよう、DBで先に枠を確保する。
   const notificationSlot = verdict.kind === "warning"
     ? "checkpoint"
@@ -135,7 +149,12 @@ export async function runDailyLightCheck(
     .map((l) => jstDateKey(new Date(l.created_at)));
   const consecutiveDays = countConsecutiveShortDays(shortDayKeys, now);
 
-  const state = buildState(verdict, profile.lightDaily, consecutiveDays);
+  const state = dimDay
+    ? DIM_DAY_STATE
+    : buildState(verdict, profile.lightDaily, consecutiveDays);
+  const situation = dimDay && weather
+    ? dimDaySituation(weather)
+    : SITUATION[verdict.kind];
 
   // 5. セリフ生成
   const { data: convo, error: convoError } = await supabase
@@ -161,7 +180,7 @@ export async function runDailyLightCheck(
     state,
     recentConversation: (convo ?? []) as ConversationEntry[],
     relationshipSummary: summary?.[0]?.summary ?? null,
-  }) + `\n\n# 今回だけの追加指示（最優先）\n${SITUATION[verdict.kind]}`;
+  }) + `\n\n# 今回だけの追加指示（最優先）\n${situation}`;
 
   // 日次ジョブは誰も待っていないので batch プロファイル（予算厚め）。
   // 打ち切りでリトライも失敗したら、半端な文を出さずテンプレに逃がす。
@@ -178,7 +197,9 @@ export async function runDailyLightCheck(
     );
     source = "fallback";
     finishReason = describeLlmFailure(e);
-    message = fallbackMessage(state.complaint, state.emotion);
+    message = dimDay
+      ? DIM_DAY_FALLBACK
+      : fallbackMessage(state.complaint, state.emotion);
   }
   const llmMs = Date.now() - startedAt;
 
@@ -211,12 +232,14 @@ export async function runDailyLightCheck(
       duration_hours: state.duration_hours,
       scores: {
         daily_light: {
-          kind: verdict.kind,
+          // 天気のせいの日は "dim_day" にして、不足が続いた日数に数えない
+          kind: dimDay ? "dim_day" : verdict.kind,
           lux_hours: verdict.integral.luxHours,
           target,
           ratio: verdict.achievedRatio,
           coverage: verdict.integral.coverage,
           consecutive_days: consecutiveDays,
+          weather,
         },
       },
       notified: true,
@@ -284,6 +307,30 @@ function buildState(
     duration_hours: hours,
     duration_label: totalDays === 1 ? "今日" : `${totalDays}日`,
   };
+}
+
+async function weatherToday(): Promise<TodayWeather | null> {
+  const place = placeFrom(
+    Deno.env.get("WEATHER_LATITUDE"),
+    Deno.env.get("WEATHER_LONGITUDE"),
+  );
+  return place ? await fetchTodayWeather(place) : null;
+}
+
+const DIM_DAY_STATE: EmotionState = {
+  emotion: "軽い不満",
+  complaint: "日照不足",
+  urgency: "low",
+  duration_hours: 0,
+  duration_label: "今日",
+};
+
+function dimDaySituation(weather: TodayWeather): string {
+  return `今日は${describeWeather(weather)}で、日が差したのは${
+    weather.sunshineHours.toFixed(1)
+  }時間だけでした。光は目標に届きませんでしたが、天気のせいで、置き場所のせいではありません。` +
+    "飼い主を責めたり、場所を変えてとお願いしたりしてはいけません。" +
+    "お日様が少なかったね、明日は晴れるといいな、くらいの軽い話にしてください。";
 }
 
 // LLMに渡す状況説明。同じ「日照不足」でも意味が全く違うので分ける

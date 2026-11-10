@@ -82,7 +82,7 @@ console.log("\n--- 積算（台形則） ---");
 ok("空配列でも落ちない", integrateLuxHours([], at(0), at(24)).luxHours === 0);
 
 console.log("\n--- 判定 ---");
-const target = 10000; // config.ts の lightDaily.comfortLow と一致させること
+const target = 8000; // config.ts の lightDaily.comfortLow と一致させること
 const base = { targetLuxHours: target, warnedToday: false, closedToday: false };
 {
   const v = judgeDailyLight({
