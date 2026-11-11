@@ -201,9 +201,9 @@ assert("モデルがまだ無い植物はカラ美", modelFor("pothos") === "kar
 assert("植物が分からないときもカラ美", modelFor(undefined) === "karami");
 assert(
   "2D の画像も植物に合わせる",
-  imageFor(modelFor("cactus")) === "/images/cactus.png" &&
-    imageFor(modelFor("everfresh")) === "/images/everfresh.png" &&
-    imageFor(modelFor("calathea")) === "/images/karami.png",
+  imageFor(modelFor("cactus")) === "images/cactus.png" &&
+    imageFor(modelFor("everfresh")) === "images/everfresh.png" &&
+    imageFor(modelFor("calathea")) === "images/karami.png",
 );
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);

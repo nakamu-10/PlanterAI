@@ -141,7 +141,7 @@ function lastSeenAt() {
 
 // 3D が使えないときの 2D 版。サボテンやエバーフレッシュの鉢では、その植物の画像を出す
 function setup2d(model) {
-  img.src = imageFor(model);
+  img.src = import.meta.env.BASE_URL + imageFor(model);
   img.alt = plantName.textContent || "カラ美";
   loading.remove();
   img.hidden = false;
