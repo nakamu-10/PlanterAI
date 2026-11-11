@@ -67,6 +67,7 @@ const base = {
   state: stateFromLog(null),
   recentConversation: [],
   relationshipSummary: null,
+  todayLight: null,
   userMessage: "元気？",
 };
 const withTouches = buildReplyPrompt({ ...base, touchMemory: described });
