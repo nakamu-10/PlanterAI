@@ -76,6 +76,8 @@ export async function createReply(
         .eq("device_id", device.id)
         .eq("complaint", "日照不足")
         .eq("notified", true)
+        // その場の判定（ingest-sensor）の日照不足の行は除き、日次の判定の行だけを見る
+        .not("scores->daily_light", "is", null)
         .gte("created_at", jstDayStart(now).toISOString())
         .order("created_at", { ascending: false })
         .limit(1)
