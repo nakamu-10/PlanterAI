@@ -21,7 +21,7 @@ ADR 0001 では、textlint は「人やツールが増えてから」入れる�
 
 ## 理由
 
-- 地引さんの別のプロジェクト（Pitari、jphacks/tka_2617）の textlint
+- 別のプロジェクト（Pitari、jphacks/tka_2617）の textlint
   の設定を参考にした。ただし向きは逆にした。Pitari
   は空白を入れない形だが、PlanterAI は入れる形でほぼ揃っており、Pitari
   と同じ向きにすると64行が変わる
