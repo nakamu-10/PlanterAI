@@ -92,6 +92,19 @@ export function describeForecast(forecast) {
   }
 }
 
+// 今日の日照を、目標に対する割合で言う。lx·h は見慣れない単位なので、
+// 大きく出すのは割合にして、合計の数字は小さな行に回す（#93）
+export function describeLightToday({ lux_hours, target }) {
+  const ratio = target > 0 ? lux_hours / target : 0;
+  const number = (v) => v.toLocaleString("ja-JP");
+  return {
+    percent: Math.round(ratio * 100),
+    bar: Math.min(1, Math.max(0, ratio)),
+    reached: target > 0 && lux_hours >= target,
+    detail: `${number(lux_hours)} / ${number(target)} lx·h`,
+  };
+}
+
 // 2D 版のカラ美の下の案内。3D 用の案内（index.html）と違い、つつくとなでるしかできない（#30）
 export const TOUCH_HINT_2D = "タップでつつく・ドラッグでなでる";
 

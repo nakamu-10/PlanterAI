@@ -13,6 +13,8 @@ import {
   REPLY_TIMEOUT_MS,
 } from "./llm.ts";
 import { describeTouches, TOUCH_MEMORY_HOURS } from "./touches.ts";
+import { jstDayStart } from "./dailyLight.ts";
+import { describeTodayLight } from "./todayLight.ts";
 
 export interface ConversationDevice {
   id: string;
@@ -38,8 +40,8 @@ export async function createReply(
   // 現在の発言を履歴へ二重に含めないよう、直近履歴は保存前に取得する。
   const now = new Date();
   const touchSince = new Date(now.getTime() - TOUCH_MEMORY_HOURS * 3_600_000);
-  const [emotionResult, convoResult, summaryResult, touchResult] = await Promise
-    .all([
+  const [emotionResult, convoResult, summaryResult, touchResult, lightResult] =
+    await Promise.all([
       supabase
         .from("emotion_logs")
         .select("emotion, complaint, urgency, duration_hours")
@@ -67,6 +69,17 @@ export async function createReply(
         .gte("created_at", touchSince.toISOString())
         .order("created_at", { ascending: false })
         .limit(500),
+      // 今日の日照の判定（14時台の予告と20時の締め）。今の状態とは別に残っている
+      supabase
+        .from("emotion_logs")
+        .select("scores, created_at")
+        .eq("device_id", device.id)
+        .eq("complaint", "日照不足")
+        .eq("notified", true)
+        .gte("created_at", jstDayStart(now).toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
   if (emotionResult.error) throw emotionResult.error;
@@ -77,6 +90,12 @@ export async function createReply(
     console.error(
       `[${device.id}] 触った記録を読めませんでした:`,
       touchResult.error,
+    );
+  }
+  if (lightResult.error) {
+    console.error(
+      `[${device.id}] 今日の日照の判定を読めませんでした:`,
+      lightResult.error,
     );
   }
 
@@ -91,6 +110,9 @@ export async function createReply(
     touchMemory: touchResult.error
       ? null
       : describeTouches(touchResult.data ?? [], now),
+    todayLight: lightResult.data
+      ? describeTodayLight(lightResult.data.scores, lightResult.data.created_at)
+      : null,
     userMessage: userText,
   });
 
