@@ -104,3 +104,17 @@ export function describeLightToday({ lux_hours, target }) {
     detail: `${number(lux_hours)} / ${number(target)} lx·h`,
   };
 }
+
+// 2D 版のカラ美の下の案内。3D 用の案内（index.html）と違い、つつくとなでるしかできない（#30）
+export const TOUCH_HINT_2D = "タップでつつく・ドラッグでなでる";
+
+// 押した点が頭の上か（ドラッグするとなでる。それ以外は回す）。
+// head は画面上の頭を囲む四角と、頭の中心の高さ。
+// 頭の中心より上は、左右に広がる葉も含めて頭（今までどおり）。
+// 中心より下は、頭の四角の中だけを頭にする。顔の下半分は頭に入り、
+// 頭の横の体は入らない（#30）
+export function isOnHeadArea(clientX, clientY, head) {
+  if (clientY < head.centerY) return true;
+  return clientX >= head.left && clientX <= head.right &&
+    clientY <= head.bottom;
+}

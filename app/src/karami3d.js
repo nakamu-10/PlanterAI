@@ -261,14 +261,27 @@ export async function createKarami(container, modelName = "karami") {
         return raycaster.intersectObject(model, true).length > 0;
       });
     },
-    // 画面のこの高さが、頭の中心より上か（上をドラッグするとなでる、下なら回す）
-    isAboveHead(clientY) {
-      const center = new THREE.Box3()
-        .setFromObject(headMesh)
-        .getCenter(new THREE.Vector3())
-        .project(camera);
+    // 画面上で頭を囲む四角と、頭の中心の高さ（頭の箱の8つの角を、画面に写して囲む）
+    headRect() {
+      const box = new THREE.Box3().setFromObject(headMesh);
       const rect = renderer.domElement.getBoundingClientRect();
-      return clientY < rect.top + ((1 - center.y) / 2) * rect.height;
+      const xs = [];
+      const ys = [];
+      for (const x of [box.min.x, box.max.x]) {
+        for (const y of [box.min.y, box.max.y]) {
+          for (const z of [box.min.z, box.max.z]) {
+            const p = new THREE.Vector3(x, y, z).project(camera);
+            xs.push(rect.left + ((p.x + 1) / 2) * rect.width);
+            ys.push(rect.top + ((1 - p.y) / 2) * rect.height);
+          }
+        }
+      }
+      return {
+        left: Math.min(...xs),
+        right: Math.max(...xs),
+        bottom: Math.max(...ys),
+        centerY: (Math.min(...ys) + Math.max(...ys)) / 2,
+      };
     },
     // dx: 横にドラッグした画素数。画面の半分ほどで半回転する
     turn(dx) {

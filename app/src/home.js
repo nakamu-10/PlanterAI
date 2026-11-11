@@ -12,7 +12,9 @@ import {
   decideBubble,
   describeAgo,
   describeForecast,
+  isOnHeadArea,
   modelFor,
+  TOUCH_HINT_2D,
 } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
 import { keepQueryOnLinks, renderPotSwitcher } from "./potSwitcher.js";
@@ -141,6 +143,7 @@ function lastSeenAt() {
 // 3D が使えないときの 2D 版
 function setup2d() {
   loading.remove();
+  document.getElementById("karamiHint").textContent = TOUCH_HINT_2D;
   img.hidden = false;
   const idleTween = gsap.to(img, {
     y: -10,
@@ -235,7 +238,7 @@ async function setup3d(model) {
       startX: e.clientX,
       startY: e.clientY,
       lastX: e.clientX,
-      onHead: karami3d.isAboveHead(e.clientY),
+      onHead: isOnHeadArea(e.clientX, e.clientY, karami3d.headRect()),
       // 10px 以上動いたら "pet" か "turn"、動かさずに長押ししたら "lift" に決める
       mode: null,
       liftTimer: setTimeout(() => {
