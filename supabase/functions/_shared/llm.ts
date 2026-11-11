@@ -472,6 +472,8 @@ export function buildReplyPrompt(opts: {
   relationshipSummary: string | null;
   // アプリで触られたこと（describeTouches の結果）。無ければ null
   touchMemory: string | null;
+  // 今日の日照の判定（describeTodayLight の結果）。まだ判定していなければ null
+  todayLight: string | null;
   userMessage: string;
 }): string {
   const character = CHARACTERS[opts.characterId] ?? CHARACTERS.amaenbo;
@@ -494,6 +496,15 @@ export function buildReplyPrompt(opts: {
 ${opts.touchMemory}
 `
     : "";
+  const todayLightSection = opts.todayLight
+    ? `
+# 今日の日照（1日に浴びた光の合計。センサーによる確定情報）
+${opts.todayLight}
+`
+    : "";
+  const todayLightRule = opts.todayLight
+    ? "- 今日の日照は、飼い主が光・日当たり・天気・置き場所の話をしたときだけ、書かれたとおりに答えてください（「現在の状態」に無くても、認めてよい）。自分からは持ち出さないでください。\n"
+    : "";
   const touchRule = opts.touchMemory
     ? "- 触られたことは、話の流れに合うときだけ触れてください。毎回は触れないでください。\n"
     : "";
@@ -509,7 +520,7 @@ ${historyText}
 
 # あなたの現在の状態（センサーによる確定情報。これ以外の不調は絶対に訴えない）
 ${stateDesc}
-${touchSection}
+${todayLightSection}${touchSection}
 # 最近のあなたの発言（新しい順）
 ${recentPlantMessages(opts.recentConversation)}
 
@@ -535,7 +546,7 @@ ${
         : "飼い主が話していない",
     )
   }
-${touchRule}- 意図の分からない返信にはオウム返しで答えてください。${
+${todayLightRule}${touchRule}- 意図の分からない返信にはオウム返しで答えてください。${
     complaintCaution(opts.state.complaint)
   }
 ${SENTENCE_END_RULE}
