@@ -12,6 +12,7 @@ import {
   decideBubble,
   describeAgo,
   describeForecast,
+  imageFor,
   modelFor,
 } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
@@ -138,8 +139,10 @@ function lastSeenAt() {
   }
 }
 
-// 3D が使えないときの 2D 版
-function setup2d() {
+// 3D が使えないときの 2D 版。サボテンやエバーフレッシュの鉢では、その植物の画像を出す
+function setup2d(model) {
+  img.src = imageFor(model);
+  img.alt = plantName.textContent || "カラ美";
   loading.remove();
   img.hidden = false;
   const idleTween = gsap.to(img, {
@@ -385,10 +388,14 @@ stage.addEventListener("touchend", (e) => e.preventDefault(), {
 });
 
 // どのモデルを出すかは鉢の植物で決まるので、最初のデータを読んでから 3D を用意する
+let plantModel = "karami";
 refreshState()
-  .then((data) => setup3d(modelFor(data?.device.plant_profile)))
+  .then((data) => {
+    plantModel = modelFor(data?.device.plant_profile);
+    return setup3d(plantModel);
+  })
   .catch((err) => {
     console.error("3Dモデルを表示できないので、画像で表示します:", err);
-    setup2d();
+    setup2d(plantModel);
   });
 setInterval(refreshState, REFRESH_MS);

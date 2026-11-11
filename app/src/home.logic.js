@@ -8,6 +8,11 @@ export function modelFor(plantProfile) {
   return MODELS[plantProfile] ?? "karami";
 }
 
+// 3D を出せないときの画像（app/public/images/）。モデルと同じ名前にしてある
+export function imageFor(model) {
+  return `/images/${model}.png`;
+}
+
 // セリフのあとに気分が変わっていたら、今と食い違う古いセリフ
 // （「お水ちょうだい」のあとに水をもらって満足になった、など）
 export function isStaleMessage(message, latestEmotion) {
