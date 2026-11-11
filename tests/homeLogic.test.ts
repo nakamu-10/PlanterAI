@@ -5,10 +5,13 @@ import {
   decideBubble,
   describeAgo,
   describeForecast,
+  describeLightToday,
   imageFor,
+  isOnHeadArea,
   isStaleMessage,
   modelFor,
   shouldShowLastMessage,
+  TOUCH_HINT_2D,
 } from "../app/src/home.logic.js";
 
 let pass = 0;
@@ -204,6 +207,42 @@ assert(
   imageFor(modelFor("cactus")) === "images/cactus.png" &&
     imageFor(modelFor("everfresh")) === "images/everfresh.png" &&
     imageFor(modelFor("calathea")) === "images/karami.png",
+);
+
+console.log("--- 今日浴びた光 ---");
+{
+  const light = describeLightToday({ lux_hours: 1744, target: 8000 });
+  assert("目標に対する割合で出す", light.percent === 22);
+  assert(
+    "合計は小さな行に、区切りを入れて出す",
+    light.detail === "1,744 / 8,000 lx·h",
+  );
+  assert("届くまでは足りていると言わない", !light.reached);
+  assert("バーは割合のぶん", Math.abs(light.bar - 0.218) < 1e-9);
+}
+{
+  const light = describeLightToday({ lux_hours: 12000, target: 8000 });
+  assert("目標を超えたら足りている", light.reached && light.percent === 150);
+  assert("バーは端で止める", light.bar === 1);
+}
+assert(
+  "目標が0でも落ちない",
+  describeLightToday({ lux_hours: 100, target: 0 }).percent === 0,
+);
+
+console.log("--- 頭をなでるか、体を回すか ---");
+{
+  // 画面上の頭が、横 100〜200、高さ 50〜150（中心 100）にあるとき
+  const head = { left: 100, right: 200, bottom: 150, centerY: 100 };
+  assert("顔の下半分も頭", isOnHeadArea(150, 140, head));
+  assert("頭より上の葉も頭", isOnHeadArea(150, 20, head));
+  assert("中心より上なら、横に広がる葉も頭", isOnHeadArea(240, 80, head));
+  assert("中心より下で、頭の横は頭ではない", !isOnHeadArea(230, 130, head));
+  assert("頭より下の体は頭ではない", !isOnHeadArea(150, 200, head));
+}
+assert(
+  "2D 版の案内に、3D でしかできないことを書かない",
+  !TOUCH_HINT_2D.includes("回す") && !TOUCH_HINT_2D.includes("持ち上げ"),
 );
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
