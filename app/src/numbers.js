@@ -1,5 +1,10 @@
 import { fetchDashboard } from "./api.js";
-import { daysTogether, describeAgo, describeForecast } from "./home.logic.js";
+import {
+  daysTogether,
+  describeAgo,
+  describeForecast,
+  describeLightToday,
+} from "./home.logic.js";
 import { keepQueryOnLinks } from "./potSwitcher.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -47,6 +52,12 @@ function setValue(id, text, unit, status) {
     s.textContent = status[0];
     el.append(s);
   }
+}
+
+// 目標に対する進み具合のバーと、今日の0時からの合計
+function showLightProgress(light) {
+  $("lightBar").style.width = light ? `${light.bar * 100}%` : "0";
+  $("lightDetail").textContent = light ? light.detail : "";
 }
 
 const fixed = (v, digits) => typeof v === "number" ? v.toFixed(digits) : null;
@@ -373,19 +384,19 @@ async function load() {
     if (!trends) {
       // 推移を出せない鉢（新しい植物の設定が、まだ本番に無いときなど）
       setValue("valueLight", null);
+      showLightProgress(null);
       $("moistureForecast").textContent = "この鉢の推移は、まだ出せません。";
     } else {
-      const light = trends.light_today;
       // 足りないかどうかは、LINE の日照の判定（時刻で基準が変わる）に任せる。
-      // ここでは目標に届いたことだけ言い、届くまでは目標を見せる
+      // ここでは目標に届いたことだけ言う
+      const light = describeLightToday(trends.light_today);
       setValue(
         "valueLight",
-        light.lux_hours.toLocaleString("ja-JP"),
-        " lx·h",
-        light.lux_hours >= light.target
-          ? ["足りている", LINE]
-          : [`目標 ${light.target.toLocaleString("ja-JP")}`, INK_SOFT],
+        String(light.percent),
+        "%",
+        light.reached ? ["足りている", LINE] : null,
       );
+      showLightProgress(light);
       renderMoisture(trends, now);
       renderDayChart("tempChart", trends.hourly, now, {
         range: trends.temp,

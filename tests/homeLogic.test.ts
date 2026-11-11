@@ -5,6 +5,7 @@ import {
   decideBubble,
   describeAgo,
   describeForecast,
+  describeLightToday,
   isStaleMessage,
   modelFor,
   shouldShowLastMessage,
@@ -198,6 +199,27 @@ assert(
 );
 assert("モデルがまだ無い植物はカラ美", modelFor("pothos") === "karami");
 assert("植物が分からないときもカラ美", modelFor(undefined) === "karami");
+
+console.log("--- 今日浴びた光 ---");
+{
+  const light = describeLightToday({ lux_hours: 1744, target: 8000 });
+  assert("目標に対する割合で出す", light.percent === 22);
+  assert(
+    "合計は小さな行に、区切りを入れて出す",
+    light.detail === "1,744 / 8,000 lx·h",
+  );
+  assert("届くまでは足りていると言わない", !light.reached);
+  assert("バーは割合のぶん", Math.abs(light.bar - 0.218) < 1e-9);
+}
+{
+  const light = describeLightToday({ lux_hours: 12000, target: 8000 });
+  assert("目標を超えたら足りている", light.reached && light.percent === 150);
+  assert("バーは端で止める", light.bar === 1);
+}
+assert(
+  "目標が0でも落ちない",
+  describeLightToday({ lux_hours: 100, target: 0 }).percent === 0,
+);
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
