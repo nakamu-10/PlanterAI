@@ -5,9 +5,11 @@ import {
   decideBubble,
   describeAgo,
   describeForecast,
+  isOnHeadArea,
   isStaleMessage,
   modelFor,
   shouldShowLastMessage,
+  TOUCH_HINT_2D,
 } from "../app/src/home.logic.js";
 
 let pass = 0;
@@ -198,6 +200,21 @@ assert(
 );
 assert("モデルがまだ無い植物はカラ美", modelFor("pothos") === "karami");
 assert("植物が分からないときもカラ美", modelFor(undefined) === "karami");
+
+console.log("--- 頭をなでるか、体を回すか ---");
+{
+  // 画面上の頭が、横 100〜200、高さ 50〜150（中心 100）にあるとき
+  const head = { left: 100, right: 200, bottom: 150, centerY: 100 };
+  assert("顔の下半分も頭", isOnHeadArea(150, 140, head));
+  assert("頭より上の葉も頭", isOnHeadArea(150, 20, head));
+  assert("中心より上なら、横に広がる葉も頭", isOnHeadArea(240, 80, head));
+  assert("中心より下で、頭の横は頭ではない", !isOnHeadArea(230, 130, head));
+  assert("頭より下の体は頭ではない", !isOnHeadArea(150, 200, head));
+}
+assert(
+  "2D 版の案内に、3D でしかできないことを書かない",
+  !TOUCH_HINT_2D.includes("回す") && !TOUCH_HINT_2D.includes("持ち上げ"),
+);
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
