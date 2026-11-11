@@ -463,6 +463,26 @@ a:hover {
   font-family: var(--font-jp);
   font-size: 12px;
 }
+.numbers-value__bar {
+  display: block;
+  height: 6px;
+  margin-top: 4px;
+  border-radius: 3px;
+  background: rgba(22, 33, 28, .08);
+  overflow: hidden;
+}
+.numbers-value__bar > span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 3px;
+  background: #1F6B4A;
+}
+.numbers-value__note {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #56645A;
+}
 .numbers-footer {
   margin: 4px 4px 0;
   font-size: 12px;
