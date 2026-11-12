@@ -5,16 +5,15 @@
 `docs/adr/`、急がないタスクや相談は GitHub Issues
 に書き、ここには「今どこまで進んでいて、次に何をするか」だけを残す。
 
-最終更新：2026-11-11
+最終更新：2026-11-12
 
 ## 今の状態
 
 - 本番の Supabase は、自動デプロイ（GitHub Actions の `supabase-deploy`、ADR
-  0011）で main（66beac0、#106 まで）を入れた（11/11 21:35 ごろ。migration
-  なし、Edge Functions 7つ。その前の 9:40 に #103 と migration
-  `20261110000000_daily_weather`）。このあとの `sensor_logs` も入っている。main
-  に `supabase/` の変更が入ると Summary を出して止まり、中村か地引さんが
-  `production` を承認すると入る
+  0011）で main（3a44ab4、#114 まで）を入れた（11/12 16:55 ごろ。migration
+  なし、Edge Functions 7つ）。最後の migration は、11/11 9:40 に #103 と入れた
+  `20261110000000_daily_weather`。main に `supabase/` の変更が入ると Summary
+  を出して止まり、中村か地引さんが `production` を承認すると入る
 - LINE の無料プランの通数は、11/9 の時点で残り 168/200。LINE Official Account
   Manager の「グループ・複数人チャットへの参加を許可する」はオンにした
 - 関数の環境変数 `WEATHER_LATITUDE`・`WEATHER_LONGITUDE`
@@ -96,11 +95,14 @@ Docs「PlanterAI 開発計画」）にある。公開リポジトリには書か
     が要ると指摘されて直した（`/images/…` は本番で 404）。`cactus.png`・
     `everfresh.png` は jpg の白い背景を抜いて作った。元の jpg は
     `app/public/images/` に未追跡のまま置いてある
-- [ ] #109 のマージ（d6f024a）の Vercel のデプロイが、11/11 21:55 の時点で
-      まだ付いていない（`/app/images/cactus.png` が 404）。出ていなければ Vercel
-      の画面でデプロイを見る
-- [ ] #114（レビュー待ち）：返事に渡す今日の日照を、日次の判定の行だけから読む
-      （#106 のレビューの細かい指摘）。マージしたら `production` を承認する
+- [x] #109 は本番の画面に出ている。11/12 に `/app/images/cactus.png`・
+      `everfresh.png` が 200 を返すのを見た
+- [x] #114 返事に渡す今日の日照を、日次の判定の行だけから読む（#106
+      のレビューの細かい指摘）。11/12 にマージし、`production`
+      を承認して本番に入れた
+- [x] 11/12 に、中身が main に入り終えた #30（#108 と 3f81915）と #88（#94・
+      #103、ADR 0013・0014）を閉じた。#88 の残り（朝の天気のひとこと、日記に
+      天気を書く）は #104 に移した
 - [ ] 11/11 13:20 に植物の発言が4つ同時に記録され、1つは通知用の古い決まり文句
       （「今日はごきげんだよ」）だった。撮影で話しかけたものか、何かの不具合かを
       `conversation_logs` で確かめる
