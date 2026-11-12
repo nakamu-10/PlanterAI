@@ -13,7 +13,7 @@
   0011）で main（3a44ab4、#114 まで）を入れた（11/12 16:55 ごろ。migration
   なし、Edge Functions 7つ）。最後の migration は、11/11 9:40 に #103 と入れた
   `20261110000000_daily_weather`。main に `supabase/` の変更が入ると Summary
-  を出して止まり、中村か地引さんが `production` を承認すると入る
+  を出して止まり、承認者が `production` を承認すると入る
 - LINE の無料プランの通数は、11/9 の時点で残り 168/200。LINE Official Account
   Manager の「グループ・複数人チャットへの参加を許可する」はオンにした
 - 関数の環境変数 `WEATHER_LATITUDE`・`WEATHER_LONGITUDE`
