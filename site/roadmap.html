@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description"
-      content="PlanterAIの今後の展望。専用アプリ、複数植物の管理、カメラによる観察機能について。">
+      content="PlanterAIのいまできることと今後の展望。専用アプリ、複数植物の管理、カメラによる観察機能について。">
     <meta name="theme-color" content="#5FA36C">
     <link rel="icon" href="/favicon.png" type="image/png">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -147,14 +147,14 @@
           <div class="eyebrow">ROADMAP</div>
           <h1 class="heading">今後の展望</h1>
           <p class="lead"
-            data-reveal>LINEから届く言葉と、プランターに浮かぶ表情。ここまでは、すでに実機で動いています。次につくるのは、通知を待つだけではなく、こちらからカラ美に会いにいける体験です。</p>
+            data-reveal>LINEから届く言葉と、プランターに浮かぶ表情。そして、こちらからカラ美に会いにいける専用アプリ。ここまでは、すでに実機で動いています。次は、自分の植物をまとめて見守れるようにし、葉の様子まで読み取れるようにします。</p>
         </section>
 
         <section class="section editorial-section" id="roadmap-now"
           data-section-reveal>
           <h2 class="heading" data-reveal>いまできること</h2>
           <p class="lead"
-            data-reveal>センサーで測り、状態を判断し、カラ美の言葉に変えてLINEへ届ける。こちらから話しかければ会話が続き、OLEDにも表情が現れます。この一連の動作までは実装済みです。</p>
+            data-reveal>センサーで測り、状態を判断し、カラ美の言葉に変えてLINEへ届ける。こちらから話しかければ会話が続き、OLEDにも表情が現れます。専用アプリでは、いまの気分とセンサーの値を見ながら、カラ美に触れられます。ここまでは実装済みです。</p>
 
           <div class="phases" data-reveal-group>
             <div class="phase phase--done" data-reveal-item>
@@ -173,6 +173,22 @@
                   class="phase__text">こちらから話しかけると、カラ美が応答します。状態は判定し直さず、すでに確定した内容だけを参照します。</div>
               </div>
             </div>
+            <div class="phase phase--done" data-reveal-item>
+              <span class="phase__badge">実装済</span>
+              <div>
+                <div class="phase__title">触れると、カラ美が応える</div>
+                <div
+                  class="phase__text">専用アプリの中のカラ美をつつく・なでる・回す・長押しで持ち上げると、反応が返ってきます。返す言葉は、実際の鉢のいまの気分で変わります。<br /><a href="/app/">試してみる →</a></div>
+              </div>
+            </div>
+            <div class="phase phase--done" data-reveal-item>
+              <span class="phase__badge">実装済</span>
+              <div>
+                <div class="phase__title">記録と日記</div>
+                <div
+                  class="phase__text">気分の移り変わり、水やりの日、これまでの会話を、アプリの記録のページで振り返れます。毎晩その日の記録からカラ美が日記を書き、週に1回LINEに届けます。</div>
+              </div>
+            </div>
           </div>
 
           <h3 class="subheading" data-reveal>現在の技術構成</h3>
@@ -181,6 +197,8 @@
             <span class="tag-pill" data-reveal-item>Supabase</span>
             <span class="tag-pill" data-reveal-item>Gemini</span>
             <span class="tag-pill" data-reveal-item>LINE Messaging API</span>
+            <span class="tag-pill" data-reveal-item>three.js</span>
+            <span class="tag-pill" data-reveal-item>Vercel</span>
           </div>
         </section>
 
@@ -188,23 +206,15 @@
           data-section-reveal>
           <h2 class="heading" data-reveal>次につくるもの</h2>
           <p class="lead"
-            data-reveal>次に取り組んでいるのは、カラ美と直接触れ合える専用アプリです。LINEが異変を受け取る場所なら、アプリは用事がないときにも会いにいける場所。通知を見るだけだった関係を、こちらから関われるものへ広げます。</p>
+            data-reveal>LINEが異変を受け取る場所なら、専用アプリは用事がないときにも会いにいける場所です。次は、ひとりで育てている植物をまとめて見守れるようにし、センサーだけでは分からない葉の変化にも気づけるようにします。</p>
 
           <div class="phases" data-reveal-group>
             <div class="phase phase--active" data-reveal-item>
-              <span class="phase__badge">開発中</span>
-              <div>
-                <div class="phase__title">触れると、カラ美が応える</div>
-                <div
-                  class="phase__text">画面の中のカラ美をつまんだり、触れたり、話しかけたりすると、そのときの植物の状態に合わせて反応が変わる予定です。<br /><a href="/app/">試してみる →</a></div>
-              </div>
-            </div>
-            <div class="phase" data-reveal-item>
-              <span class="phase__badge">これから</span>
+              <span class="phase__badge">一部実装</span>
               <div>
                 <div class="phase__title">複数の植物を、ひとつの場所で</div>
                 <div
-                  class="phase__text">複数の植物をまとめて管理し、これまでの状態や会話を振り返れるようにします。</div>
+                  class="phase__text">展示する鉢は、アプリで切り替えて見られます。次は、ログインして自分の鉢だけをまとめて見守れるようにします。</div>
               </div>
             </div>
             <div class="phase" data-reveal-item>
