@@ -87,6 +87,7 @@
       <a href="/index.html" class="chrome-mark-link"
         aria-label="PlanterAI トップページへ"><img src="/images/karami.png" alt="PlanterAI" class="chrome-mark" /></a>
       <div class="chrome-top__right">
+        <a class="chrome-top__live" href="#pots">植物の様子を見る</a>
         <span class="chrome-top__label mono">U☆PoC 2026</span>
         <button class="chrome-menu-btn" id="menuBtn" aria-label="メニューを開く"
           aria-expanded="false" aria-controls="chromeMenu">
@@ -169,6 +170,35 @@
           </div>
           <p class="hero__lead"
             id="heroLead">PlanterAIは、植物の状態を言葉にして届けるIoTプランターです。土壌水分、照度、温度、湿度をセンサーで測り、水が足りないときや日差しが強すぎるときには、カラテアの<strong>カラ美</strong>からLINEが届きます。</p>
+
+          <div class="pot-chooser" id="pots">
+            <h2 class="pot-chooser__title">展示中の植物の、いまの様子を見る</h2>
+            <p
+              class="pot-chooser__text">鉢のセンサーから届いた値と、植物の気分を見られます。見たい植物を選んでください。</p>
+            <div class="pot-chooser__list">
+              <a class="pot-card" data-pot="karami" href="/app/?pot=karami">
+                <img class="pot-card__image" src="/images/pots/karami.webp"
+                  alt="" width="320" height="377" />
+                <span class="pot-card__name">カラ美</span>
+                <span class="pot-card__kind">甘えん坊</span>
+                <span class="pot-card__status">様子を見る</span>
+              </a>
+              <a class="pot-card is-soon" data-pot="cactus">
+                <img class="pot-card__image" src="/images/pots/cactus.webp"
+                  alt="" width="320" height="434" />
+                <span class="pot-card__name">サボテン</span>
+                <span class="pot-card__kind">元気者</span>
+                <span class="pot-card__status">準備中</span>
+              </a>
+              <a class="pot-card is-soon" data-pot="everfresh">
+                <img class="pot-card__image" src="/images/pots/everfresh.webp"
+                  alt="" width="320" height="316" />
+                <span class="pot-card__name">エバー<wbr />フレッシュ</span>
+                <span class="pot-card__kind">眠たがり</span>
+                <span class="pot-card__status">準備中</span>
+              </a>
+            </div>
+          </div>
 
           <div class="hero__evidence" id="heroChat">
             <img src="/images/line-chat.jpg"
