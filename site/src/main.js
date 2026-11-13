@@ -3,6 +3,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { MotionPathPlugin } from "gsap/MotionPathPlugin";
 import Lenis from "lenis";
+import { setupPotChooser } from "./pots.js";
 
 gsap.registerPlugin(ScrollTrigger, MotionPathPlugin);
 
@@ -90,6 +91,7 @@ function setupHero() {
   const planter = document.getElementById("heroPlanter");
   const signature = document.getElementById("heroSignature");
   const lead = document.getElementById("heroLead");
+  const potChooser = document.getElementById("pots");
   if (!planter) return () => {};
 
   const titleLines = document.querySelectorAll(
@@ -104,7 +106,10 @@ function setupHero() {
 
   if (reduceMotion) return () => {};
 
-  gsap.set([signature, lead].filter(Boolean), { opacity: 0, y: 16 });
+  gsap.set([signature, lead, potChooser].filter(Boolean), {
+    opacity: 0,
+    y: 16,
+  });
   gsap.set(titleLines, { yPercent: 110 });
   gsap.set(planter, {
     opacity: 0,
@@ -138,6 +143,9 @@ function setupHero() {
       }, 0.24);
     if (signature) tl.to(signature, { opacity: 1, y: 0, duration: 0.6 }, 0.65);
     if (lead) tl.to(lead, { opacity: 1, y: 0, duration: 0.6 }, "-=0.5");
+    if (potChooser) {
+      tl.to(potChooser, { opacity: 1, y: 0, duration: 0.6 }, "-=0.3");
+    }
     if (chat) tl.to(chat, { opacity: 1, y: 0, duration: 0.7 }, "-=0.3");
     if (messages.length) {
       tl.to(
@@ -403,6 +411,7 @@ function runPreloader(onComplete) {
 }
 
 const playHero = setupHero();
+setupPotChooser(import.meta.env.VITE_SUPABASE_FUNCTIONS_URL);
 
 runPreloader(() => {
   setupSmoothScroll();

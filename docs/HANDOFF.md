@@ -172,7 +172,10 @@ Docs「PlanterAI 開発計画」）にある。公開リポジトリには書か
         に入るのを見る。そのあと
         `update devices set public_slug = 'cactus', created_at = now() where plant_profile = 'cactus'`
         で `/app/?pot=cactus` に出す（日数をつないだ日から数えるため
-        `created_at` も直す）。名前が決まったら `plant_name` も変える
+        `created_at` も直す）。名前が決まったら `plant_name` も変える。
+        `public_slug` を入れると、公式サイトのトップの3択も「準備中」から
+        「様子を見る」に変わる（サイトの作り直しは要らない）。サイトは
+        `cactus`・`everfresh` の名前で探すので、この名前のまま入れる
   - [x] エバーフレッシュの鉢も同じように登録した（11/8。名前は仮の
         「エバーフレッシュ」、眠たがり、LINE なし、`public_slug` なし）。 ESP32
         をつなぐ手順はサボテンと同じで、`'cactus'` を `'everfresh'` に読み替える

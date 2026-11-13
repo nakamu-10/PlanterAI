@@ -333,6 +333,112 @@ a:hover {
   text-align: center;
 }
 
+/* トップの、展示中の3鉢から選んでアプリで様子を見る欄 */
+.pot-chooser {
+  /* スクロールで下りてくる鉢の絵（.hero__planter-anchor）より前に出し、透けさせない */
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  margin-top: 28px;
+  padding: 22px 12px 16px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--wash) 86%, white);
+  border: 1px solid var(--panel-border);
+  text-align: center;
+  /* 上の固定のバーに見出しが隠れないように */
+  scroll-margin-top: 84px;
+}
+.pot-chooser__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--on-wash);
+}
+.pot-chooser__text {
+  margin: 8px 6px 0;
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--on-wash-soft);
+  text-wrap: pretty;
+}
+.pot-chooser__list {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.pot-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 4px;
+  border-radius: 16px;
+  background: var(--card);
+  color: var(--green-800);
+  text-decoration: none;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .16);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.pot-card[href]:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, .22);
+}
+.pot-card[href]:focus-visible {
+  outline: 3px solid var(--green-300);
+  outline-offset: 3px;
+}
+.pot-card__image {
+  width: 100%;
+  height: 96px;
+  object-fit: contain;
+}
+.pot-card__name {
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  /* 「エバー」と「フレッシュ」の間（<wbr>）でだけ折り返す */
+  word-break: keep-all;
+}
+.pot-card__kind {
+  margin: 2px 0 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+/* 名前が2行になっても、ボタンの位置を3つでそろえる */
+.pot-card__status {
+  margin-top: auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--green-700);
+  color: var(--on-wash);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pot-card.is-soon {
+  background: color-mix(in srgb, var(--wash) 90%, black);
+  color: var(--on-wash);
+  box-shadow: none;
+}
+.pot-card.is-soon .pot-card__image {
+  opacity: .5;
+  filter: grayscale(.6);
+}
+.pot-card.is-soon .pot-card__kind {
+  color: var(--on-wash-ghost);
+}
+.pot-card.is-soon .pot-card__status {
+  background: none;
+  border: 1px solid var(--panel-border);
+  color: var(--on-wash-soft);
+}
+
 /* ---------- hero demo video (embedded, no outbound navigation) ---------- */
 .hero__video {
   width: 100%;
@@ -1293,6 +1399,24 @@ a:hover {
 }
 .page-top .chrome-top__label {
   display: none;
+}
+/* どのページからも、トップの3鉢の欄へ飛べるボタン */
+.chrome-top__live {
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--green-800);
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .18);
+}
+.chrome-top__live:hover {
+  background: var(--green-300);
+  color: var(--green-900);
 }
 .chrome-menu-btn {
   width: 44px;
