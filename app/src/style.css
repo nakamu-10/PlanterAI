@@ -466,6 +466,10 @@ a:hover {
   font-size: 11px;
   color: #56645A;
 }
+/* 狭い画面で折り返すときも「（目標比）」をまとめて次の行に送り、括弧の途中で切らない */
+.numbers-value__label-unit {
+  white-space: nowrap;
+}
 .numbers-value__num {
   font-family: var(--font-mono);
   font-size: 22px;
