@@ -5,7 +5,7 @@
 `docs/adr/`、急がないタスクや相談は GitHub Issues
 に書き、ここには「今どこまで進んでいて、次に何をするか」だけを残す。
 
-最終更新：2026-11-16
+最終更新：2026-11-19
 
 ## 今の状態
 
@@ -33,8 +33,11 @@
 - 3D
   のカラ美は、回す（#23）、長押しで持ち上げてジタバタ（#24）ができる。作り方は
   `docs/avatar.md`（#33）
-- LINE の返答は Gemini が生成している（直近7日の `conversation_logs` は
-  source=llm、finish_reason=STOP）
+- LINE の返答は Gemini（`gemini-3.6-flash`）が生成している。11/17 から 503
+  （Google 側の混雑）と時間切れで定型文が増えた（11/18 は 7件中5件）。503・429
+  のときは `gemini-3.5-flash-lite` で作り直すようにした（ADR 0015、
+  `fix/llm-fallback-model`）。マージしてデプロイしたら、`conversation_logs` の
+  source=fallback が減ったかを見る
 - 本番の pg_cron と pg_net は 11/6 夜に有効にした（それまで無く、週のまとめは
   一度も自動で動いていなかった）。ジョブは `x-cron-key` を Vault の
   `cron_secret` から読む（関数の `CRON_SECRET` と同じ値）。登録済みは
