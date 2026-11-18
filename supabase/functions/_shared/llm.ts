@@ -181,9 +181,13 @@ ${SENTENCE_END_RULE}
 - 60文字以内。メッセージ本文のみを出力し、引用符や説明は付けないでください。`;
 }
 
-// Gemini Flash API 呼び出し
-const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
+export const GEMINI_MODEL = "gemini-3.6-flash";
+// 503（混雑）と 429 は、モデルごとに起きる。同じモデルに投げ直すより、
+// 別のモデルのほうが通りやすい（ADR 0015）
+export const GEMINI_FALLBACK_MODEL = "gemini-3.5-flash-lite";
+
+const geminiUrl = (model: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
 /**
  * LLM呼び出しプロファイル。
@@ -285,6 +289,7 @@ export function describeLlmFailure(e: unknown): string {
 /** Gemini を1回叩く。打ち切り（MAX_TOKENS等）・HTTPエラーは例外にする。 */
 async function callGeminiOnce(
   prompt: string,
+  model: string,
   cfg: LlmConfig,
   label: string,
   timeoutMs: number,
@@ -293,7 +298,7 @@ async function callGeminiOnce(
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) throw new Error("環境変数 GEMINI_API_KEY が設定されていません");
 
-  const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+  const res = await fetch(`${geminiUrl(model)}?key=${apiKey}`, {
     method: "POST",
     signal: AbortSignal.timeout(timeoutMs),
     headers: { "Content-Type": "application/json" },
@@ -314,7 +319,7 @@ async function callGeminiOnce(
     // 「100%失敗する設定が入っている」ことに外から気づけなかった。
     // Edge Function のログ保持は短いので、痕跡は DB 側にも残す（呼び出し元）。
     console.error(
-      `[llm] HTTP ${res.status} (profile=${label}, thinking=${cfg.thinkingLevel}, maxOutputTokens=${cfg.maxOutputTokens}): ${
+      `[llm] HTTP ${res.status} (model=${model}, profile=${label}, thinking=${cfg.thinkingLevel}, maxOutputTokens=${cfg.maxOutputTokens}): ${
         body.slice(0, 500)
       }`,
     );
@@ -375,6 +380,8 @@ async function callGeminiOnce(
  * セリフを生成する。
  * 打ち切り・空応答・一時的なHTTPエラー（429/5xx）のときだけ、
  * 条件を変えて（LLM_RETRY_CONFIG）1回だけ再生成する。
+ * HTTPエラーのときは、予備のモデル（GEMINI_FALLBACK_MODEL）で作り直す。
+ * 時間切れは作り直さない。待っている人がいるので、もう1回待たせる余裕がない。
  * 400 のような恒久的な失敗は再試行せず即 throw する（何度やっても同じ）。
  * 最終的に失敗したら呼び出し側で catch してテンプレ（fallbackMessage）に
  * フォールバックし、その事実を conversation_logs に記録すること。
@@ -398,28 +405,27 @@ export async function generateMessage(
   try {
     return await callGeminiOnce(
       prompt,
+      GEMINI_MODEL,
       LLM_PROFILES[profile],
       profile,
       timeoutMs,
       checkSentenceEnd,
     );
   } catch (e) {
-    const retryable = e instanceof LlmTruncatedError ||
-      e instanceof LlmEmptyResponseError ||
-      (e instanceof LlmHttpError && e.retryable);
+    const httpFailed = e instanceof LlmHttpError && e.retryable;
+    const retryable = httpFailed || e instanceof LlmTruncatedError ||
+      e instanceof LlmEmptyResponseError;
     if (!retryable) throw e;
 
+    const model = httpFailed ? GEMINI_FALLBACK_MODEL : GEMINI_MODEL;
     console.warn(
-      `[llm] 1回目が失敗、条件を変えて再生成します (${
+      `[llm] 1回目が失敗、${model} で条件を変えて再生成します (${
         describeLlmFailure(e)
       }): ${(e as Error).message}`,
     );
-    // レート制限・サーバ側エラーは間を空けないと同じ結果になりやすい
-    if (e instanceof LlmHttpError) {
-      await new Promise((r) => setTimeout(r, 500));
-    }
     return await callGeminiOnce(
       prompt,
+      model,
       LLM_RETRY_CONFIG,
       "retry",
       timeoutMs,
