@@ -4,6 +4,7 @@ import {
   daysTogether,
   decideBubble,
   describeAgo,
+  describeComfort,
   describeForecast,
   describeLightToday,
   imageFor,
@@ -244,6 +245,30 @@ assert(
   "2D 版の案内に、3D でしかできないことを書かない",
   !TOUCH_HINT_2D.includes("回す") && !TOUCH_HINT_2D.includes("持ち上げ"),
 );
+
+console.log("--- 数値の画面の、快適かどうかの言葉 ---");
+{
+  // サボテンの土の水分（快適 10〜40%）
+  const range = { comfort_low: 10, comfort_high: 40 };
+  assert("帯の中は快適", describeComfort(25, range, 100)?.text === "快適");
+  assert(
+    "帯の上でも、気分が訴えない点数なら少し多め",
+    describeComfort(45, range, 87)?.text === "少し多め",
+  );
+  assert(
+    "帯の下でも、気分が訴えない点数なら少し少なめ",
+    describeComfort(8, range, 90)?.text === "少し少なめ",
+  );
+  assert(
+    "気分が訴える点数なら範囲外",
+    describeComfort(55, range, 62)?.text === "範囲外",
+  );
+  assert(
+    "点数が無いときは、帯の外を範囲外にする",
+    describeComfort(45, range, undefined)?.text === "範囲外",
+  );
+  assert("値が無いときは出さない", describeComfort(null, range, 100) === null);
+}
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

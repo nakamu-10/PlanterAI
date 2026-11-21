@@ -2,6 +2,7 @@ import { fetchDashboard } from "./api.js";
 import {
   daysTogether,
   describeAgo,
+  describeComfort,
   describeForecast,
   describeLightToday,
 } from "./home.logic.js";
@@ -26,12 +27,12 @@ function svg(tag, attrs, text) {
   return el;
 }
 
-// 快適かどうかは、色だけでなく言葉でも出す。基準はグラフの帯と同じ快適な範囲
-function statusLabel(value, range) {
-  if (typeof value !== "number" || !range) return null;
-  return value >= range.comfort_low && value <= range.comfort_high
-    ? ["快適", LINE]
-    : ["範囲外", WARN];
+// 快適かどうかは、色だけでなく言葉でも出す
+const TONE_COLOR = { ok: LINE, near: INK_SOFT, warn: WARN };
+
+function statusLabel(value, range, score) {
+  const status = describeComfort(value, range, score);
+  return status && [status.text, TONE_COLOR[status.tone]];
 }
 
 function setValue(id, text, unit, status) {
@@ -363,23 +364,24 @@ async function load() {
 
     const f = data.latest_sensor?.filtered ?? {};
     const trends = data.trends;
+    const scores = data.latest_sensor?.scores ?? {};
     setValue(
       "valueMoisture",
       fixed(f.moisture_pct, 0),
       "%",
-      statusLabel(f.moisture_pct, trends?.moisture),
+      statusLabel(f.moisture_pct, trends?.moisture, scores.moisture),
     );
     setValue(
       "valueTemp",
       fixed(f.temp, 1),
       "℃",
-      statusLabel(f.temp, trends?.temp),
+      statusLabel(f.temp, trends?.temp, scores.temp),
     );
     setValue(
       "valueHumidity",
       fixed(f.humidity_pct, 0),
       "%",
-      statusLabel(f.humidity_pct, trends?.humidity),
+      statusLabel(f.humidity_pct, trends?.humidity, scores.humidity),
     );
     if (!trends) {
       // 推移を出せない鉢（新しい植物の設定が、まだ本番に無いときなど）
