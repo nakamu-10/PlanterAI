@@ -81,6 +81,25 @@ export function daysTogether(createdIso, now = Date.now()) {
   return jstDay(now) - jstDay(Date.parse(createdIso)) + 1;
 }
 
+// 感情エンジンは、点数がこれ以上なら訴えない（emotionTable.ts の scoreToUrgency）
+const COMFORT_SCORE = 80;
+
+// 数値の画面の「快適」などの言葉。帯の外でも気分が訴えない間は「少し多め」と言い、
+// 「範囲外」なのに満足している、と見えないようにする
+export function describeComfort(value, range, score) {
+  if (typeof value !== "number" || !range) return null;
+  if (value >= range.comfort_low && value <= range.comfort_high) {
+    return { text: "快適", tone: "ok" };
+  }
+  if (typeof score === "number" && score >= COMFORT_SCORE) {
+    return {
+      text: value > range.comfort_high ? "少し多め" : "少し少なめ",
+      tone: "near",
+    };
+  }
+  return { text: "範囲外", tone: "warn" };
+}
+
 // 土が乾くまでの見込み（app-data の trends.moisture.forecast）を言葉にする
 export function describeForecast(forecast) {
   switch (forecast?.status) {
