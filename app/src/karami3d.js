@@ -212,8 +212,9 @@ export async function createKarami(container, modelName = "karami") {
   // 部屋を焼いたときの暖かい光に合わせる。下からの照り返しは床の茶色
   scene.add(new THREE.HemisphereLight(0xfff1e0, 0xa57a55, 2.4));
   const sun = new THREE.DirectionalLight(0xffe2c4, 2.0);
-  // カメラから見て右前の上から当てる（部屋に入る前の、正面から見ていたときと同じ当たり方）
-  sun.position.set(1, 2, 2).applyQuaternion(actor.quaternion);
+  // カメラから見て右前の、やや低い所から当てる。カメラがほぼ正面にあるので、
+  // 上からだと前を向いた顔に光が届かず暗く見える
+  sun.position.set(0.8, 1.0, 2).applyQuaternion(actor.quaternion);
   scene.add(sun);
 
   // 葉（土の水分）・体（気分）・涙を別々に、目標へなめらかに近づける
