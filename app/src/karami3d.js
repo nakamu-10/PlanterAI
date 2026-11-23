@@ -46,6 +46,47 @@ const FOCUS_HEIGHT = 1.1;
 // 部屋を Blender で焼いたときと同じ、斜め上から見下ろす向き
 const VIEW_DIRECTION = new THREE.Vector3(7.5, 5.0, 7.1).normalize();
 
+// 焼いた部屋に、キャラの色の明るさを合わせる値（目で見て決めた）
+const ROOM_EXPOSURE = 1.0;
+const SHADOW_OPACITY = 0.55;
+
+// 足元の丸い影。部屋は光を焼き込んであって影を落とせないので、ぼかした円を床に敷く
+function createContactShadow() {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const gradient = ctx.createRadialGradient(
+    size / 2,
+    size / 2,
+    0,
+    size / 2,
+    size / 2,
+    size / 2,
+  );
+  gradient.addColorStop(0, "rgba(60, 35, 20, 1)");
+  gradient.addColorStop(0.5, "rgba(60, 35, 20, 0.6)");
+  gradient.addColorStop(1, "rgba(60, 35, 20, 0)");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const shadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.75, 0.75),
+    new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      opacity: SHADOW_OPACITY,
+      depthWrite: false,
+      toneMapped: false,
+    }),
+  );
+  shadow.rotation.x = -Math.PI / 2;
+  // 床とちらつかないよう、ほんの少し浮かせる
+  shadow.position.y = 0.004;
+  return shadow;
+}
+
 // 動きは Blender で作り、glb に入れてある（app/models-src/*.blend）。
 // どのモデルも骨と動きの名前をカラ美にそろえてあるので、同じ操作で動く。
 // 待機（Idle）としおれ（Wilt）は常に流して混ぜ、ほかは1回だけ流す
@@ -110,6 +151,11 @@ export async function createKarami(container, modelName = "karami") {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  // 明るい所を部屋の焼いた絵のように柔らかく落とす。three.js の AgX は Blender の
+  // High Contrast より色が抜けてキャラがくすむので、色を保つ Neutral にする
+  // （焼いた部屋は toneMapped: false なので、二重にはかからない）
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = ROOM_EXPOSURE;
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -123,6 +169,8 @@ export async function createKarami(container, modelName = "karami") {
   actor.lookAt(spot.look.x, spot.at.y, spot.look.z);
   actor.scale.setScalar(CHARACTER_SCALE);
   actor.add(model);
+  const shadow = createContactShadow();
+  actor.add(shadow);
   scene.add(actor);
   actor.updateMatrixWorld(true);
 
@@ -155,8 +203,9 @@ export async function createKarami(container, modelName = "karami") {
       .addScaledVector(VIEW_DIRECTION, 12);
   }
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xb8d8a8, 2.2));
-  const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+  // 部屋を焼いたときの暖かい光に合わせる。下からの照り返しは床の茶色
+  scene.add(new THREE.HemisphereLight(0xfff1e0, 0xa57a55, 2.4));
+  const sun = new THREE.DirectionalLight(0xffe2c4, 2.0);
   // カメラから見て右前の上から当てる（部屋に入る前の、正面から見ていたときと同じ当たり方）
   sun.position.set(1, 2, 2).applyQuaternion(actor.quaternion);
   scene.add(sun);
@@ -288,6 +337,11 @@ export async function createKarami(container, modelName = "karami") {
       swing *= Math.exp(-dt * 6);
     }
     model.rotation.z = swing;
+    // 影は足元の真下の床に残し、持ち上げるほど小さく薄くする
+    const lift = model.position.y;
+    shadow.position.x = model.position.x;
+    shadow.scale.setScalar(1 / (1 + lift * 2));
+    shadow.material.opacity = SHADOW_OPACITY / (1 + lift * 4);
 
     mixer.update(dt);
     // 1回だけの動き（喜ぶなど）の間は涙を引っ込める。0 にすると向きが壊れるので小さく残す
