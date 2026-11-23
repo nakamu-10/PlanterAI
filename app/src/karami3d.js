@@ -42,9 +42,15 @@ const CHARACTER_SCALE = 1.35;
 // 残りは横にスワイプして見回す
 const VIEW_HEIGHT = 2.8;
 // 写す中心の、立ち位置からの高さ[m]。頭の上の壁（時計・棚）まで入れる
-const FOCUS_HEIGHT = 1.1;
-// 部屋を Blender で焼いたときと同じ、斜め上から見下ろす向き
-const VIEW_DIRECTION = new THREE.Vector3(7.5, 5.0, 7.1).normalize();
+const FOCUS_HEIGHT = 0.95;
+// 部屋を焼いたときと同じ斜めの向きから、少しだけ見下ろす（12°）。
+// 正面から見ていた前の構図に近づけ、キャラの顔がよく見えるようにする
+const VIEW_ELEVATION = THREE.MathUtils.degToRad(12);
+const VIEW_DIRECTION = new THREE.Vector3(
+  Math.cos(VIEW_ELEVATION) * Math.SQRT1_2,
+  Math.sin(VIEW_ELEVATION),
+  Math.cos(VIEW_ELEVATION) * Math.SQRT1_2,
+);
 
 // 焼いた部屋に、キャラの色の明るさを合わせる値（目で見て決めた）
 const ROOM_EXPOSURE = 1.0;
