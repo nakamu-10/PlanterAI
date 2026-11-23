@@ -15,6 +15,7 @@ import {
   imageFor,
   isOnHeadArea,
   modelFor,
+  propPage,
   TOUCH_HINT_2D,
 } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
@@ -234,8 +235,18 @@ async function setup3d(model) {
     // （座標が混ざって激しく回ったり、離したことに気づけなくなったりする）。
     // isPrimary では見ない。カラ美の外に置かれた1本目の指が、ほかの人の指を弾いてしまう
     if (press || e.button !== 0) return;
-    if (!karami3d.touches(e.clientX, e.clientY)) return;
     canvas.setPointerCapture(e.pointerId);
+    // カラ美の外は部屋。横にドラッグしたら見回し、動かさずに離したら家具を触る
+    if (!karami3d.touches(e.clientX, e.clientY)) {
+      press = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        lastX: e.clientX,
+        mode: "room",
+      };
+      return;
+    }
     press = {
       pointerId: e.pointerId,
       startX: e.clientX,
@@ -256,12 +267,14 @@ async function setup3d(model) {
     if (press?.pointerId !== e.pointerId) return;
     const dx = e.clientX - press.startX;
     const dy = e.clientY - press.startY;
+    if (press.mode === "room" && Math.hypot(dx, dy) > 10) press.mode = "look";
     if (press.mode === null && Math.hypot(dx, dy) > 10) {
       // 体でも、縦になでたときはなでる
       press.mode = press.onHead || Math.abs(dy) > Math.abs(dx) ? "pet" : "turn";
     }
     if (press.mode === "turn") karami3d.turn(e.clientX - press.lastX);
     if (press.mode === "lift") karami3d.moveHeld(e.clientX, e.clientY);
+    if (press.mode === "look") karami3d.pan(e.clientX - press.lastX);
     press.lastX = e.clientX;
   });
   const release = (e, cancelled) => {
@@ -276,6 +289,8 @@ async function setup3d(model) {
     } else if (!cancelled && press.mode === null) {
       karami3d.poke();
       showReaction("poke");
+    } else if (!cancelled && press.mode === "room") {
+      openProp(press.startX, press.startY);
     }
     press = null;
   };
@@ -284,6 +299,14 @@ async function setup3d(model) {
   // 離した合図が来ないまま指を見失っても、press が残ると次から触れなくなる。
   // 普通に離したときは pointerup のあとに来るが、press が空なので何もしない
   canvas.addEventListener("lostpointercapture", (e) => release(e, true));
+}
+
+function openProp(clientX, clientY) {
+  const page = propPage(
+    karami3d.touchedProp(clientX, clientY),
+    location.search,
+  );
+  if (page) location.href = page;
 }
 
 function describeForced() {

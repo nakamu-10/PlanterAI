@@ -10,8 +10,10 @@ import {
   isOnHeadArea,
   isStaleMessage,
   modelFor,
+  propPage,
   shouldShowLastMessage,
   TOUCH_HINT_2D,
+  touchRoleOf,
 } from "../app/src/home.logic.js";
 
 let pass = 0;
@@ -244,6 +246,25 @@ assert(
   "2D 版の案内に、3D でしかできないことを書かない",
   !TOUCH_HINT_2D.includes("回す") && !TOUCH_HINT_2D.includes("持ち上げ"),
 );
+
+console.log("--- 部屋の家具を触る ---");
+{
+  const board = { userData: { touch: "calendar" }, parent: null };
+  const pin = { userData: {}, parent: board };
+  assert("家具そのものの役目を読む", touchRoleOf(board) === "calendar");
+  assert("役目は親からも読む", touchRoleOf(pin) === "calendar");
+  assert(
+    "役目のない物は null",
+    touchRoleOf({ userData: {}, parent: null }) === null,
+  );
+}
+assert(
+  "カレンダーは、鉢を保ったまま記録を開く",
+  propPage("calendar", "?pot=sabotaro&demo") ===
+    "records.html?pot=sabotaro&demo",
+);
+assert("ページのない家具は開かない", propPage("sofa", "") === null);
+assert("何も触っていなければ開かない", propPage(null, "") === null);
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
