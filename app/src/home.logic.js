@@ -1,4 +1,5 @@
 // ホームの表示を決める計算。DOM と three.js に依存しないので、ここだけテストできる
+import { COMFORT_SCORE } from "./mood.js";
 
 // 植物の種類ごとの 3D モデル（app/public/models/ のファイル名）。
 // モデルがまだ無い植物は、カラ美で表す
@@ -81,11 +82,43 @@ export function daysTogether(createdIso, now = Date.now()) {
   return jstDay(now) - jstDay(Date.parse(createdIso)) + 1;
 }
 
-// 土が乾くまでの見込み（app-data の trends.moisture.forecast）を言葉にする
-export function describeForecast(forecast) {
+export const isComfortable = (score) =>
+  typeof score === "number" && score >= COMFORT_SCORE;
+
+// 帯の外でも気分が訴えない間の言葉。量（水分・湿度）と温度で言い方を変える
+export const NEAR_WORDS = {
+  amount: { high: "少し多め", low: "少し少なめ" },
+  temp: { high: "少し高め", low: "少し低め" },
+};
+
+// 数値の画面の「快適」などの言葉。帯の外でも気分が訴えない間は「少し多め」と言い、
+// 「範囲外」なのに満足している、と見えないようにする
+export function describeComfort(
+  value,
+  range,
+  score,
+  words = NEAR_WORDS.amount,
+) {
+  if (typeof value !== "number" || !range) return null;
+  if (value >= range.comfort_low && value <= range.comfort_high) {
+    return { text: "快適", tone: "ok" };
+  }
+  if (isComfortable(score)) {
+    return {
+      text: value > range.comfort_high ? words.high : words.low,
+      tone: "near",
+    };
+  }
+  return { text: "範囲外", tone: "warn" };
+}
+
+// 土が乾くまでの見込み（app-data の trends.moisture.forecast）を言葉にする。
+// 見込みは快適の下限で「乾いた」とするが、気分はまだ訴えない（score が COMFORT_SCORE 以上）
+// 間は「そろそろ」と言い、数値の画面の「少し少なめ」と食い違わないようにする
+export function describeForecast(forecast, score) {
   switch (forecast?.status) {
     case "dry":
-      return "今すぐ";
+      return isComfortable(score) ? "そろそろ" : "今すぐ";
     case "steady":
       return "しばらく先";
     case "drying":

@@ -2,8 +2,11 @@ import { fetchDashboard } from "./api.js";
 import {
   daysTogether,
   describeAgo,
+  describeComfort,
   describeForecast,
   describeLightToday,
+  isComfortable,
+  NEAR_WORDS,
 } from "./home.logic.js";
 import { keepQueryOnLinks } from "./potSwitcher.js";
 
@@ -26,12 +29,12 @@ function svg(tag, attrs, text) {
   return el;
 }
 
-// 快適かどうかは、色だけでなく言葉でも出す。基準はグラフの帯と同じ快適な範囲
-function statusLabel(value, range) {
-  if (typeof value !== "number" || !range) return null;
-  return value >= range.comfort_low && value <= range.comfort_high
-    ? ["快適", LINE]
-    : ["範囲外", WARN];
+// 快適かどうかは、色だけでなく言葉でも出す
+const TONE_COLOR = { ok: LINE, near: INK_SOFT, warn: WARN };
+
+function statusLabel(value, range, score, words) {
+  const status = describeComfort(value, range, score, words);
+  return status && [status.text, TONE_COLOR[status.tone]];
 }
 
 function setValue(id, text, unit, status) {
@@ -245,7 +248,7 @@ function lineChart(container, {
   container.replaceChildren(root);
 }
 
-function renderMoisture(trends, now) {
+function renderMoisture(trends, now, moistureScore) {
   const m = trends.moisture;
   const points = trends.hourly.map((h) => ({
     t: Date.parse(h.at) + HOUR_MS / 2,
@@ -298,6 +301,9 @@ function renderMoisture(trends, now) {
       "まだ見込みを出せません（水やりの直後や、鉢からの送信が止まっているときは、数時間分のデータが要ります）。";
   } else if (f.status === "steady") {
     note.textContent = "今のペースでは、しばらく乾く心配はありません。";
+  } else if (f.status === "dry" && isComfortable(moistureScore)) {
+    note.textContent =
+      `快適の下限 ${m.comfort_low}% まで乾きました。そろそろ水やりの時期です。`;
   } else if (f.status === "dry") {
     note.textContent =
       `土が乾いています（快適の下限 ${m.comfort_low}% より下）。`;
@@ -363,23 +369,24 @@ async function load() {
 
     const f = data.latest_sensor?.filtered ?? {};
     const trends = data.trends;
+    const scores = data.latest_sensor?.scores ?? {};
     setValue(
       "valueMoisture",
       fixed(f.moisture_pct, 0),
       "%",
-      statusLabel(f.moisture_pct, trends?.moisture),
+      statusLabel(f.moisture_pct, trends?.moisture, scores.moisture),
     );
     setValue(
       "valueTemp",
       fixed(f.temp, 1),
       "℃",
-      statusLabel(f.temp, trends?.temp),
+      statusLabel(f.temp, trends?.temp, scores.temp, NEAR_WORDS.temp),
     );
     setValue(
       "valueHumidity",
       fixed(f.humidity_pct, 0),
       "%",
-      statusLabel(f.humidity_pct, trends?.humidity),
+      statusLabel(f.humidity_pct, trends?.humidity, scores.humidity),
     );
     if (!trends) {
       // 推移を出せない鉢（新しい植物の設定が、まだ本番に無いときなど）
@@ -397,7 +404,7 @@ async function load() {
         light.reached ? ["足りている", LINE] : null,
       );
       showLightProgress(light);
-      renderMoisture(trends, now);
+      renderMoisture(trends, now, scores.moisture);
       renderDayChart("tempChart", trends.hourly, now, {
         range: trends.temp,
         key: "temp",

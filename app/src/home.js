@@ -333,6 +333,7 @@ function renderStatus(data, latest) {
   statusMoodNote.textContent = latest?.complaint ?? "";
   statusNextWatering.textContent = describeForecast(
     data.trends?.moisture.forecast,
+    data.latest_sensor?.scores?.moisture,
   );
   statusWatering.textContent = data.latest_watering
     ? describeAgo(data.latest_watering.created_at)
