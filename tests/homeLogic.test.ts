@@ -11,6 +11,7 @@ import {
   isOnHeadArea,
   isStaleMessage,
   modelFor,
+  NEAR_WORDS,
   shouldShowLastMessage,
   TOUCH_HINT_2D,
 } from "../app/src/home.logic.js";
@@ -268,7 +269,40 @@ console.log("--- 数値の画面の、快適かどうかの言葉 ---");
     describeComfort(45, range, undefined)?.text === "範囲外",
   );
   assert("値が無いときは出さない", describeComfort(null, range, 100) === null);
+  assert(
+    "下限ちょうどは快適",
+    describeComfort(10, range, 100)?.tone === "ok",
+  );
+  assert(
+    "上限ちょうどは快適",
+    describeComfort(40, range, 50)?.tone === "ok",
+  );
+  assert(
+    "点数がちょうど 80 なら、気分が訴えないので near",
+    describeComfort(45, range, 80)?.tone === "near",
+  );
+  assert(
+    "点数が 79 なら、気分が訴えるので warn",
+    describeComfort(45, range, 79)?.tone === "warn",
+  );
+  const temp = { comfort_low: 15, comfort_high: 30 };
+  assert(
+    "温度は少し高め",
+    describeComfort(32, temp, 90, NEAR_WORDS.temp)?.text === "少し高め",
+  );
+  assert(
+    "温度は少し低め",
+    describeComfort(13, temp, 90, NEAR_WORDS.temp)?.text === "少し低め",
+  );
 }
+assert(
+  "下限まで乾いても、気分が訴えない間は「そろそろ」",
+  describeForecast({ status: "dry" }, 85) === "そろそろ",
+);
+assert(
+  "気分が訴える点数なら「今すぐ」",
+  describeForecast({ status: "dry" }, 79) === "今すぐ",
+);
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
