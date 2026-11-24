@@ -312,7 +312,8 @@ function openProp(clientX, clientY) {
     karami3d.touchedProp(clientX, clientY),
     location.search,
   );
-  if (page) location.href = page;
+  // 相対の URL だと、末尾のスラッシュが無い /app で開いたときに /records.html へ飛んでしまう
+  if (page) location.href = `${import.meta.env.BASE_URL}${page}`;
 }
 
 function describeForced() {
