@@ -157,3 +157,19 @@ export function isOnHeadArea(clientX, clientY, head) {
   return clientX >= head.left && clientX <= head.right &&
     clientY <= head.bottom;
 }
+
+// 部屋の家具は、Blender で付けた触ったときの役目（touch）を持つ。
+// 役目は家具のまとまりの親に付くこともあるので、親をたどって探す
+export function touchRoleOf(object) {
+  for (let o = object; o; o = o.parent) {
+    if (o.userData?.touch) return o.userData.touch;
+  }
+  return null;
+}
+
+// 触ると開くページ。鉢と ?demo などは、開いた先でも保つ
+const PROP_PAGES = { calendar: "records.html" };
+export function propPage(role, search) {
+  const page = PROP_PAGES[role];
+  return page ? `${page}${search}` : null;
+}

@@ -1,6 +1,9 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { moodLevels } from "./mood.js";
+import { touchRoleOf } from "./home.logic.js";
+import { modelUrl } from "./models.js";
+import { loadRoom, spotOf } from "./room3d.js";
 
 // 触ったかを調べる、押した点からのずれ[px]。指の腹くらいの広さ
 const TOUCH_OFFSETS = [
@@ -14,11 +17,6 @@ const TOUCH_OFFSETS = [
   [9, -9],
   [-9, -9],
 ];
-
-// 動きを足したら v を上げる。古い glb がキャッシュに残った端末で、足した動きが無くて 2D に落ちるため
-const MODEL_VERSIONS = { karami: 3, cactus: 2, everfresh: 1 };
-const modelUrl = (name) =>
-  `${import.meta.env.BASE_URL}models/${name}.glb?v=${MODEL_VERSIONS[name]}`;
 
 // 葉とマントの骨。しおれの動きのうち、ここだけ土の水分で動かす
 const isLeafTrack = (track) => /^(leaf|cape)_/.test(track.name);
@@ -34,11 +32,71 @@ const keepTracks = (clip, name, keep) =>
 // 持ち上げられる高さ（足元の高さ）。カメラの写す範囲に合わせる
 const MAX_LIFT = 0.35;
 
+// 部屋の中での大きさ。カラ美（元の背 0.975m）を、チェスト（0.66m）2台分の背にする
+const CHARACTER_SCALE = 1.35;
+// 写す高さ[m]。部屋全体だとスマホではキャラが小さすぎるので、キャラのまわりだけ写し、
+// 残りは横にスワイプして見回す
+const VIEW_HEIGHT = 2.8;
+// 写す中心の、立ち位置からの高さ[m]。頭の上の壁（時計・棚）まで入れる
+const FOCUS_HEIGHT = 0.95;
+// 部屋を焼いたときと同じ斜めの向きから、少しだけ見下ろす（12°）。
+// 正面から見ていた前の構図に近づけ、キャラの顔がよく見えるようにする
+const VIEW_ELEVATION = THREE.MathUtils.degToRad(12);
+const VIEW_DIRECTION = new THREE.Vector3(
+  Math.cos(VIEW_ELEVATION) * Math.SQRT1_2,
+  Math.sin(VIEW_ELEVATION),
+  Math.cos(VIEW_ELEVATION) * Math.SQRT1_2,
+);
+
+// 焼いた部屋に、キャラの色の明るさを合わせる値（目で見て決めた）
+const ROOM_EXPOSURE = 1.0;
+const SHADOW_OPACITY = 0.55;
+
+// 足元の丸い影。部屋は光を焼き込んであって影を落とせないので、ぼかした円を床に敷く
+function createContactShadow() {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const gradient = ctx.createRadialGradient(
+    size / 2,
+    size / 2,
+    0,
+    size / 2,
+    size / 2,
+    size / 2,
+  );
+  gradient.addColorStop(0, "rgba(60, 35, 20, 1)");
+  gradient.addColorStop(0.5, "rgba(60, 35, 20, 0.6)");
+  gradient.addColorStop(1, "rgba(60, 35, 20, 0)");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const shadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.75, 0.75),
+    new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      opacity: SHADOW_OPACITY,
+      depthWrite: false,
+      toneMapped: false,
+    }),
+  );
+  shadow.rotation.x = -Math.PI / 2;
+  // 床とちらつかないよう、ほんの少し浮かせる
+  shadow.position.y = 0.004;
+  return shadow;
+}
+
 // 動きは Blender で作り、glb に入れてある（app/models-src/*.blend）。
 // どのモデルも骨と動きの名前をカラ美にそろえてあるので、同じ操作で動く。
 // 待機（Idle）としおれ（Wilt）は常に流して混ぜ、ほかは1回だけ流す
 export async function createKarami(container, modelName = "karami") {
-  const gltf = await new GLTFLoader().loadAsync(modelUrl(modelName));
+  const [gltf, room] = await Promise.all([
+    new GLTFLoader().loadAsync(modelUrl(modelName)),
+    loadRoom(),
+  ]);
   const model = gltf.scene;
 
   // glb に足りないものがあれば、画面に何も足さないうちに投げる
@@ -95,20 +153,65 @@ export async function createKarami(container, modelName = "karami") {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  // 明るい所を部屋の焼いた絵のように柔らかく落とす。three.js の AgX は Blender の
+  // High Contrast より色が抜けてキャラがくすむので、色を保つ Neutral にする
+  // （焼いた部屋は toneMapped: false なので、二重にはかからない）
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = ROOM_EXPOSURE;
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  // 頭の上を空けておき、持ち上げても画面からはみ出さないようにする
-  const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 20);
-  camera.position.set(0, 0.72, 2.6);
-  camera.lookAt(0, 0.6, 0);
+  scene.add(room);
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xb8d8a8, 2.2));
-  const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-  sun.position.set(1, 2, 2);
+  // キャラは立ち位置に置いた台（actor）に乗せる。動きの計算は台の上（足元が原点、
+  // 正面が +z）のままで済み、立ち位置と大きさは台だけで決まる
+  const actor = new THREE.Group();
+  const spot = spotOf(room, "center");
+  actor.position.copy(spot.at);
+  actor.lookAt(spot.look.x, spot.at.y, spot.look.z);
+  actor.scale.setScalar(CHARACTER_SCALE);
+  actor.add(model);
+  const shadow = createContactShadow();
+  actor.add(shadow);
+  scene.add(actor);
+  actor.updateMatrixWorld(true);
+
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 40);
+  const focus = spot.at.clone().add(new THREE.Vector3(0, FOCUS_HEIGHT, 0));
+  camera.position.copy(focus).addScaledVector(VIEW_DIRECTION, 12);
+  camera.lookAt(focus);
+  // 見回すときにカメラを動かす向き（画面の右）と、部屋が画面の横に広がる範囲
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+  const roomSpan = { min: Infinity, max: -Infinity };
+  const roomBox = new THREE.Box3().setFromObject(room);
+  for (const x of [roomBox.min.x, roomBox.max.x]) {
+    for (const z of [roomBox.min.z, roomBox.max.z]) {
+      const along = new THREE.Vector3(x, focus.y, z).sub(focus).dot(right);
+      roomSpan.min = Math.min(roomSpan.min, along);
+      roomSpan.max = Math.max(roomSpan.max, along);
+    }
+  }
+  let pan = 0;
+  // 部屋の外が写らない所までだけ動かす。画面が部屋より広ければ真ん中に置く
+  function panTo(next) {
+    const halfWidth = camera.right;
+    const low = roomSpan.min + halfWidth;
+    const high = roomSpan.max - halfWidth;
+    pan = low < high
+      ? THREE.MathUtils.clamp(next, low, high)
+      : (low + high) / 2;
+    camera.position.copy(focus)
+      .addScaledVector(right, pan)
+      .addScaledVector(VIEW_DIRECTION, 12);
+  }
+
+  // 部屋を焼いたときの暖かい光に合わせる。下からの照り返しは床の茶色
+  scene.add(new THREE.HemisphereLight(0xfff1e0, 0xa57a55, 2.4));
+  const sun = new THREE.DirectionalLight(0xffe2c4, 2.0);
+  // カメラから見て右前の、やや低い所から当てる。カメラがほぼ正面にあるので、
+  // 上からだと前を向いた顔に光が届かず暗く見える
+  sun.position.set(0.8, 1.0, 2).applyQuaternion(actor.quaternion);
   scene.add(sun);
-
-  scene.add(model);
 
   // 葉（土の水分）・体（気分）・涙を別々に、目標へなめらかに近づける
   const level = { leaves: 0, body: 0, tears: 0 };
@@ -124,7 +227,8 @@ export async function createKarami(container, modelName = "karami") {
   let turning = false;
   let sinceTurn = 0;
 
-  // 持ち上げ。指の位置は、カラ美の立つ面（z=0）の上の点に直して追う
+  // 持ち上げ。指の位置は、台の上でカラ美の立つ面（z=0）の上の点に直して追う
+  const toActor = actor.matrixWorld.clone().invert();
   const stand = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   const raycaster = new THREE.Raycaster();
   let held = null; // { grip: つかんだ点（足元から）, target: 指の位置 }
@@ -142,7 +246,8 @@ export async function createKarami(container, modelName = "karami") {
 
   function toStand(clientX, clientY) {
     aim(clientX, clientY);
-    return raycaster.ray.intersectPlane(stand, new THREE.Vector3());
+    return raycaster.ray.clone().applyMatrix4(toActor)
+      .intersectPlane(stand, new THREE.Vector3());
   }
 
   function play(action) {
@@ -157,9 +262,16 @@ export async function createKarami(container, modelName = "karami") {
 
   function resize() {
     const { clientWidth: w, clientHeight: h } = container;
+    // 隠れたタブなどで大きさが 0 のときに比を取ると NaN になり、カメラが戻らなくなる
+    if (w === 0 || h === 0) return;
     renderer.setSize(w, h, false);
-    camera.aspect = w / h;
+    const half = VIEW_HEIGHT / 2;
+    camera.left = -half * (w / h);
+    camera.right = half * (w / h);
+    camera.top = half;
+    camera.bottom = -half;
     camera.updateProjectionMatrix();
+    panTo(pan);
   }
   new ResizeObserver(resize).observe(container);
   resize();
@@ -230,6 +342,11 @@ export async function createKarami(container, modelName = "karami") {
       swing *= Math.exp(-dt * 6);
     }
     model.rotation.z = swing;
+    // 影は足元の真下の床に残し、持ち上げるほど小さく薄くする
+    const lift = model.position.y;
+    shadow.position.x = model.position.x;
+    shadow.scale.setScalar(1 / (1 + lift * 2));
+    shadow.material.opacity = SHADOW_OPACITY / (1 + lift * 4);
 
     mixer.update(dt);
     // 1回だけの動き（喜ぶなど）の間は涙を引っ込める。0 にすると向きが壊れるので小さく残す
@@ -260,6 +377,18 @@ export async function createKarami(container, modelName = "karami") {
         aim(clientX + dx, clientY + dy);
         return raycaster.intersectObject(model, true).length > 0;
       });
+    },
+    // dx: 部屋の何もない所を横にドラッグした画素数。指と一緒に部屋が動く
+    pan(dx) {
+      if (container.clientHeight > 0) {
+        panTo(pan - dx * VIEW_HEIGHT / container.clientHeight);
+      }
+    },
+    // 画面のこの点に見える家具の、触ったときの役目（calendar など）。何もなければ null
+    touchedProp(clientX, clientY) {
+      aim(clientX, clientY);
+      const [hit] = raycaster.intersectObject(room, true);
+      return hit ? touchRoleOf(hit.object) : null;
     },
     // 画面上で頭を囲む四角と、頭の中心の高さ（頭の箱の8つの角を、画面に写して囲む）
     headRect() {
