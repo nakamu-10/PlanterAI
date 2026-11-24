@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { moodLevels } from "./mood.js";
 import { touchRoleOf } from "./home.logic.js";
+import { modelUrl } from "./models.js";
 import { loadRoom, spotOf } from "./room3d.js";
 
 // 触ったかを調べる、押した点からのずれ[px]。指の腹くらいの広さ
@@ -16,11 +17,6 @@ const TOUCH_OFFSETS = [
   [9, -9],
   [-9, -9],
 ];
-
-// 動きを足したら v を上げる。古い glb がキャッシュに残った端末で、足した動きが無くて 2D に落ちるため
-const MODEL_VERSIONS = { karami: 3, cactus: 2, everfresh: 1 };
-const modelUrl = (name) =>
-  `${import.meta.env.BASE_URL}models/${name}.glb?v=${MODEL_VERSIONS[name]}`;
 
 // 葉とマントの骨。しおれの動きのうち、ここだけ土の水分で動かす
 const isLeafTrack = (track) => /^(leaf|cape)_/.test(track.name);
@@ -266,6 +262,8 @@ export async function createKarami(container, modelName = "karami") {
 
   function resize() {
     const { clientWidth: w, clientHeight: h } = container;
+    // 隠れたタブなどで大きさが 0 のときに比を取ると NaN になり、カメラが戻らなくなる
+    if (w === 0 || h === 0) return;
     renderer.setSize(w, h, false);
     const half = VIEW_HEIGHT / 2;
     camera.left = -half * (w / h);
@@ -382,7 +380,9 @@ export async function createKarami(container, modelName = "karami") {
     },
     // dx: 部屋の何もない所を横にドラッグした画素数。指と一緒に部屋が動く
     pan(dx) {
-      panTo(pan - dx * VIEW_HEIGHT / container.clientHeight);
+      if (container.clientHeight > 0) {
+        panTo(pan - dx * VIEW_HEIGHT / container.clientHeight);
+      }
     },
     // 画面のこの点に見える家具の、触ったときの役目（calendar など）。何もなければ null
     touchedProp(clientX, clientY) {

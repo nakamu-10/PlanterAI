@@ -1,8 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-
-// 部屋を作り直したら v を上げる。古い glb がキャッシュに残らないように
-const ROOM_URL = `${import.meta.env.BASE_URL}models/room.glb?v=1`;
+import { modelUrl } from "./models.js";
 
 // 歩ける床と障害物は、Blender で置いた目印。見せず、触っても当たらないよう外す
 const isMarker = (name) => /^(nav_floor|block_)/.test(name);
@@ -11,16 +9,19 @@ const isMarker = (name) => /^(nav_floor|block_)/.test(name);
 // 焼いた絵には光も色の調子も入っているので、光を当てずにそのまま出す。
 // 時刻などで変える部品（dyn_*）は焼かずに、ふつうの材質のまま光を当てる
 export async function loadRoom() {
-  const gltf = await new GLTFLoader().loadAsync(ROOM_URL);
+  const gltf = await new GLTFLoader().loadAsync(modelUrl("room"));
   const room = gltf.scene;
   const markers = [];
   room.traverse((object) => {
     if (isMarker(object.name)) markers.push(object);
     if (object.isMesh && object.material.name === "baked") {
+      const baked = object.material;
       object.material = new THREE.MeshBasicMaterial({
-        map: object.material.map,
+        map: baked.map,
+        side: baked.side,
         toneMapped: false,
       });
+      baked.dispose();
     }
   });
   for (const marker of markers) marker.removeFromParent();

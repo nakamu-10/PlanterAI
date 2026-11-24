@@ -234,10 +234,16 @@ async function setup3d(model) {
     // 見学会で何人も同時に触るので、触っている指が離れるまで次の指は無視する
     // （座標が混ざって激しく回ったり、離したことに気づけなくなったりする）。
     // isPrimary では見ない。カラ美の外に置かれた1本目の指が、ほかの人の指を弾いてしまう
-    if (press || e.button !== 0) return;
+    if (e.button !== 0) return;
+    const onKarami = karami3d.touches(e.clientX, e.clientY);
+    // 部屋に置いたままの指は、カラ美を触る指に譲る（置きっぱなしで誰も触れなくなるため）
+    const roomOnly = press?.mode === "room" || press?.mode === "look";
+    if (press && !(roomOnly && onKarami)) return;
+    if (press) canvas.releasePointerCapture(press.pointerId);
+    press = null;
     canvas.setPointerCapture(e.pointerId);
     // カラ美の外は部屋。横にドラッグしたら見回し、動かさずに離したら家具を触る
-    if (!karami3d.touches(e.clientX, e.clientY)) {
+    if (!onKarami) {
       press = {
         pointerId: e.pointerId,
         startX: e.clientX,
