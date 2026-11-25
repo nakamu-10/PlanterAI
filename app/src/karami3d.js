@@ -408,6 +408,7 @@ export async function createKarami(container, modelName = "karami") {
       return {
         left: Math.min(...xs),
         right: Math.max(...xs),
+        top: Math.min(...ys),
         bottom: Math.max(...ys),
         centerY: (Math.min(...ys) + Math.max(...ys)) / 2,
       };

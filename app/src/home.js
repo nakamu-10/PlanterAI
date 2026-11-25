@@ -16,6 +16,7 @@ import {
   isOnHeadArea,
   modelFor,
   propPage,
+  recallPlace,
   TOUCH_HINT_2D,
 } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
@@ -112,14 +113,33 @@ function showReaction(kind) {
 function showBubble(line, durationMs = REACTION_MS) {
   bubble.textContent = line;
   bubble.classList.add("is-visible");
-  recall.hidden = true;
+  setRecallVisible(false);
   clearTimeout(bubbleTimeout);
   bubbleTimeout = setTimeout(hideBubble, durationMs);
 }
 
 function hideBubble() {
   bubble.classList.remove("is-visible");
-  recall.hidden = lastMessage === null;
+  setRecallVisible(lastMessage !== null);
+}
+
+function setRecallVisible(visible) {
+  const wasHidden = recall.hidden;
+  recall.hidden = !visible;
+  if (visible && wasHidden && karami3d) followHead();
+}
+
+// 部屋を横に動かしたり持ち上げたりすると頭も動くので、見えているあいだは毎フレーム合わせる
+function followHead() {
+  if (recall.hidden) return;
+  const place = recallPlace(
+    karami3d.headRect(),
+    recall.parentElement.getBoundingClientRect(),
+    recall.offsetWidth,
+  );
+  recall.style.left = `${place.left}px`;
+  recall.style.top = `${place.top}px`;
+  requestAnimationFrame(followHead);
 }
 
 function showMessage(message) {
@@ -379,7 +399,7 @@ async function refreshState() {
     lastMessage = bubbleState.recallable;
     if (bubbleState.show) showMessage(bubbleState.known);
     if (!bubble.classList.contains("is-visible")) {
-      recall.hidden = lastMessage === null;
+      setRecallVisible(lastMessage !== null);
     }
     firstLoad = false;
     return data;
