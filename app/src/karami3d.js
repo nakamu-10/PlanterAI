@@ -235,7 +235,6 @@ export async function createKarami(container, modelName = "karami") {
   let sinceTurn = 0;
 
   // 持ち上げ。指の位置は、台の上でカラ美の立つ面（z=0）の上の点に直して追う
-  const toActor = actor.matrixWorld.clone().invert();
   const stand = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   const raycaster = new THREE.Raycaster();
   let held = null; // { grip: つかんだ点（足元から）, target: 指の位置 }
@@ -253,6 +252,8 @@ export async function createKarami(container, modelName = "karami") {
 
   function toStand(clientX, clientY) {
     aim(clientX, clientY);
+    // 台は居場所を変えると動くので、そのつど台の上の座標に直す
+    const toActor = actor.matrixWorld.clone().invert();
     return raycaster.ray.clone().applyMatrix4(toActor)
       .intersectPlane(stand, new THREE.Vector3());
   }
@@ -394,6 +395,8 @@ export async function createKarami(container, modelName = "karami") {
     // 部屋の立ち位置（spot_* の名前）へ移り、画面をそこへ向ける。
     // 座る・寝るの動きが glb に無いうちは、ソファやベッドの上に立たせず真ん中にいる
     setSpot(name) {
+      // 持ち上げている途中で動かすと、指から離れてしまう。次の読み直しで移る
+      if (held) return;
       const next = spotOf(room, name);
       const clip = POSE_CLIPS[next.pose];
       const placeable = !clip ||
@@ -401,9 +404,9 @@ export async function createKarami(container, modelName = "karami") {
       const chosen = placeable ? name : "center";
       if (chosen === spotName) return;
       spotName = chosen;
-      const target = chosen === name ? next : spot;
-      placeAt(target);
-      panTo(target.at.clone().sub(focus).dot(right));
+      const destination = chosen === name ? next : spot;
+      placeAt(destination);
+      panTo(destination.at.clone().sub(focus).dot(right));
     },
     // 画面のこの点に見える家具の、触ったときの役目（calendar など）。何もなければ null
     touchedProp(clientX, clientY) {

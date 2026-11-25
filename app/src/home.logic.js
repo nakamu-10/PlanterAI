@@ -87,7 +87,8 @@ export function chooseSpot({ emotion, complaint, now = Date.now() }) {
   const hour = jstHour(now);
   if (hour >= 22 || hour < 6) return "bed";
   if (hour < 18) {
-    if (complaint === "日照不足") return "window";
+    // 日照が足りて回復した日も、complaint は「日照不足」のまま記録される
+    if (complaint === "日照不足" && emotion !== "満足") return "window";
     if (emotion === "満足") return "sunpatch";
     return "center";
   }
