@@ -29,7 +29,7 @@ export async function loadRoom() {
   return room;
 }
 
-// 立ち位置（spot_*）の床の点と、向く先の点
+// 立ち位置（spot_*）の床の点と、向く先の点と、そこでとるポーズ
 export function spotOf(room, name) {
   const spot = room.getObjectByName(`spot_${name}`);
   const look = room.getObjectByName(`spot_${name}_look`);
@@ -37,5 +37,6 @@ export function spotOf(room, name) {
   return {
     at: spot.getWorldPosition(new THREE.Vector3()),
     look: look.getWorldPosition(new THREE.Vector3()),
+    pose: spot.userData.pose,
   };
 }

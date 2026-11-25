@@ -1,6 +1,7 @@
 // ホームの吹き出しと経過時間の表示（app/src/home.logic.js）の検証
 // 実行: npx tsx tests/homeLogic.test.ts
 import {
+  chooseSpot,
   daysTogether,
   decideBubble,
   describeAgo,
@@ -249,6 +250,36 @@ assert(
   "2D 版の案内に、3D でしかできないことを書かない",
   !TOUCH_HINT_2D.includes("回す") && !TOUCH_HINT_2D.includes("持ち上げ"),
 );
+
+console.log("--- 部屋のどこにいるか ---");
+{
+  // 日本時間のその時刻（2026-11-25）
+  const at = (hour: number) => Date.UTC(2026, 10, 25, hour - 9);
+  const spot = (
+    emotion: string,
+    hour: number,
+    complaint: string | null = null,
+  ) => chooseSpot({ emotion, complaint, now: at(hour) });
+  assert("不安なら、夜でも真ん中で訴える", spot("不安", 23) === "center");
+  assert(
+    "苛立ちなら、昼でも真ん中",
+    spot("苛立ち", 12, "日照不足") === "center",
+  );
+  assert("夜22時からはベッド", spot("満足", 22) === "bed");
+  assert("朝5時台もベッド", spot("不満", 5) === "bed");
+  assert(
+    "昼に光が足りなければ窓辺",
+    spot("軽い不満", 10, "日照不足") === "window",
+  );
+  assert("昼に満足なら日だまり", spot("満足", 6) === "sunpatch");
+  assert(
+    "日照が回復した日（満足・日照不足）は日だまり",
+    spot("満足", 9, "日照不足") === "sunpatch",
+  );
+  assert("昼の水の不満は真ん中", spot("不満", 14, "水不足") === "center");
+  assert("夕方18時からはソファ", spot("満足", 18) === "sofa");
+  assert("夕方は不満でもソファ", spot("不満", 21) === "sofa");
+}
 
 console.log("--- 最後のセリフのボタンの置き場 ---");
 {

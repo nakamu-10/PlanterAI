@@ -78,6 +78,23 @@ export function describeAgo(iso, now = Date.now()) {
 const JST_MS = 9 * 3_600_000;
 const jstDay = (ms) => Math.floor((ms + JST_MS) / 86_400_000);
 
+const jstHour = (ms) => Math.floor(((ms + JST_MS) % 86_400_000) / 3_600_000);
+
+// 部屋のどこにいるか（spot_* の名前）。上から順に見て、最初に当てはまった所。
+// つらいときは、寝ていて気づけないことがないよう、一番目に入る真ん中で訴える
+export function chooseSpot({ emotion, complaint, now = Date.now() }) {
+  if (emotion === "不安" || emotion === "苛立ち") return "center";
+  const hour = jstHour(now);
+  if (hour >= 22 || hour < 6) return "bed";
+  if (hour < 18) {
+    // 日照が足りて回復した日も、complaint は「日照不足」のまま記録される
+    if (complaint === "日照不足" && emotion !== "満足") return "window";
+    if (emotion === "満足") return "sunpatch";
+    return "center";
+  }
+  return "sofa";
+}
+
 export function daysTogether(createdIso, now = Date.now()) {
   return jstDay(now) - jstDay(Date.parse(createdIso)) + 1;
 }

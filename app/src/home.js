@@ -8,6 +8,7 @@ import {
   sendChatMessage,
 } from "./api.js";
 import {
+  chooseSpot,
   daysTogether,
   decideBubble,
   describeAgo,
@@ -86,6 +87,7 @@ const REFRESH_MS = params.has("demo") ? 5_000 : 60_000;
 // 動かさずにこれだけ押し続けたら、持ち上げる
 const LIFT_PRESS_MS = 350;
 let currentEmotion = forcedEmotion ?? "満足";
+let currentComplaint = null;
 let currentMoisture = forcedMoisture;
 let bubbleTimeout = null;
 let recallFrame = 0;
@@ -122,6 +124,13 @@ function showBubble(line, durationMs = REACTION_MS) {
 function hideBubble() {
   bubble.classList.remove("is-visible");
   setRecallVisible(lastMessage !== null);
+}
+
+function placeKarami() {
+  karami3d?.setSpot(chooseSpot({
+    emotion: currentEmotion,
+    complaint: currentComplaint,
+  }));
 }
 
 function setRecallVisible(visible) {
@@ -244,6 +253,7 @@ async function setup3d(model) {
     emotion: currentEmotion,
     moistureScore: currentMoisture,
   });
+  placeKarami();
   // ?debug を付けると、コンソールから karami.cheer() などで動きを試せる（デモの練習用）
   if (new URLSearchParams(location.search).has("debug")) {
     window.karami = karami3d;
@@ -375,6 +385,7 @@ async function refreshState() {
     const data = await fetchDashboard();
     const latest = data.emotion_history?.[0];
     currentEmotion = latest?.emotion ?? "満足";
+    currentComplaint = latest?.complaint ?? null;
     // 葉のしおれは、気分ではなく最新の土の水分で決める
     const moisture = data.latest_sensor?.scores?.moisture;
     currentMoisture = typeof moisture === "number" ? moisture : null;
@@ -382,6 +393,7 @@ async function refreshState() {
       emotion: currentEmotion,
       moistureScore: currentMoisture,
     });
+    placeKarami();
     renderStatus(data, latest);
 
     const wateringAt = data.latest_watering?.created_at ?? null;

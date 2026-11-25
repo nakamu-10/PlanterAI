@@ -34,6 +34,8 @@ const MAX_LIFT = 0.35;
 
 // 部屋の中での大きさ。カラ美（元の背 0.975m）を、チェスト（0.66m）2台分の背にする
 const CHARACTER_SCALE = 1.35;
+// 立ったままではとれないポーズと、その動きの名前
+const POSE_CLIPS = { sit: "Sit", sleep: "Sleep" };
 // 写す高さ[m]。部屋全体だとスマホではキャラが小さすぎるので、キャラのまわりだけ写し、
 // 残りは横にスワイプして見回す
 const VIEW_HEIGHT = 2.8;
@@ -167,8 +169,13 @@ export async function createKarami(container, modelName = "karami") {
   // 正面が +z）のままで済み、立ち位置と大きさは台だけで決まる
   const actor = new THREE.Group();
   const spot = spotOf(room, "center");
-  actor.position.copy(spot.at);
-  actor.lookAt(spot.look.x, spot.at.y, spot.look.z);
+  let spotName = "center";
+  function placeAt({ at, look }) {
+    actor.position.copy(at);
+    actor.lookAt(look.x, at.y, look.z);
+    actor.updateMatrixWorld(true);
+  }
+  placeAt(spot);
   actor.scale.setScalar(CHARACTER_SCALE);
   actor.add(model);
   const shadow = createContactShadow();
@@ -228,7 +235,6 @@ export async function createKarami(container, modelName = "karami") {
   let sinceTurn = 0;
 
   // 持ち上げ。指の位置は、台の上でカラ美の立つ面（z=0）の上の点に直して追う
-  const toActor = actor.matrixWorld.clone().invert();
   const stand = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   const raycaster = new THREE.Raycaster();
   let held = null; // { grip: つかんだ点（足元から）, target: 指の位置 }
@@ -246,6 +252,8 @@ export async function createKarami(container, modelName = "karami") {
 
   function toStand(clientX, clientY) {
     aim(clientX, clientY);
+    // 台は居場所を変えると動くので、そのつど台の上の座標に直す
+    const toActor = actor.matrixWorld.clone().invert();
     return raycaster.ray.clone().applyMatrix4(toActor)
       .intersectPlane(stand, new THREE.Vector3());
   }
@@ -383,6 +391,22 @@ export async function createKarami(container, modelName = "karami") {
       if (container.clientHeight > 0) {
         panTo(pan - dx * VIEW_HEIGHT / container.clientHeight);
       }
+    },
+    // 部屋の立ち位置（spot_* の名前）へ移り、画面をそこへ向ける。
+    // 座る・寝るの動きが glb に無いうちは、ソファやベッドの上に立たせず真ん中にいる
+    setSpot(name) {
+      // 持ち上げている途中で動かすと、指から離れてしまう。次の読み直しで移る
+      if (held) return;
+      const next = spotOf(room, name);
+      const clip = POSE_CLIPS[next.pose];
+      const placeable = !clip ||
+        Boolean(THREE.AnimationClip.findByName(gltf.animations, clip));
+      const chosen = placeable ? name : "center";
+      if (chosen === spotName) return;
+      spotName = chosen;
+      const destination = chosen === name ? next : spot;
+      placeAt(destination);
+      panTo(destination.at.clone().sub(focus).dot(right));
     },
     // 画面のこの点に見える家具の、触ったときの役目（calendar など）。何もなければ null
     touchedProp(clientX, clientY) {
