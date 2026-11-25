@@ -88,6 +88,7 @@ const LIFT_PRESS_MS = 350;
 let currentEmotion = forcedEmotion ?? "満足";
 let currentMoisture = forcedMoisture;
 let bubbleTimeout = null;
+let recallFrame = 0;
 let karami3d = null;
 // 最後に見た水やりの時刻。開いたときの記録には喜ばず、その後の水やりにだけ喜ぶ
 let lastWateringAt;
@@ -124,9 +125,9 @@ function hideBubble() {
 }
 
 function setRecallVisible(visible) {
-  const wasHidden = recall.hidden;
   recall.hidden = !visible;
-  if (visible && wasHidden && karami3d) followHead();
+  cancelAnimationFrame(recallFrame);
+  if (visible && karami3d) followHead();
 }
 
 // 部屋を横に動かしたり持ち上げたりすると頭も動くので、見えているあいだは毎フレーム合わせる
@@ -139,7 +140,7 @@ function followHead() {
   );
   recall.style.left = `${place.left}px`;
   recall.style.top = `${place.top}px`;
-  requestAnimationFrame(followHead);
+  recallFrame = requestAnimationFrame(followHead);
 }
 
 function showMessage(message) {
@@ -237,6 +238,8 @@ function setup2d(model) {
 async function setup3d(model) {
   karami3d = await createKarami(stage, model);
   loading.remove();
+  // 最初の読み込みで、3D ができる前にボタンが出ていることがある
+  setRecallVisible(!recall.hidden);
   karami3d.setMood({
     emotion: currentEmotion,
     moistureScore: currentMoisture,
