@@ -34,6 +34,8 @@ const MAX_LIFT = 0.35;
 
 // 部屋の中での大きさ。カラ美（元の背 0.975m）を、チェスト（0.66m）2台分の背にする
 const CHARACTER_SCALE = 1.35;
+// 立ったままではとれないポーズと、その動きの名前
+const POSE_CLIPS = { sit: "Sit", sleep: "Sleep" };
 // 写す高さ[m]。部屋全体だとスマホではキャラが小さすぎるので、キャラのまわりだけ写し、
 // 残りは横にスワイプして見回す
 const VIEW_HEIGHT = 2.8;
@@ -167,8 +169,13 @@ export async function createKarami(container, modelName = "karami") {
   // 正面が +z）のままで済み、立ち位置と大きさは台だけで決まる
   const actor = new THREE.Group();
   const spot = spotOf(room, "center");
-  actor.position.copy(spot.at);
-  actor.lookAt(spot.look.x, spot.at.y, spot.look.z);
+  let spotName = "center";
+  function placeAt({ at, look }) {
+    actor.position.copy(at);
+    actor.lookAt(look.x, at.y, look.z);
+    actor.updateMatrixWorld(true);
+  }
+  placeAt(spot);
   actor.scale.setScalar(CHARACTER_SCALE);
   actor.add(model);
   const shadow = createContactShadow();
@@ -383,6 +390,20 @@ export async function createKarami(container, modelName = "karami") {
       if (container.clientHeight > 0) {
         panTo(pan - dx * VIEW_HEIGHT / container.clientHeight);
       }
+    },
+    // 部屋の立ち位置（spot_* の名前）へ移り、画面をそこへ向ける。
+    // 座る・寝るの動きが glb に無いうちは、ソファやベッドの上に立たせず真ん中にいる
+    setSpot(name) {
+      const next = spotOf(room, name);
+      const clip = POSE_CLIPS[next.pose];
+      const placeable = !clip ||
+        Boolean(THREE.AnimationClip.findByName(gltf.animations, clip));
+      const chosen = placeable ? name : "center";
+      if (chosen === spotName) return;
+      spotName = chosen;
+      const target = chosen === name ? next : spot;
+      placeAt(target);
+      panTo(target.at.clone().sub(focus).dot(right));
     },
     // 画面のこの点に見える家具の、触ったときの役目（calendar など）。何もなければ null
     touchedProp(clientX, clientY) {
