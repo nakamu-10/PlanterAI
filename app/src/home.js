@@ -16,6 +16,7 @@ import {
   isOnHeadArea,
   modelFor,
   propPage,
+  recallPlace,
   TOUCH_HINT_2D,
 } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
@@ -87,6 +88,7 @@ const LIFT_PRESS_MS = 350;
 let currentEmotion = forcedEmotion ?? "満足";
 let currentMoisture = forcedMoisture;
 let bubbleTimeout = null;
+let recallFrame = 0;
 let karami3d = null;
 // 最後に見た水やりの時刻。開いたときの記録には喜ばず、その後の水やりにだけ喜ぶ
 let lastWateringAt;
@@ -112,14 +114,33 @@ function showReaction(kind) {
 function showBubble(line, durationMs = REACTION_MS) {
   bubble.textContent = line;
   bubble.classList.add("is-visible");
-  recall.hidden = true;
+  setRecallVisible(false);
   clearTimeout(bubbleTimeout);
   bubbleTimeout = setTimeout(hideBubble, durationMs);
 }
 
 function hideBubble() {
   bubble.classList.remove("is-visible");
-  recall.hidden = lastMessage === null;
+  setRecallVisible(lastMessage !== null);
+}
+
+function setRecallVisible(visible) {
+  recall.hidden = !visible;
+  cancelAnimationFrame(recallFrame);
+  if (visible && karami3d) followHead();
+}
+
+// 部屋を横に動かしたり持ち上げたりすると頭も動くので、見えているあいだは毎フレーム合わせる
+function followHead() {
+  if (recall.hidden) return;
+  const place = recallPlace(
+    karami3d.headRect(),
+    recall.parentElement.getBoundingClientRect(),
+    recall.offsetWidth,
+  );
+  recall.style.left = `${place.left}px`;
+  recall.style.top = `${place.top}px`;
+  recallFrame = requestAnimationFrame(followHead);
 }
 
 function showMessage(message) {
@@ -217,6 +238,8 @@ function setup2d(model) {
 async function setup3d(model) {
   karami3d = await createKarami(stage, model);
   loading.remove();
+  // 最初の読み込みで、3D ができる前にボタンが出ていることがある
+  setRecallVisible(!recall.hidden);
   karami3d.setMood({
     emotion: currentEmotion,
     moistureScore: currentMoisture,
@@ -379,7 +402,7 @@ async function refreshState() {
     lastMessage = bubbleState.recallable;
     if (bubbleState.show) showMessage(bubbleState.known);
     if (!bubble.classList.contains("is-visible")) {
-      recall.hidden = lastMessage === null;
+      setRecallVisible(lastMessage !== null);
     }
     firstLoad = false;
     return data;

@@ -13,6 +13,7 @@ import {
   modelFor,
   NEAR_WORDS,
   propPage,
+  recallPlace,
   shouldShowLastMessage,
   TOUCH_HINT_2D,
   touchRoleOf,
@@ -248,6 +249,19 @@ assert(
   "2D 版の案内に、3D でしかできないことを書かない",
   !TOUCH_HINT_2D.includes("回す") && !TOUCH_HINT_2D.includes("持ち上げ"),
 );
+
+console.log("--- 最後のセリフのボタンの置き場 ---");
+{
+  const area = { left: 0, top: 100, width: 400 };
+  const head = { left: 150, right: 250, top: 300, bottom: 400 };
+  const place = recallPlace(head, area, 48);
+  assert("頭の右端に置く", place.left === 250);
+  assert("頭の上端にボタンの中心をそろえる", place.top === 176);
+  const nearEdge = recallPlace({ ...head, right: 390 }, area, 48);
+  assert("右にはみ出さない", nearEdge.left === 352);
+  const high = recallPlace({ ...head, top: 90 }, area, 48);
+  assert("上にはみ出さない", high.top === 0);
+}
 
 console.log("--- 部屋の家具を触る ---");
 {

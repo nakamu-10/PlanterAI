@@ -352,7 +352,7 @@ a:hover {
 .bubble-recall {
   position: absolute;
   top: 18%;
-  /* 画面の幅によらず、カラ美の頭の右上に置く */
+  /* 2D のときの置き場。3D では home.js が頭の右上に合わせる */
   left: calc(50% + 64px);
   z-index: 2;
   width: 48px;

@@ -158,6 +158,13 @@ export function isOnHeadArea(clientX, clientY, head) {
     clientY <= head.bottom;
 }
 
+// 最後のセリフのボタンを、頭の右上に置く。ボタンの置き場（area）からはみ出さない
+export function recallPlace(head, area, size) {
+  const left = Math.min(head.right - area.left, area.width - size);
+  const top = head.top - size / 2 - area.top;
+  return { left: Math.max(left, 0), top: Math.max(top, 0) };
+}
+
 // 部屋の家具は、Blender で付けた触ったときの役目（touch）を持つ。
 // 役目は家具のまとまりの親に付くこともあるので、親をたどって探す
 export function touchRoleOf(object) {
