@@ -39,3 +39,15 @@ export function moodLevels({ emotion, moistureScore = null }) {
   const frown = body >= FROWN_FROM ? 1 : 0;
   return { leaves, body, tears, frown };
 }
+
+// 流している動きの重み。wilt: しおれ具合、pose: 座る・寝るの度合い、shot: 1回だけの動きの度合い（どれも 0〜1）。
+// shot まで足した合計をいつも 1 にする。足りない分は three.js が初期ポーズで埋めるので、
+// 隠している顔のパーツや布団が全部出てしまう
+export function layerWeights({ wilt, pose, shot }) {
+  const loop = (1 - pose) * (1 - shot);
+  return {
+    idle: (1 - wilt) * loop,
+    wilt: wilt * loop,
+    pose: pose * (1 - shot),
+  };
+}

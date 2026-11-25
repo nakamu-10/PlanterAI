@@ -1,4 +1,8 @@
-import { moodLevels, wiltFromMoistureScore } from "../app/src/mood.js";
+import {
+  layerWeights,
+  moodLevels,
+  wiltFromMoistureScore,
+} from "../app/src/mood.js";
 
 let pass = 0;
 let fail = 0;
@@ -69,6 +73,33 @@ assert(
   assert(
     "どのオブジェクトにもあるキーも、知らない気分として扱う",
     m.body === 0 && m.leaves === 0 && m.tears === 0,
+  );
+}
+
+{
+  const total = (
+    w: { idle: number; wilt: number; pose: number },
+    shot: number,
+  ) => w.idle + w.wilt + w.pose + shot;
+  const cases = [
+    { wilt: 0, pose: 0, shot: 0 },
+    { wilt: 0.4, pose: 0, shot: 0.3 },
+    { wilt: 0.4, pose: 0.7, shot: 0 },
+    { wilt: 1, pose: 0.5, shot: 0.5 },
+    { wilt: 0.2, pose: 1, shot: 1 },
+  ];
+  assert(
+    "動きの重みは、1回だけの動きまで足すといつも 1",
+    cases.every((c) => Math.abs(total(layerWeights(c), c.shot) - 1) < 1e-9),
+  );
+  const asleep = layerWeights({ wilt: 0.6, pose: 1, shot: 0 });
+  assert(
+    "寝ている間は、待機としおれを流さない",
+    asleep.pose === 1 && asleep.idle === 0 && asleep.wilt === 0,
+  );
+  assert(
+    "1回だけの動きの間は、ポーズも止める",
+    layerWeights({ wilt: 0, pose: 1, shot: 1 }).pose === 0,
   );
 }
 
