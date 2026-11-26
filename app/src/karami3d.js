@@ -27,7 +27,7 @@ const isMouthTrack = (track) => /^mouth(_frown)?\./.test(track.name);
 // 涙の動きは Cry からだけ取り、ほかの動きからは外す（混ぜると流れる距離が縮む）
 const isTearTrack = (track) => /^(cry|tear)_/.test(track.name);
 // 根元と脚の骨。座るときは、ここだけを座る動きに入れ替える
-const isSeatTrack = (track) => /^(root\.|leg_)/.test(track.name);
+const isSeatTrack = (track) => /^(root|leg_)/.test(track.name);
 const keepTracks = (clip, name, keep) =>
   new THREE.AnimationClip(name, clip.duration, clip.tracks.filter(keep));
 
@@ -342,15 +342,17 @@ export async function createKarami(container, modelName = "karami") {
     if (rest.play) play(oneShots[rest.play]);
     level.leaves += (target.leaves - level.leaves) * k;
     level.body += (target.body - level.body) * k;
+    const wiltOf = {
+      leaves: level.leaves,
+      body: level.body,
+      seat: level.body,
+      mouth: target.frown,
+    };
+    // 部位の名前は partPoses から取る。名前がずれたら、ここで止まって気づける
     const posedParts = partPoses({ seatOnly: pose?.seatOnly ?? null, posed });
-    const parts = [
-      ["leaves", level.leaves],
-      ["body", level.body],
-      ["seat", level.body],
-      ["mouth", target.frown],
-    ];
-    for (const [part, wilt] of parts) {
-      const weights = layerWeights({ wilt, pose: posedParts[part], shot });
+    for (const [part, posePart] of Object.entries(posedParts)) {
+      const wilt = wiltOf[part];
+      const weights = layerWeights({ wilt, pose: posePart, shot });
       idle[part].setEffectiveWeight(weights.idle);
       wiltLoop[part].setEffectiveWeight(weights.wilt);
       if (part !== "mouth") {
