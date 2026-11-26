@@ -41,6 +41,8 @@ def lie_down():
         P["lid_" + side].scale = (1, 1, 0.001)
         happy = P["eye_happy_" + side]
         happy.scale = (1,1,1)
+        # Idle は笑い目の回転をキーにしていないので、戻さないと呼ぶたびに 180° ずつ重なって目が回る
+        happy.rotation_quaternion = (1,0,0,0)
         rot_world(happy, Y, 180)
     for pb in P:
         if pb.name.startswith(HIDDEN_UNDER_FUTON):
