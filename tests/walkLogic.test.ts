@@ -1,6 +1,11 @@
 // 部屋の中を歩く道（app/src/walk.logic.js）の検証
 // 実行: npx tsx tests/walkLogic.test.ts
-import { approachPoint, planPath } from "../app/src/walk.logic.js";
+import {
+  approachPoint,
+  planPath,
+  planTrip,
+  replanTrip,
+} from "../app/src/walk.logic.js";
 
 let pass = 0;
 let fail = 0;
@@ -86,6 +91,33 @@ const room = { floor, blocks, radius };
   );
 }
 {
+  const sofaSpot = {
+    at: { x: -0.65, y: 0.42, z: -1.05 },
+    look: { x: 0, y: 0, z: 4 },
+    pose: "sit",
+  };
+  const kinds = planTrip({ x: 0.35, y: 0.016, z: 0.35 }, sofaSpot, room)
+    .map((step) => step.kind);
+  assert(
+    "床からソファへは、前まで歩いて跳び上がり、座る",
+    kinds.join() === "walk,hop,settle",
+  );
+}
+{
+  const center = {
+    at: { x: 0.35, y: 0.016, z: 0.35 },
+    look: { x: 2.65, y: 0, z: 2.65 },
+    pose: "stand",
+  };
+  const steps = planTrip({ x: -1.58, y: 0.27, z: 0.72 }, center, room);
+  const last = steps.findLast((step) => step.kind === "walk");
+  assert(
+    "ベッドから真ん中へは、立って跳び下り、歩いて向きを変える",
+    steps.map((step) => step.kind).join() === "stand,hop,walk,settle" &&
+      steps[1].to.y === 0 && last.to.y === 0.016,
+  );
+}
+{
   const shelf = { minX: -1.1, maxX: -0.7, minZ: 0.5, maxZ: 1 };
   const p = approachPoint({ x: -1.58, z: 0.72 }, {
     floor,
@@ -129,6 +161,55 @@ const room = { floor, blocks, radius };
     "行き先が家具のすぐそばでも、その家具を突き抜けずに回る",
     path.length === 3 && Math.abs(path[0].z) > 0.3 &&
       Math.abs(path[1].z) > 0.3,
+  );
+}
+{
+  const box = { minX: -1, maxX: 1, minZ: -1, maxZ: 1 };
+  const boxed = { floor: box, blocks: [box], radius };
+  const inside = { at: { x: 0.5, y: 0.4, z: 0 }, look: { x: 3, y: 0, z: 0 } };
+  const leaving = planTrip({ x: 0, y: 0.4, z: 0 }, inside, boxed);
+  assert(
+    "家具から出られる縁が無ければ、立って行き先へ跳んで移る",
+    leaving.map((step) => step.kind).join() === "stand,hop,settle" &&
+      leaving[1].to === inside.at,
+  );
+  const arriving = planTrip({ x: 1.5, y: 0, z: 0 }, inside, {
+    floor,
+    blocks: [box],
+    radius: 2,
+  });
+  assert(
+    "行き先の家具に入る縁が無ければ、床から跳んで移る",
+    arriving.map((step) => step.kind).join() === "hop,settle",
+  );
+}
+{
+  const sofaSpot = {
+    at: { x: -0.65, y: 0.42, z: -1.05 },
+    look: { x: 0, y: 0, z: 4 },
+    pose: "sit",
+  };
+  const center = {
+    at: { x: 0.35, y: 0.016, z: 0.35 },
+    look: { x: 2.65, y: 0, z: 2.65 },
+    pose: "stand",
+  };
+  const hopping = { kind: "hop", to: sofaSpot.at };
+  const steps = replanTrip(
+    { x: -0.65, y: 0.3, z: -0.6 },
+    hopping,
+    center,
+    room,
+  );
+  assert(
+    "跳び上がっている途中に行き先が変わったら、跳び終えてから下りて歩く",
+    steps[0] === hopping &&
+      steps.map((step) => step.kind).join() === "hop,stand,hop,walk,settle",
+  );
+  const walking = replanTrip({ x: 0, y: 0, z: 0 }, null, center, room);
+  assert(
+    "跳んでいなければ、今いる所から決め直す",
+    walking.map((step) => step.kind).join() === "walk,settle",
   );
 }
 

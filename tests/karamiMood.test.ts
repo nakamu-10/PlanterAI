@@ -191,6 +191,13 @@ assert(
     "ポーズの無い所では、どこもポーズにしない",
     Object.values(standing).every((v) => v === 0),
   );
+  const walking = partPoses({ seatOnly: null, posed: 0, stepping: 0.7 });
+  assert(
+    "歩くときは、根元と脚だけを歩く動きにする",
+    walking.seat === 0.7 && walking.body === 0 && walking.leaves === 0,
+  );
+  const landing = partPoses({ seatOnly: true, posed: 0.6, stepping: 0.6 });
+  assert("座ると歩くを合わせても、1 を超えない", landing.seat === 1);
 }
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
