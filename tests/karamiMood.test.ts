@@ -1,4 +1,9 @@
-import { moodLevels, wiltFromMoistureScore } from "../app/src/mood.js";
+import {
+  layerWeights,
+  moodLevels,
+  restStep,
+  wiltFromMoistureScore,
+} from "../app/src/mood.js";
 
 let pass = 0;
 let fail = 0;
@@ -69,6 +74,100 @@ assert(
   assert(
     "どのオブジェクトにもあるキーも、知らない気分として扱う",
     m.body === 0 && m.leaves === 0 && m.tears === 0,
+  );
+}
+
+{
+  const total = (
+    w: { idle: number; wilt: number; pose: number },
+    shot: number,
+  ) => w.idle + w.wilt + w.pose + shot;
+  const cases = [
+    { wilt: 0, pose: 0, shot: 0 },
+    { wilt: 0.4, pose: 0, shot: 0.3 },
+    { wilt: 0.4, pose: 0.7, shot: 0 },
+    { wilt: 1, pose: 0.5, shot: 0.5 },
+    { wilt: 0.2, pose: 1, shot: 1 },
+  ];
+  assert(
+    "動きの重みは、1回だけの動きまで足すといつも 1",
+    cases.every((c) => Math.abs(total(layerWeights(c), c.shot) - 1) < 1e-9),
+  );
+  const asleep = layerWeights({ wilt: 0.6, pose: 1, shot: 0 });
+  assert(
+    "寝ている間は、待機としおれを流さない",
+    asleep.pose === 1 && asleep.idle === 0 && asleep.wilt === 0,
+  );
+  assert(
+    "1回だけの動きの間は、ポーズも止める",
+    layerWeights({ wilt: 0, pose: 1, shot: 1 }).pose === 0,
+  );
+}
+
+{
+  type Rest = {
+    hasPose: boolean;
+    awake: number;
+    posed: number;
+    pending: string | null;
+    held: boolean;
+  };
+  // dt 秒ずつ seconds 秒進め、途中で流し始めた動きを集める
+  const run = (start: Rest, seconds: number, dt = 1 / 60) => {
+    let state = { ...start };
+    const played: string[] = [];
+    for (let t = 0; t < seconds; t += dt) {
+      const next = restStep({ ...state, dt });
+      state = { ...state, ...next };
+      if (next.play) played.push(next.play);
+    }
+    return { state, played };
+  };
+  const asleep: Rest = {
+    hasPose: true,
+    awake: 0,
+    posed: 1,
+    pending: null,
+    held: false,
+  };
+  assert(
+    "ベッドに移ると、2秒で横になる",
+    run({ ...asleep, posed: 0 }, 2).state.posed > 0.95,
+  );
+  const poked = run({ ...asleep, awake: 10, pending: "surprise" }, 1.5);
+  assert(
+    "寝ている所をつつくと、起き上がってから驚く",
+    poked.played.join() === "surprise" && poked.state.pending === null,
+  );
+  assert(
+    "起き上がる途中では、まだ驚かない",
+    run({ ...asleep, awake: 10, pending: "surprise" }, 0.3).played.length ===
+      0,
+  );
+  assert(
+    "持ち上げている間は、取っておいた動きを流さない",
+    run({ ...asleep, awake: 10, pending: "surprise", held: true }, 2).played
+      .length === 0,
+  );
+  {
+    const lifted = run({ ...asleep, awake: 10, posed: 0, held: true }, 12);
+    const dropped = run({ ...lifted.state, held: false }, 1);
+    assert(
+      "長く持ち上げてから離しても、すぐには横にならない",
+      dropped.state.posed === 0,
+    );
+  }
+  assert(
+    "10秒さわられなければ、寝直す",
+    run({ ...asleep, awake: 10, posed: 0 }, 12).state.posed > 0.95,
+  );
+  assert(
+    "10秒たつまでは、立ったまま",
+    run({ ...asleep, awake: 10, posed: 0 }, 9).state.posed === 0,
+  );
+  assert(
+    "ポーズの無い居場所では、横にならない",
+    run({ ...asleep, hasPose: false, posed: 0 }, 2).state.posed === 0,
   );
 }
 

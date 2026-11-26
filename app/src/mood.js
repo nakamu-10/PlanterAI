@@ -39,3 +39,36 @@ export function moodLevels({ emotion, moistureScore = null }) {
   const frown = body >= FROWN_FROM ? 1 : 0;
   return { leaves, body, tears, frown };
 }
+
+// 流している動きの重み。wilt: しおれ具合、pose: 座る・寝るの度合い、shot: 1回だけの動きの度合い（どれも 0〜1）。
+// shot まで足した合計をいつも 1 にする。足りない分は three.js が初期ポーズで埋めるので、
+// 隠している顔のパーツや布団が全部出てしまう
+export function layerWeights({ wilt, pose, shot }) {
+  const loop = (1 - pose) * (1 - shot);
+  return {
+    idle: (1 - wilt) * loop,
+    wilt: wilt * loop,
+    pose: pose * (1 - shot),
+  };
+}
+
+// 寝る・座るの居場所で、1フレーム進める。awake: 触って起きている残りの秒数、posed: ポーズの度合い
+// （0=立つ、1=ポーズ）、pending: 起き上がってから流す1回だけの動き。
+// 戻り値の play は、このフレームで流し始める動き（無ければ null）
+export const LIE_DOWN_RATE = 3;
+export function restStep({ hasPose, awake, posed, pending, held, dt }) {
+  // 持ち上げている間は数えない。長く持ってから離すと、落ちている途中で横になってしまう
+  const nextAwake = held ? awake : Math.max(awake - dt, 0);
+  const lying = hasPose && nextAwake === 0 && !held;
+  // 横になる・起き上がるは、約0.5秒で8割
+  const nextPosed = posed +
+    ((lying ? 1 : 0) - posed) * (1 - Math.exp(-dt * LIE_DOWN_RATE));
+  // 持ち上げている間はジタバタを続ける（ほかの動きで止めると、そのまま動かなくなる）
+  const play = pending && nextPosed < 0.05 && !held ? pending : null;
+  return {
+    awake: nextAwake,
+    posed: nextPosed,
+    pending: play ? null : pending,
+    play,
+  };
+}
