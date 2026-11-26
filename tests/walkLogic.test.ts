@@ -112,6 +112,39 @@ const room = { floor, blocks, radius };
       steps[1].to.y === 0 && last.to.y === 0.016,
   );
 }
+{
+  const shelf = { minX: -1.1, maxX: -0.7, minZ: 0.5, maxZ: 1 };
+  const p = approachPoint({ x: -1.58, z: 0.72 }, {
+    floor,
+    blocks: [bed, shelf],
+    radius,
+  });
+  assert(
+    "となりの家具の中へは出さず、別の縁から出る",
+    near(p.x, -1.58) && near(p.z, 0.06),
+  );
+}
+{
+  const point = { x: 0, z: 0 };
+  const box = { minX: -1, maxX: 1, minZ: -1, maxZ: 1 };
+  assert(
+    "出られる縁が無ければ、その場の点を返す",
+    approachPoint(point, { floor: box, blocks: [box], radius }) === point,
+  );
+}
+{
+  const table = { minX: -0.3, maxX: 0.3, minZ: -0.3, maxZ: 0.3 };
+  const path = planPath({ x: -0.45, z: 0 }, { x: 0.8, z: 0 }, {
+    floor,
+    blocks: [table],
+    radius,
+  });
+  assert(
+    "家具のすぐそばに置かれても、その家具を突き抜けずに回る",
+    path.length === 3 && Math.abs(path[0].z) > 0.3 &&
+      Math.abs(path[1].z) > 0.3,
+  );
+}
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
