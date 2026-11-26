@@ -88,11 +88,9 @@ Docs「PlanterAI 開発計画」）にある。公開リポジトリには書か
 次のセッションで（11/26 時点）：
 
 - [ ] 本番の画面（https://planterai.vercel.app/app/ ）で、歩く・うろうろ・
-      迎えるを見る。迎えるのを試すには、同じ origin
-      の別のページ（`/app/favicon.svg` など）で `localStorage` の
-      `planterai:lastOpenedAt:karami` を前の日にして から `/app/`
-      を開く。`/app/` のまま書き換えて読み直すと、裏へ回ったときの
-      保存で上書きされる。`?emotion=` を付けた練習では迎えない
+      迎えるを見る。迎えるのを試すには、`/app/` のコンソールで `localStorage` の
+      `planterai:lastOpenedAt:karami` を前の日にしてから読み直す。 `?emotion=`
+      を付けた練習では迎えない
 - [ ] 仮の数字（6時間・15〜30秒・0.6m・待つ3秒）を、動きを見て決める
 - [ ] #98 の段階3（照度・天気・水やりで、窓と小物を変える）か段階5（3体で
       同じ部屋に住む）に進む。歩く処理は `walk.logic.js`（道のり）と
