@@ -16,7 +16,8 @@ export const isInside = (p, rect) =>
   p.x > rect.minX && p.x < rect.maxX && p.z > rect.minZ && p.z < rect.maxZ;
 
 // ソファやベッドの上の立ち位置は、家具の中にある。いちばん近い縁から、キャラの半径だけ外の床へ出す。
-// 壁ぎわの家具の、壁の側へは出さない
+// 壁ぎわの家具の、壁の側と、となりの家具の中へは出さない。
+// 出られる縁が無ければ、その場の点を返す（歩かずに跳んで移る）
 export function approachPoint(point, { floor, blocks, radius }) {
   const block = blocks.find((rect) => isInside(point, rect));
   if (!block) return point;
@@ -27,7 +28,10 @@ export function approachPoint(point, { floor, blocks, radius }) {
     { x: out.maxX, z: point.z },
     { x: point.x, z: out.minZ },
     { x: point.x, z: out.maxZ },
-  ].filter((p) => isInside(p, walkable));
+  ].filter((p) =>
+    isInside(p, walkable) &&
+    !blocks.some((rect) => rect !== block && isInside(p, grow(rect, radius)))
+  );
   const distance = (p) => Math.hypot(p.x - point.x, p.z - point.z);
   return exits.reduce(
     (best, p) => distance(p) < distance(best) ? p : best,
@@ -57,12 +61,11 @@ function crosses(a, b, rect) {
 
 // from から to までの、家具をよけた道。家具をキャラの半径だけ広げ、その角をたどる最短の道を探す。
 // 戻り値は from の次から to までの点の並び。道が見つからなければ、まっすぐ to へ向かう。
-// 置かれた所や行き先が広げた家具にかかっているときは、その家具を通ってもよいことにする
-// （家具のすぐそばに降ろされると、どこへも出られなくなるため）
+// 置かれた所や行き先が広げた家具にかかっているときは、そこから出る・そこへ入る1本だけ、広げる前の
+// 家具をよければよいことにする（家具のすぐそばに降ろされると、どこへも出られなくなるため）
 export function planPath(from, to, { floor, blocks, radius }) {
-  const grown = blocks
-    .map((rect) => grow(rect, radius))
-    .filter((rect) => !isInside(from, rect) && !isInside(to, rect));
+  const obstacles = blocks.map((rect) => ({ rect, grown: grow(rect, radius) }));
+  const grown = obstacles.map((obstacle) => obstacle.grown);
   const walkable = grow(floor, -radius);
   const corners = grown.flatMap((rect) => {
     const out = grow(rect, MARGIN);
@@ -76,7 +79,13 @@ export function planPath(from, to, { floor, blocks, radius }) {
     isInside(p, walkable) && !grown.some((rect) => isInside(p, rect))
   );
   const points = [from, ...corners, to];
-  const clear = (a, b) => !grown.some((rect) => crosses(a, b, rect));
+  const endsIn = (a, b, end, rect) =>
+    (a === end || b === end) && isInside(end, rect);
+  const clear = (a, b) =>
+    !obstacles.some(({ rect, grown }) => {
+      const nearEnd = endsIn(a, b, from, grown) || endsIn(a, b, to, grown);
+      return crosses(a, b, nearEnd ? rect : grown);
+    });
   const goal = points.length - 1;
 
   const cost = points.map(() => Infinity);
