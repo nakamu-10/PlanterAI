@@ -10,7 +10,12 @@ import {
 import { touchRoleOf } from "./home.logic.js";
 import { modelUrl } from "./models.js";
 import { loadRoom, spotOf } from "./room3d.js";
-import { planTrip, planWander, replanTrip, wanderPoint } from "./walk.logic.js";
+import {
+  planWander,
+  planWelcome,
+  replanTrip,
+  wanderPoint,
+} from "./walk.logic.js";
 
 // 触ったかを調べる、押した点からのずれ[px]。指の腹くらいの広さ
 const TOUCH_OFFSETS = [
@@ -68,7 +73,8 @@ const WANDER_PAUSE = 3;
 const WANDER_MARGIN = 0.35;
 const nextWander = () =>
   WANDER_EVERY[0] + Math.random() * (WANDER_EVERY[1] - WANDER_EVERY[0]);
-// 久しぶりに開いたとき、キャラが歩き出す所の、部屋の右手前の床の縁からの距離[m]。画面の外から入ってくる
+// 久しぶりに開いたとき、キャラが歩き出す所の、部屋の右の床の縁からの距離[m]と、画面の右の端からの距離[m]。
+// 広い画面で部屋が全部写っていても、写っていない所から歩いてくるように
 const WELCOME_OUTSIDE = 0.6;
 // 向きを変える速さ[rad/秒]
 const TURN_SPEED = 6;
@@ -648,21 +654,28 @@ export async function createKarami(container, modelName = "karami") {
       awake = 0;
       panTo(destination.at.clone().sub(focus).dot(right));
     },
-    // 久しぶりに開いたとき：部屋の右手前の外から今の居場所まで歩いてきて、喜ぶ。
-    // 部屋は奥と左が壁なので、開いている右（+x）の縁の外から入る
+    // 久しぶりに開いたとき：部屋の右の外から今の居場所まで歩いてきて、機嫌がよければ喜ぶ。
+    // 涙が出る機嫌のときは、喜ぶと涙が引っ込んで訴えが見えなくなるので、歩いてくるだけにする
     welcome() {
       if (held || trip.length > 0) return;
-      const entry = new THREE.Vector3(
-        walkArea.floor.maxX + WELCOME_OUTSIDE,
-        0,
-        here.at.z,
+      // 画面の右の端より外になる x。画面の右（right）は +x と -z の向きなので、手前（+z）の点ほど
+      // 画面の左に寄る。床のいちばん手前でも画面の外になる x にする
+      const { floor } = walkArea;
+      const screenEdge = camera.right + WELCOME_OUTSIDE + pan -
+        (floor.maxZ - focus.z) * right.z;
+      const outsideX = Math.max(
+        floor.maxX + WELCOME_OUTSIDE,
+        focus.x + screenEdge / right.x,
       );
-      placeAt({ at: entry, look: here.at });
+      const { entry, steps } = planWelcome(here, outsideX, walkRoom);
+      placeAt({ at: new THREE.Vector3(entry.x, 0, entry.z), look: here.at });
       pose = null;
       posed = 0;
       awake = 0;
-      trip = [...planTrip(entry, here, walkRoom), { kind: "cheer" }];
+      const cheer = target.body < TEARS_FROM ? [{ kind: "cheer" }] : [];
+      trip = [...steps, ...cheer];
       following = true;
+      wandering = false;
     },
     // 画面のこの点に見える家具の、触ったときの役目（calendar など）。何もなければ null
     touchedProp(clientX, clientY) {

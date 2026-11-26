@@ -115,6 +115,28 @@ export function planWander(spot, point, seconds, room) {
   ];
 }
 
+// 久しぶりに開いたときに入ってくる道のり。部屋の右（+x）の床の外 outsideX から、床の右の縁の点
+// （door）を通って spot へ歩く。部屋は奥と左が壁なので、開いている右から入る。door は spot と
+// 同じ奥行きから手前（+z）へずらし、外から door までが家具にかからない所にする
+export function planWelcome(spot, outsideX, room) {
+  const walkable = grow(room.floor, -room.radius);
+  const grown = room.blocks.map((rect) => grow(rect, room.radius + MARGIN));
+  const blocked = (z) =>
+    grown.some((rect) =>
+      crosses({ x: outsideX, z }, { x: walkable.maxX, z }, rect) ||
+      isInside({ x: walkable.maxX, z }, rect)
+    );
+  let z = Math.min(Math.max(spot.at.z, walkable.minZ), walkable.maxZ);
+  while (blocked(z) && z < walkable.maxZ) {
+    z = Math.min(z + 0.05, walkable.maxZ);
+  }
+  const door = { x: walkable.maxX, y: 0, z };
+  return {
+    entry: { x: outsideX, y: 0, z },
+    steps: [{ kind: "walk", to: door }, ...planTrip(door, spot, room)],
+  };
+}
+
 // 線分 a→b が四角の内側を通るか。縁をなぞるだけなら通らない
 function crosses(a, b, rect) {
   let enter = 0;

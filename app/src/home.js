@@ -104,7 +104,7 @@ const MESSAGE_MS = 8_000;
 const REACTION_MS = 2_200;
 // どのセリフまで見たかは鉢ごとに覚える。共有すると、別の鉢の新しいセリフで「もう見た」になる
 const SEEN_KEY = `planterai:lastSeenMessageAt:${POT}`;
-// 前に開いた時刻も鉢ごとに覚える。久しぶりなら、キャラが歩いてきて迎える
+// 前に見ていた時刻も鉢ごとに覚える。久しぶりなら、キャラが歩いてきて迎える
 const OPENED_KEY = `planterai:lastOpenedAt:${POT}`;
 
 function showReaction(kind) {
@@ -167,8 +167,10 @@ function showMessage(message) {
   }
 }
 
-// 前に開いた時刻を読み、今を開いた時刻として残す
+// 前に見ていた時刻を読み、今を見ている時刻として残す。?emotion= などの練習では残さない
+// （本番のデモの前に練習すると、迎える所が出なくなるため）
 function swapOpenedAt() {
+  if (isForced) return null;
   try {
     const last = localStorage.getItem(OPENED_KEY);
     localStorage.setItem(OPENED_KEY, new Date().toISOString());
@@ -178,6 +180,21 @@ function swapOpenedAt() {
     return null;
   }
 }
+
+// 久しぶりなら、キャラが歩いてきて迎える
+function greetIfAway() {
+  if (isLongAbsence(swapOpenedAt())) karami3d.welcome();
+}
+
+// スマホではアプリを閉じずに裏へ回し、何日もあとに戻ることがある。開き直しでなく、見えなく
+// なった時刻を「前に見ていた時刻」として残し、戻ったときにも久しぶりかを見る。
+// 3D ができる前は時刻を書き換えない（読み込み中に裏へ回すと、できたときに久しぶりだと
+// 分からなくなる）
+document.addEventListener("visibilitychange", () => {
+  if (!karami3d) return;
+  if (document.hidden) swapOpenedAt();
+  else greetIfAway();
+});
 
 function lastSeenAt() {
   try {
@@ -269,7 +286,7 @@ async function setup3d(model) {
     moistureScore: currentMoisture,
   });
   placeKarami();
-  if (isLongAbsence(swapOpenedAt())) karami3d.welcome();
+  greetIfAway();
   // ?debug を付けると、コンソールから karami.cheer() などで動きを試せる（デモの練習用）
   if (new URLSearchParams(location.search).has("debug")) {
     window.karami = karami3d;

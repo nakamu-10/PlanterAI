@@ -5,6 +5,7 @@ import {
   planPath,
   planTrip,
   planWander,
+  planWelcome,
   replanTrip,
   wanderPoint,
 } from "../app/src/walk.logic.js";
@@ -259,6 +260,39 @@ const room = { floor, blocks, radius };
       steps[0].to.y === 0 && steps[2].to.y === 0.016 &&
       near(steps[2].to.x, 0.35),
   );
+}
+{
+  // 部屋の立ち位置（room.glb の spot_*）。どこへ迎えに来ても、家具の上を通らないこと
+  const spots = {
+    center: { at: { x: 0.35, y: 0.016, z: 0.35 }, look: { x: 3, y: 0, z: 3 } },
+    window: { at: { x: 1.15, y: 0, z: -0.7 }, look: { x: 0, y: 0, z: -3 } },
+    sofa: { at: { x: -0.65, y: 0.42, z: -1.05 }, look: { x: 0, y: 0, z: 4 } },
+    bed: { at: { x: -1.58, y: 0.27, z: 0.72 }, look: { x: 0, y: 0, z: 3 } },
+  };
+  // 道を細かく区切って、どの点も（家具の上の行き先の手前までは）広げた家具にかからないかを見る
+  const touchesFurniture = (points: { x: number; z: number }[]) =>
+    points.slice(1).some((b, i) => {
+      const a = points[i];
+      return Array.from({ length: 41 }, (_, k) => k / 40).some((t) => {
+        const p = { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t };
+        return blocks.some((rect) =>
+          p.x > rect.minX - radius + 1e-3 && p.x < rect.maxX + radius - 1e-3 &&
+          p.z > rect.minZ - radius + 1e-3 && p.z < rect.maxZ + radius - 1e-3
+        );
+      });
+    });
+  for (const [name, spot] of Object.entries(spots)) {
+    const { entry, steps } = planWelcome(spot, 2.5, room);
+    const walked = [
+      entry,
+      ...steps.filter((step) => step.kind === "walk").map((step) => step.to),
+    ];
+    assert(
+      `${name} へ迎えに来るとき、部屋の右の外から入り、家具を通らない`,
+      entry.x === 2.5 && !touchesFurniture(walked) &&
+        steps.at(-1).kind === "settle",
+    );
+  }
 }
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
