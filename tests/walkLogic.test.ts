@@ -145,6 +145,19 @@ const room = { floor, blocks, radius };
       Math.abs(path[1].z) > 0.3,
   );
 }
+{
+  const box = { minX: -1, maxX: 1, minZ: -1, maxZ: 1 };
+  const spot = { at: { x: 2, y: 0, z: 0 }, look: { x: 3, y: 0, z: 0 } };
+  const kinds = planTrip({ x: 0, y: 0.4, z: 0 }, spot, {
+    floor: box,
+    blocks: [box],
+    radius,
+  }).map((step) => step.kind);
+  assert(
+    "家具から出られる縁が無くても、立って跳び下りてから歩く",
+    kinds.slice(0, 2).join() === "stand,hop",
+  );
+}
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

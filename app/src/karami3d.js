@@ -562,11 +562,14 @@ export async function createKarami(container, modelName = "karami") {
       spotName = chosen;
       const destination = chosen === name ? next : spot;
       if (!first) {
-        trip = planTrip(actor.position, destination, {
-          ...walkArea,
-          radius: WALK_RADIUS,
-        });
-        hop = null;
+        const area = { ...walkArea, radius: WALK_RADIUS };
+        // 跳んでいる途中なら、跳び終えた所から歩き直す。途中でやめると、宙を滑って下りる
+        const hopping = hop ? trip[0] : null;
+        trip = hopping
+          ? [hopping, ...planTrip(hopping.to, destination, area)]
+          : planTrip(actor.position, destination, area);
+        // 回している途中でも、歩き出したら正面へ戻す。横を向いたまま進まないように
+        turning = false;
         return;
       }
       placeAt(destination);

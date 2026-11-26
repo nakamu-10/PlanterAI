@@ -43,10 +43,12 @@ export function approachPoint(point, { floor, blocks, radius }) {
 // stand：ポーズをやめて立つ、hop：家具に跳び上がる・跳び下りる、walk：床を歩く、
 // settle：向く先を向いて、その居場所のポーズをとる
 export function planTrip(from, to, room) {
+  // 家具の中にいるかで、跳び下りる・跳び上がるを決める。出られる縁が無くても、ポーズのまま滑らない
+  const raised = (point) => room.blocks.some((rect) => isInside(point, rect));
   const start = approachPoint(from, room);
   const goal = approachPoint(to.at, room);
   const steps = [];
-  if (start !== from) {
+  if (raised(from)) {
     steps.push({ kind: "stand" }, { kind: "hop", to: { ...start, y: 0 } });
   }
   const path = planPath(start, goal, room);
@@ -55,7 +57,7 @@ export function planTrip(from, to, room) {
     const y = point === to.at ? to.at.y : 0;
     steps.push({ kind: "walk", to: { x: point.x, y, z: point.z } });
   }
-  if (goal !== to.at) steps.push({ kind: "hop", to: to.at });
+  if (raised(to.at)) steps.push({ kind: "hop", to: to.at });
   steps.push({ kind: "settle", spot: to });
   return steps;
 }
