@@ -8,6 +8,7 @@ import {
   planWelcome,
   replanTrip,
   wanderPoint,
+  welcomeStartX,
 } from "../app/src/walk.logic.js";
 
 let pass = 0;
@@ -293,6 +294,24 @@ const room = { floor, blocks, radius };
         steps.at(-1).kind === "settle",
     );
   }
+}
+{
+  const focus = { x: 0.35, z: 0.35 };
+  const right = { x: Math.SQRT1_2, z: -Math.SQRT1_2 };
+  // 画面の上で、写す中心から右へどれだけ離れているか
+  const along = (p: { x: number; z: number }, pan: number) =>
+    (p.x - focus.x) * right.x + (p.z - focus.z) * right.z - pan;
+  const wide = { focus, right, halfWidth: 2.5, pan: 0 };
+  const x = welcomeStartX(floor, wide, 0.6);
+  assert(
+    "広い画面では、床のいちばん手前の点でも画面の右の外から歩き出す",
+    near(along({ x, z: floor.maxZ }, 0), 2.5 + 0.6) && x > floor.maxX + 0.6,
+  );
+  const shifted = { focus, right, halfWidth: 0, pan: -1.5 };
+  assert(
+    "画面の端が床の縁より内側なら、床の縁の外から歩き出す",
+    near(welcomeStartX(floor, shifted, 0.6), floor.maxX + 0.6),
+  );
 }
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);

@@ -15,6 +15,7 @@ import {
   planWelcome,
   replanTrip,
   wanderPoint,
+  welcomeStartX,
 } from "./walk.logic.js";
 
 // 触ったかを調べる、押した点からのずれ[px]。指の腹くらいの広さ
@@ -656,16 +657,14 @@ export async function createKarami(container, modelName = "karami") {
     },
     // 久しぶりに開いたとき：部屋の右の外から今の居場所まで歩いてきて、機嫌がよければ喜ぶ。
     // 涙が出る機嫌のときは、喜ぶと涙が引っ込んで訴えが見えなくなるので、歩いてくるだけにする
+    // 迎えたら true。持ち上げている間と、居場所を移っている途中は迎えない（うろうろ歩いている
+    // 途中なら、それをやめて迎える）
     welcome() {
-      if (held || trip.length > 0) return;
-      // 画面の右の端より外になる x。画面の右（right）は +x と -z の向きなので、手前（+z）の点ほど
-      // 画面の左に寄る。床のいちばん手前でも画面の外になる x にする
-      const { floor } = walkArea;
-      const screenEdge = camera.right + WELCOME_OUTSIDE + pan -
-        (floor.maxZ - focus.z) * right.z;
-      const outsideX = Math.max(
-        floor.maxX + WELCOME_OUTSIDE,
-        focus.x + screenEdge / right.x,
+      if (held || (trip.length > 0 && !wandering)) return false;
+      const outsideX = welcomeStartX(
+        walkArea.floor,
+        { focus, right, halfWidth: camera.right, pan },
+        WELCOME_OUTSIDE,
       );
       const { entry, steps } = planWelcome(here, outsideX, walkRoom);
       placeAt({ at: new THREE.Vector3(entry.x, 0, entry.z), look: here.at });
@@ -676,6 +675,7 @@ export async function createKarami(container, modelName = "karami") {
       trip = [...steps, ...cheer];
       following = true;
       wandering = false;
+      return true;
     },
     // 画面のこの点に見える家具の、触ったときの役目（calendar など）。何もなければ null
     touchedProp(clientX, clientY) {

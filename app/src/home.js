@@ -167,33 +167,42 @@ function showMessage(message) {
   }
 }
 
-// 前に見ていた時刻を読み、今を見ている時刻として残す。?emotion= などの練習では残さない
-// （本番のデモの前に練習すると、迎える所が出なくなるため）
-function swapOpenedAt() {
+// 前に見ていた時刻。?emotion= などの練習では読み書きしない（本番のデモの前に練習すると、
+// 迎える所が出なくなるため）。保存できないときは、毎回初めて開いたことになり、迎えないだけ
+function readOpenedAt() {
   if (isForced) return null;
   try {
-    const last = localStorage.getItem(OPENED_KEY);
-    localStorage.setItem(OPENED_KEY, new Date().toISOString());
-    return last;
+    return localStorage.getItem(OPENED_KEY);
   } catch {
-    // 保存できないときは、毎回初めて開いたことになり、迎えないだけ
     return null;
   }
 }
 
-// 久しぶりなら、キャラが歩いてきて迎える
+function saveOpenedAt() {
+  if (isForced) return;
+  try {
+    localStorage.setItem(OPENED_KEY, new Date().toISOString());
+  } catch {
+    // 読むときと同じく、迎えないだけ
+  }
+}
+
+// 久しぶりなら、キャラが歩いてきて迎える。迎えられなかったら（持ち上げている途中など）時刻を
+// 残さず、次に見たときに迎える
 function greetIfAway() {
-  if (isLongAbsence(swapOpenedAt())) karami3d.welcome();
+  if (isLongAbsence(readOpenedAt()) && !karami3d.welcome()) return;
+  saveOpenedAt();
 }
 
 // スマホではアプリを閉じずに裏へ回し、何日もあとに戻ることがある。開き直しでなく、見えなく
 // なった時刻を「前に見ていた時刻」として残し、戻ったときにも久しぶりかを見る。
 // 3D ができる前は時刻を書き換えない（読み込み中に裏へ回すと、できたときに久しぶりだと
 // 分からなくなる）
+// 戻ったときは、裏にいた間に変わった気分を読み直してから迎える（涙が出る機嫌なら喜ばないため）
 document.addEventListener("visibilitychange", () => {
   if (!karami3d) return;
-  if (document.hidden) swapOpenedAt();
-  else greetIfAway();
+  if (document.hidden) saveOpenedAt();
+  else refreshState().finally(greetIfAway);
 });
 
 function lastSeenAt() {
