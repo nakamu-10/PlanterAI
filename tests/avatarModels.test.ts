@@ -44,15 +44,33 @@ function readGlb(name: string): { gltf: Gltf; bin: Buffer } {
   return { gltf, bin: glb.subarray(binStart + 8, binStart + 8 + binLength) };
 }
 
-function readQuaternions(gltf: Gltf, bin: Buffer, accessorIndex: number) {
+// size: 1つのキーの数の個数（位置は3、回転は4）
+function readKeys(
+  gltf: Gltf,
+  bin: Buffer,
+  accessorIndex: number,
+  size: number,
+) {
   const accessor = gltf.accessors[accessorIndex];
   const start = (gltf.bufferViews[accessor.bufferView].byteOffset ?? 0) +
     (accessor.byteOffset ?? 0);
   return Array.from(
     { length: accessor.count },
-    (_, i) => [0, 1, 2, 3].map((k) => bin.readFloatLE(start + (i * 4 + k) * 4)),
+    (_, i) =>
+      Array.from(
+        { length: size },
+        (_, k) => bin.readFloatLE(start + (i * size + k) * 4),
+      ),
   );
 }
+
+// 寝るときの根元の前後の位置（glTF の z）。足先がマットレスの足元に収まる値で、#139 で作ったときのもの。
+// 前に作った布団まで測ると、布団の長さだけ枕の外へずれる
+const SLEEP_ROOT_Z: Record<string, number> = {
+  karami: 0.54,
+  cactus: 0.59,
+  everfresh: 0.59,
+};
 
 for (const name of ["karami", "cactus", "everfresh"]) {
   const { gltf, bin } = readGlb(name);
@@ -73,20 +91,37 @@ for (const name of ["karami", "cactus", "everfresh"]) {
   const sleep = gltf.animations.find((animation) => animation.name === "Sleep");
   assert(`${name}: Sleep がある`, sleep !== undefined);
   if (!sleep) continue;
-  for (const side of ["L", "R"]) {
+  const sleepKeys = (bone: string, path: string, size: number) => {
     const channel = sleep.channels.find((c) =>
-      gltf.nodes[c.target.node].name === `eye_happy_${side}` &&
-      c.target.path === "rotation"
+      gltf.nodes[c.target.node].name === bone && c.target.path === path
     );
-    const keys = channel
-      ? readQuaternions(gltf, bin, sleep.samplers[channel.sampler].output)
+    return channel
+      ? readKeys(gltf, bin, sleep.samplers[channel.sampler].output, size)
       : [];
+  };
+  const rootZ = sleepKeys("root", "translation", 3).map((key) => key[2]);
+  assert(
+    `${name}: Sleep は枕に頭をのせる位置に寝る`,
+    rootZ.length > 0 &&
+      rootZ.every((z) => Math.abs(z - SLEEP_ROOT_Z[name]) < 0.01),
+  );
+  for (const side of ["L", "R"]) {
+    const keys = sleepKeys(`eye_happy_${side}`, "rotation", 4);
     // q と -q は同じ向きなので、内積の絶対値で比べる。キーごとに向きが変わると、寝ている間に目が回る（#154）
     const sameAsFirst = (q: number[]) =>
       Math.abs(q.reduce((sum, v, k) => sum + v * keys[0][k], 0)) > 0.999;
     assert(
       `${name}: Sleep の閉じた目（${side}）は回らない`,
       keys.length > 0 && keys.every(sameAsFirst),
+    );
+    // 目の位置はコマごとに置き換える。前の値に足すと、コマごとにずれていく
+    const places = sleepKeys(`eye_happy_${side}`, "translation", 3);
+    assert(
+      `${name}: Sleep の閉じた目（${side}）は動かない`,
+      places.length > 0 &&
+        places.every((p) =>
+          p.every((v, k) => Math.abs(v - places[0][k]) < 1e-4)
+        ),
     );
   }
 }
