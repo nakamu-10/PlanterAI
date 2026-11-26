@@ -149,6 +149,14 @@ assert(
     run({ ...asleep, awake: 10, pending: "surprise", held: true }, 2).played
       .length === 0,
   );
+  {
+    const lifted = run({ ...asleep, awake: 10, posed: 0, held: true }, 12);
+    const dropped = run({ ...lifted.state, held: false }, 1);
+    assert(
+      "長く持ち上げてから離しても、すぐには横にならない",
+      dropped.state.posed === 0,
+    );
+  }
   assert(
     "10秒さわられなければ、寝直す",
     run({ ...asleep, awake: 10, posed: 0 }, 12).state.posed > 0.95,

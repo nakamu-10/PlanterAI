@@ -57,7 +57,8 @@ export function layerWeights({ wilt, pose, shot }) {
 // 戻り値の play は、このフレームで流し始める動き（無ければ null）
 export const LIE_DOWN_RATE = 3;
 export function restStep({ hasPose, awake, posed, pending, held, dt }) {
-  const nextAwake = Math.max(awake - dt, 0);
+  // 持ち上げている間は数えない。長く持ってから離すと、落ちている途中で横になってしまう
+  const nextAwake = held ? awake : Math.max(awake - dt, 0);
   const lying = hasPose && nextAwake === 0 && !held;
   // 横になる・起き上がるは、約0.5秒で8割
   const nextPosed = posed +
