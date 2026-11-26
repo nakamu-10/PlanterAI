@@ -16,6 +16,7 @@ import {
   NEAR_WORDS,
   propPage,
   recallPlace,
+  shouldSaveSeenAt,
   shouldShowLastMessage,
   TOUCH_HINT_2D,
   touchRoleOf,
@@ -383,6 +384,25 @@ assert(
   );
   assert("初めて開いたときは迎えない", !isLongAbsence(null, now));
   assert("読めない時刻なら迎えない", !isLongAbsence("きのう", now));
+}
+
+{
+  const now = Date.parse("2026-11-26T12:00:00Z");
+  const longAgo = "2026-11-25T00:00:00Z";
+  const recent = "2026-11-26T11:00:00Z";
+  assert(
+    "久しぶりで迎えたら、今の時刻を残す",
+    shouldSaveSeenAt(longAgo, true, now),
+  );
+  assert(
+    "久しぶりなのに迎えられなかったら、残さずに次に見たとき迎える",
+    !shouldSaveSeenAt(longAgo, false, now),
+  );
+  assert(
+    "久しぶりでなければ、迎えなくても残す",
+    shouldSaveSeenAt(recent, false, now),
+  );
+  assert("初めて開いたときも残す", shouldSaveSeenAt(null, false, now));
 }
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);

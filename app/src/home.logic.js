@@ -24,6 +24,12 @@ export function isLongAbsence(lastOpenedIso, now = Date.now()) {
   return Number.isFinite(last) && now - last >= WELCOME_AFTER_MS;
 }
 
+// 今の時刻を「前に見ていた時刻」として残すか。greeted：今、迎えたか。久しぶりなのにまだ迎えられて
+// いない（持ち上げている途中だった など）なら残さず、次に見たときに迎える
+export function shouldSaveSeenAt(lastSeenIso, greeted, now = Date.now()) {
+  return greeted || !isLongAbsence(lastSeenIso, now);
+}
+
 // セリフのあとに気分が変わっていたら、今と食い違う古いセリフ
 // （「お水ちょうだい」のあとに水をもらって満足になった、など）
 export function isStaleMessage(message, latestEmotion) {

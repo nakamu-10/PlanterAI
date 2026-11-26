@@ -657,10 +657,11 @@ export async function createKarami(container, modelName = "karami") {
     },
     // 久しぶりに開いたとき：部屋の右の外から今の居場所まで歩いてきて、機嫌がよければ喜ぶ。
     // 涙が出る機嫌のときは、喜ぶと涙が引っ込んで訴えが見えなくなるので、歩いてくるだけにする
-    // 迎えたら true。持ち上げている間と、居場所を移っている途中は迎えない（うろうろ歩いている
-    // 途中なら、それをやめて迎える）
+    // 迎えたら true。持ち上げている間は迎えない。居場所を移っている途中やうろうろ歩いている途中
+    // なら、それをやめて、画面の外から今の居場所へ歩いてくる（久しぶりに戻ると、時刻で居場所が
+    // 変わって移り始めていることが多いため）
     welcome() {
-      if (held || (trip.length > 0 && !wandering)) return false;
+      if (held) return false;
       const outsideX = welcomeStartX(
         walkArea.floor,
         { focus, right, halfWidth: camera.right, pan },

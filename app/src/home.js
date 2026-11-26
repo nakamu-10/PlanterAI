@@ -19,6 +19,7 @@ import {
   modelFor,
   propPage,
   recallPlace,
+  shouldSaveSeenAt,
   TOUCH_HINT_2D,
 } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
@@ -187,22 +188,26 @@ function saveOpenedAt() {
   }
 }
 
-// 久しぶりなら、キャラが歩いてきて迎える。迎えられなかったら（持ち上げている途中など）時刻を
-// 残さず、次に見たときに迎える
-function greetIfAway() {
-  if (isLongAbsence(readOpenedAt()) && !karami3d.welcome()) return;
-  saveOpenedAt();
+// lastSeenIso（前に見ていた時刻）から久しぶりなら、キャラが歩いてきて迎える
+function greetIfAway(lastSeenIso) {
+  const greeted = isLongAbsence(lastSeenIso) && karami3d.welcome();
+  if (shouldSaveSeenAt(lastSeenIso, greeted)) saveOpenedAt();
 }
 
 // スマホではアプリを閉じずに裏へ回し、何日もあとに戻ることがある。開き直しでなく、見えなく
 // なった時刻を「前に見ていた時刻」として残し、戻ったときにも久しぶりかを見る。
 // 3D ができる前は時刻を書き換えない（読み込み中に裏へ回すと、できたときに久しぶりだと
 // 分からなくなる）
-// 戻ったときは、裏にいた間に変わった気分を読み直してから迎える（涙が出る機嫌なら喜ばないため）
+// 戻ったときは、裏にいた間に変わった気分を読み直してから迎える（涙が出る機嫌なら喜ばないため）。
+// 前に見ていた時刻は、戻った瞬間に読んでおく（読み直しの途中でまた裏へ回すと書き換わるため）
 document.addEventListener("visibilitychange", () => {
   if (!karami3d) return;
-  if (document.hidden) saveOpenedAt();
-  else refreshState().finally(greetIfAway);
+  const lastSeenIso = readOpenedAt();
+  if (document.hidden) {
+    if (shouldSaveSeenAt(lastSeenIso, false)) saveOpenedAt();
+  } else {
+    refreshState().finally(() => greetIfAway(lastSeenIso));
+  }
 });
 
 function lastSeenAt() {
@@ -295,7 +300,7 @@ async function setup3d(model) {
     moistureScore: currentMoisture,
   });
   placeKarami();
-  greetIfAway();
+  greetIfAway(readOpenedAt());
   // ?debug を付けると、コンソールから karami.cheer() などで動きを試せる（デモの練習用）
   if (new URLSearchParams(location.search).has("debug")) {
     window.karami = karami3d;
