@@ -28,21 +28,26 @@ BODY_BONES = ("body", "root")
 FLIP_PIVOTS = {}
 
 def flip_to_other_eye(pb, mesh_name):
-    """笑い目を、頭の真ん中の縦の線のまわりで 180° 回して、反対の目の所へ移す。
-    顔は左右対称なので、こうすると傾きはそのままで上下だけが裏返る。
+    """笑い目を、顔の真ん中を前後に通る軸（Y）のまわりで 180° 回して、反対の目の所へ移す。
+    軸の高さは目の高さにする。顔は左右対称なので、傾きはそのままで上下だけが裏返る。
     その場で回すと、外側の端が頭に沈み、ハの字の傾きも逆になる"""
     if mesh_name not in FLIP_PIVOTS:
+        before = rig.data.pose_position
         rig.data.pose_position = "REST"
-        bpy.context.view_layer.update()
-        to_rig = rig.matrix_world.inverted()
-        part = bpy.data.objects[mesh_name]
-        verts = [to_rig @ part.matrix_world @ v.co for v in part.data.vertices]
-        center = sum(verts, Vector()) / len(verts)
-        rig.data.pose_position = "POSE"
-        FLIP_PIVOTS[mesh_name] = Vector((0, center.y, center.z))
+        try:
+            bpy.context.view_layer.update()
+            to_rig = rig.matrix_world.inverted()
+            part = bpy.data.objects[mesh_name]
+            verts = [to_rig @ part.matrix_world @ v.co for v in part.data.vertices]
+        finally:
+            rig.data.pose_position = before
+        # 頂点の平均は弧の頂の側へ寄るので、上下の端の真ん中を目の高さにする
+        middle = (min(v.z for v in verts) + max(v.z for v in verts)) / 2
+        FLIP_PIVOTS[mesh_name] = Vector((0, 0, middle))
     pivot = FLIP_PIVOTS[mesh_name]
     rot_world(pb, Y, 180)
-    # 骨は根元のまわりに回るので、頭の真ん中のまわりに回したのと同じ所へ動かす
+    # 骨は根元のまわりに回るので、軸のまわりに回したのと同じ所へ動かす。
+    # 足さずに置き換える（Idle は笑い目の位置をキーにしておらず、足すと呼ぶたびに重なる）
     root = pb.bone.head_local
     move_world(pb, pivot - root - Quaternion(Y, math.pi) @ (pivot - root))
 
