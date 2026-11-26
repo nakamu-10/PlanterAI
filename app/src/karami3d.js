@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { layerWeights, moodLevels } from "./mood.js";
+import { layerWeights, moodLevels, restStep } from "./mood.js";
 import { touchRoleOf } from "./home.logic.js";
 import { modelUrl } from "./models.js";
 import { loadRoom, spotOf } from "./room3d.js";
@@ -321,14 +321,16 @@ export async function createKarami(container, modelName = "karami") {
       current.stop();
       current = null;
     }
-    // 横になる・起き上がるは、約0.5秒で8割
-    awake = Math.max(awake - dt, 0);
-    const lying = pose !== null && awake === 0 && !held;
-    posed += ((lying ? 1 : 0) - posed) * (1 - Math.exp(-dt * 3));
-    if (pending && posed < 0.05) {
-      play(oneShots[pending]);
-      pending = null;
-    }
+    const rest = restStep({
+      hasPose: pose !== null,
+      awake,
+      posed,
+      pending,
+      held: held !== null,
+      dt,
+    });
+    ({ awake, posed, pending } = rest);
+    if (rest.play) play(oneShots[rest.play]);
     for (const part of ["leaves", "body"]) {
       level[part] += (target[part] - level[part]) * k;
       const weights = layerWeights({ wilt: level[part], pose: posed, shot });
@@ -492,6 +494,8 @@ export async function createKarami(container, modelName = "karami") {
       const point = toStand(clientX, clientY);
       if (!point) return;
       wake();
+      // 持ち上げたら、起き上がってから流すはずだった動きはやめる
+      pending = null;
       const grip = point.clone().sub(model.position);
       held = {
         grip,

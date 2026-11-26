@@ -51,3 +51,23 @@ export function layerWeights({ wilt, pose, shot }) {
     pose: pose * (1 - shot),
   };
 }
+
+// 寝る・座るの居場所で、1フレーム進める。awake: 触って起きている残りの秒数、posed: ポーズの度合い
+// （0=立つ、1=ポーズ）、pending: 起き上がってから流す1回だけの動き。
+// 戻り値の play は、このフレームで流し始める動き（無ければ null）
+export const LIE_DOWN_RATE = 3;
+export function restStep({ hasPose, awake, posed, pending, held, dt }) {
+  const nextAwake = Math.max(awake - dt, 0);
+  const lying = hasPose && nextAwake === 0 && !held;
+  // 横になる・起き上がるは、約0.5秒で8割
+  const nextPosed = posed +
+    ((lying ? 1 : 0) - posed) * (1 - Math.exp(-dt * LIE_DOWN_RATE));
+  // 持ち上げている間はジタバタを続ける（ほかの動きで止めると、そのまま動かなくなる）
+  const play = pending && nextPosed < 0.05 && !held ? pending : null;
+  return {
+    awake: nextAwake,
+    posed: nextPosed,
+    pending: play ? null : pending,
+    play,
+  };
+}
