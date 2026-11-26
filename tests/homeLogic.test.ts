@@ -9,12 +9,14 @@ import {
   describeForecast,
   describeLightToday,
   imageFor,
+  isLongAbsence,
   isOnHeadArea,
   isStaleMessage,
   modelFor,
   NEAR_WORDS,
   propPage,
   recallPlace,
+  shouldSaveSeenAt,
   shouldShowLastMessage,
   TOUCH_HINT_2D,
   touchRoleOf,
@@ -369,6 +371,39 @@ assert(
   "気分が訴える点数なら「今すぐ」",
   describeForecast({ status: "dry" }, 79) === "今すぐ",
 );
+
+{
+  const now = Date.parse("2026-11-26T12:00:00Z");
+  assert(
+    "6時間ぶりに開いたら迎える",
+    isLongAbsence("2026-11-26T06:00:00Z", now),
+  );
+  assert(
+    "6時間たっていなければ迎えない",
+    !isLongAbsence("2026-11-26T06:00:01Z", now),
+  );
+  assert("初めて開いたときは迎えない", !isLongAbsence(null, now));
+  assert("読めない時刻なら迎えない", !isLongAbsence("きのう", now));
+}
+
+{
+  const now = Date.parse("2026-11-26T12:00:00Z");
+  const longAgo = "2026-11-25T00:00:00Z";
+  const recent = "2026-11-26T11:00:00Z";
+  assert(
+    "久しぶりで迎えたら、今の時刻を残す",
+    shouldSaveSeenAt(longAgo, true, now),
+  );
+  assert(
+    "久しぶりなのに迎えられなかったら、残さずに次に見たとき迎える",
+    !shouldSaveSeenAt(longAgo, false, now),
+  );
+  assert(
+    "久しぶりでなければ、迎えなくても残す",
+    shouldSaveSeenAt(recent, false, now),
+  );
+  assert("初めて開いたときも残す", shouldSaveSeenAt(null, false, now));
+}
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

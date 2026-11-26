@@ -5,8 +5,10 @@ import {
   planPath,
   planTrip,
   planWander,
+  planWelcome,
   replanTrip,
   wanderPoint,
+  welcomeStartX,
 } from "../app/src/walk.logic.js";
 
 let pass = 0;
@@ -258,6 +260,57 @@ const room = { floor, blocks, radius };
     steps.map((step) => step.kind).join() === "walk,pause,walk,settle" &&
       steps[0].to.y === 0 && steps[2].to.y === 0.016 &&
       near(steps[2].to.x, 0.35),
+  );
+}
+{
+  // 部屋の立ち位置（room.glb の spot_*）。どこへ迎えに来ても、家具の上を通らないこと
+  const spots = {
+    center: { at: { x: 0.35, y: 0.016, z: 0.35 }, look: { x: 3, y: 0, z: 3 } },
+    window: { at: { x: 1.15, y: 0, z: -0.7 }, look: { x: 0, y: 0, z: -3 } },
+    sofa: { at: { x: -0.65, y: 0.42, z: -1.05 }, look: { x: 0, y: 0, z: 4 } },
+    bed: { at: { x: -1.58, y: 0.27, z: 0.72 }, look: { x: 0, y: 0, z: 3 } },
+  };
+  // 道を細かく区切って、どの点も（家具の上の行き先の手前までは）広げた家具にかからないかを見る
+  const touchesFurniture = (points: { x: number; z: number }[]) =>
+    points.slice(1).some((b, i) => {
+      const a = points[i];
+      return Array.from({ length: 41 }, (_, k) => k / 40).some((t) => {
+        const p = { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t };
+        return blocks.some((rect) =>
+          p.x > rect.minX - radius + 1e-3 && p.x < rect.maxX + radius - 1e-3 &&
+          p.z > rect.minZ - radius + 1e-3 && p.z < rect.maxZ + radius - 1e-3
+        );
+      });
+    });
+  for (const [name, spot] of Object.entries(spots)) {
+    const { entry, steps } = planWelcome(spot, 2.5, room);
+    const walked = [
+      entry,
+      ...steps.filter((step) => step.kind === "walk").map((step) => step.to),
+    ];
+    assert(
+      `${name} へ迎えに来るとき、部屋の右の外から入り、家具を通らない`,
+      entry.x === 2.5 && !touchesFurniture(walked) &&
+        steps.at(-1).kind === "settle",
+    );
+  }
+}
+{
+  const focus = { x: 0.35, z: 0.35 };
+  const right = { x: Math.SQRT1_2, z: -Math.SQRT1_2 };
+  // 画面の上で、写す中心から右へどれだけ離れているか
+  const along = (p: { x: number; z: number }, pan: number) =>
+    (p.x - focus.x) * right.x + (p.z - focus.z) * right.z - pan;
+  const wide = { focus, right, halfWidth: 2.5, pan: 0 };
+  const x = welcomeStartX(floor, wide, 0.6);
+  assert(
+    "広い画面では、床のいちばん手前の点でも画面の右の外から歩き出す",
+    near(along({ x, z: floor.maxZ }, 0), 2.5 + 0.6) && x > floor.maxX + 0.6,
+  );
+  const shifted = { focus, right, halfWidth: 0, pan: -1.5 };
+  assert(
+    "画面の端が床の縁より内側なら、床の縁の外から歩き出す",
+    near(welcomeStartX(floor, shifted, 0.6), floor.maxX + 0.6),
   );
 }
 

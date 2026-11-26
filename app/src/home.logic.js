@@ -15,6 +15,21 @@ export function imageFor(model) {
   return `images/${model}.png`;
 }
 
+// 前に開いてからこの時間がたっていたら、キャラが歩いてきて迎える
+export const WELCOME_AFTER_MS = 6 * 60 * 60 * 1000;
+
+// lastOpenedIso: この端末で前に開いた時刻。初めて開いたとき（null）は迎えない
+export function isLongAbsence(lastOpenedIso, now = Date.now()) {
+  const last = Date.parse(lastOpenedIso ?? "");
+  return Number.isFinite(last) && now - last >= WELCOME_AFTER_MS;
+}
+
+// 今の時刻を「前に見ていた時刻」として残すか。greeted：今、迎えたか。久しぶりなのにまだ迎えられて
+// いない（持ち上げている途中だった など）なら残さず、次に見たときに迎える
+export function shouldSaveSeenAt(lastSeenIso, greeted, now = Date.now()) {
+  return greeted || !isLongAbsence(lastSeenIso, now);
+}
+
 // セリフのあとに気分が変わっていたら、今と食い違う古いセリフ
 // （「お水ちょうだい」のあとに水をもらって満足になった、など）
 export function isStaleMessage(message, latestEmotion) {

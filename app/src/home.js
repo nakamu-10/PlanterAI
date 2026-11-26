@@ -14,10 +14,12 @@ import {
   describeAgo,
   describeForecast,
   imageFor,
+  isLongAbsence,
   isOnHeadArea,
   modelFor,
   propPage,
   recallPlace,
+  shouldSaveSeenAt,
   TOUCH_HINT_2D,
 } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
@@ -103,6 +105,8 @@ const MESSAGE_MS = 8_000;
 const REACTION_MS = 2_200;
 // どのセリフまで見たかは鉢ごとに覚える。共有すると、別の鉢の新しいセリフで「もう見た」になる
 const SEEN_KEY = `planterai:lastSeenMessageAt:${POT}`;
+// 前に見ていた時刻も鉢ごとに覚える。久しぶりなら、キャラが歩いてきて迎える
+const OPENED_KEY = `planterai:lastOpenedAt:${POT}`;
 
 function showReaction(kind) {
   // ?emotion= などで固定した練習の操作は、本物の鉢の記憶に混ぜない
@@ -163,6 +167,51 @@ function showMessage(message) {
     // 保存できない（プライベートブラウズなど）ときは、次に開いたときにもう一度出るだけ
   }
 }
+
+// 前に見ていた時刻。?emotion= などの練習では読み書きしない（本番のデモの前に練習すると、
+// 迎える所が出なくなるため）。保存できないときは、毎回初めて開いたことになり、迎えないだけ
+function readOpenedAt() {
+  if (isForced) return null;
+  try {
+    return localStorage.getItem(OPENED_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveOpenedAt() {
+  if (isForced) return;
+  try {
+    localStorage.setItem(OPENED_KEY, new Date().toISOString());
+  } catch {
+    // 読むときと同じく、迎えないだけ
+  }
+}
+
+// 前に見ていた時刻から久しぶりなら、キャラが歩いてきて迎える。時刻は迎える直前に読む
+// （戻ってすぐまた戻ると、先に迎えた方が時刻を書き換えるので、2回は迎えない）
+function greetIfAway() {
+  // 読み直しの間にまた裏へ回したら迎えない。次に戻ったときに迎える
+  if (document.hidden) return;
+  const lastSeenIso = readOpenedAt();
+  const greeted = isLongAbsence(lastSeenIso) && karami3d.welcome();
+  if (shouldSaveSeenAt(lastSeenIso, greeted)) saveOpenedAt();
+}
+
+// スマホではアプリを閉じずに裏へ回し、何日もあとに戻ることがある。開き直しでなく、見えなく
+// なった時刻を「前に見ていた時刻」として残し、戻ったときにも久しぶりかを見る。
+// 久しぶりなのにまだ迎えていなければ、見えなくなっても書き換えない（shouldSaveSeenAt）。
+// 3D ができる前は時刻を書き換えない（読み込み中に裏へ回すと、できたときに久しぶりだと
+// 分からなくなる）。戻ったときは、裏にいた間に変わった気分を読み直してから迎える
+// （涙が出る機嫌なら喜ばないため）
+document.addEventListener("visibilitychange", () => {
+  if (!karami3d) return;
+  if (!document.hidden) {
+    refreshState().finally(greetIfAway);
+  } else if (shouldSaveSeenAt(readOpenedAt(), false)) {
+    saveOpenedAt();
+  }
+});
 
 function lastSeenAt() {
   try {
@@ -254,6 +303,7 @@ async function setup3d(model) {
     moistureScore: currentMoisture,
   });
   placeKarami();
+  greetIfAway();
   // ?debug を付けると、コンソールから karami.cheer() などで動きを試せる（デモの練習用）
   if (new URLSearchParams(location.search).has("debug")) {
     window.karami = karami3d;
