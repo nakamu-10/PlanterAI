@@ -146,16 +146,16 @@ const room = { floor, blocks, radius };
   );
 }
 {
-  const box = { minX: -1, maxX: 1, minZ: -1, maxZ: 1 };
-  const spot = { at: { x: 2, y: 0, z: 0 }, look: { x: 3, y: 0, z: 0 } };
-  const kinds = planTrip({ x: 0, y: 0.4, z: 0 }, spot, {
-    floor: box,
-    blocks: [box],
+  const table = { minX: -0.3, maxX: 0.3, minZ: -0.3, maxZ: 0.3 };
+  const path = planPath({ x: -0.8, z: 0 }, { x: 0.45, z: 0 }, {
+    floor,
+    blocks: [table],
     radius,
-  }).map((step) => step.kind);
+  });
   assert(
-    "家具から出られる縁が無くても、立って跳び下りてから歩く",
-    kinds.slice(0, 2).join() === "stand,hop",
+    "行き先が家具のすぐそばでも、その家具を突き抜けずに回る",
+    path.length === 3 && Math.abs(path[0].z) > 0.3 &&
+      Math.abs(path[1].z) > 0.3,
   );
 }
 
