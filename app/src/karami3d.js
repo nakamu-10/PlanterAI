@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { layerWeights, moodLevels, restStep } from "./mood.js";
+import { layerWeights, moodLevels, partPoses, restStep } from "./mood.js";
 import { touchRoleOf } from "./home.logic.js";
 import { modelUrl } from "./models.js";
 import { loadRoom, spotOf } from "./room3d.js";
@@ -26,6 +26,8 @@ const isMouthTrack = (track) => /^mouth(_frown)?\./.test(track.name);
 // 涙の骨。glb の書き出しで全部の動きに止まったままのトラックが入るので、
 // 涙の動きは Cry からだけ取り、ほかの動きからは外す（混ぜると流れる距離が縮む）
 const isTearTrack = (track) => /^(cry|tear)_/.test(track.name);
+// 根元と脚の骨。座るときは、ここだけを座る動きに入れ替える
+const isSeatTrack = (track) => /^(root|leg_)/.test(track.name);
 const keepTracks = (clip, name, keep) =>
   new THREE.AnimationClip(name, clip.duration, clip.tracks.filter(keep));
 
@@ -34,9 +36,13 @@ const MAX_LIFT = 0.35;
 
 // 部屋の中での大きさ。カラ美（元の背 0.975m）を、チェスト（0.66m）2台分の背にする
 const CHARACTER_SCALE = 1.35;
-// 立ったままではとれないポーズと、その動きの名前
-const POSE_CLIPS = { sit: "Sit", sleep: "Sleep" };
-// 寝ている所を触ると起き上がり、この秒数さわられなければ寝直す
+// 立ったままではとれないポーズと、その動きの名前。座るは腰から下だけを入れ替え、顔・頭・葉は
+// 気分のまま動かす（夕方のソファでも、しおれや涙が分かるように）。寝るは布団をかぶるので体ごと
+const POSE_CLIPS = {
+  sit: { clip: "Sit", seatOnly: true },
+  sleep: { clip: "Sleep", seatOnly: false },
+};
+// 座っている・寝ている所を触ると立ち上がり、この秒数さわられなければ戻る
 const WAKE_SECONDS = 10;
 // 写す高さ[m]。部屋全体だとスマホではキャラが小さすぎるので、キャラのまわりだけ写し、
 // 残りは横にスワイプして見回す
@@ -125,14 +131,15 @@ export async function createKarami(container, modelName = "karami") {
         (t) => !isTearTrack(t) && keep(t),
       ),
     );
-  // 1本の動きを、葉・マントの部分と口と、それ以外に分けて流す
+  // 1本の動きを、葉・マントの部分と口と、根元と脚と、それ以外に分けて流す
   const split = (name) => ({
     leaves: playBody(name, "_leaves", isLeafTrack).play(),
     mouth: playBody(name, "_mouth", isMouthTrack).play(),
+    seat: playBody(name, "_seat", isSeatTrack).play(),
     body: playBody(
       name,
       "_body",
-      (t) => !isLeafTrack(t) && !isMouthTrack(t),
+      (t) => !isLeafTrack(t) && !isMouthTrack(t) && !isSeatTrack(t),
     ).play(),
   });
   const idle = split("Idle");
@@ -151,10 +158,12 @@ export async function createKarami(container, modelName = "karami") {
   const struggle = playBody("Struggle");
   // 座る・寝るは、その居場所にいる間くり返す。glb に無い動きは居場所ごと使わない（setSpot）
   const poses = {};
-  for (const [pose, clip] of Object.entries(POSE_CLIPS)) {
+  for (const [pose, { clip, seatOnly }] of Object.entries(POSE_CLIPS)) {
     if (THREE.AnimationClip.findByName(gltf.animations, clip)) {
-      poses[pose] = playBody(clip).play();
-      poses[pose].setEffectiveWeight(0);
+      const keep = seatOnly ? isSeatTrack : () => true;
+      const action = playBody(clip, "", keep).play();
+      action.setEffectiveWeight(0);
+      poses[pose] = { action, seatOnly };
     }
   }
   // 涙は常に流しておき、目のうるみごと骨 cry_* の大きさで出し入れする
@@ -279,8 +288,8 @@ export async function createKarami(container, modelName = "karami") {
     current = action;
     action.reset().play();
   }
-  // 寝ている所を触ったら起こす。横になったまま1回だけの動きを流すと急に立ち上がるので、
-  // 起き上がってから流す
+  // 座っている・寝ている所を触ったら立たせる。ポーズのまま1回だけの動きを流すと急に立ち上がる
+  // ので、立ってから流す
   const wake = () => {
     if (pose) awake = WAKE_SECONDS;
     return posed > 0.05;
@@ -331,19 +340,30 @@ export async function createKarami(container, modelName = "karami") {
     });
     ({ awake, posed, pending } = rest);
     if (rest.play) play(oneShots[rest.play]);
-    for (const part of ["leaves", "body"]) {
-      level[part] += (target[part] - level[part]) * k;
-      const weights = layerWeights({ wilt: level[part], pose: posed, shot });
+    level.leaves += (target.leaves - level.leaves) * k;
+    level.body += (target.body - level.body) * k;
+    const wiltOf = {
+      leaves: level.leaves,
+      body: level.body,
+      seat: level.body,
+      mouth: target.frown,
+    };
+    // 部位の名前は partPoses から取る。split に無い名前なら、idle[part] で止まる
+    const posedParts = partPoses({ seatOnly: pose?.seatOnly ?? null, posed });
+    for (const [part, posePart] of Object.entries(posedParts)) {
+      const wilt = wiltOf[part];
+      const weights = layerWeights({ wilt, pose: posePart, shot });
       idle[part].setEffectiveWeight(weights.idle);
       wiltLoop[part].setEffectiveWeight(weights.wilt);
-      // しおれているほど、ゆっくり動く
-      idle[part].timeScale = wiltLoop[part].timeScale = 1 - 0.5 * level[part];
+      if (part !== "mouth") {
+        // しおれているほど、ゆっくり動く
+        idle[part].timeScale = wiltLoop[part].timeScale = 1 - 0.5 * wilt;
+      }
     }
-    const mouth = layerWeights({ wilt: target.frown, pose: posed, shot });
-    idle.mouth.setEffectiveWeight(mouth.idle);
-    wiltLoop.mouth.setEffectiveWeight(mouth.wilt);
-    for (const action of Object.values(poses)) {
-      action.setEffectiveWeight(action === pose ? mouth.pose : 0);
+    for (const candidate of Object.values(poses)) {
+      candidate.action.setEffectiveWeight(
+        candidate === pose ? posed * (1 - shot) : 0,
+      );
     }
 
     if (turning) {
@@ -393,7 +413,7 @@ export async function createKarami(container, modelName = "karami") {
     const lift = model.position.y;
     shadow.position.x = model.position.x;
     shadow.scale.setScalar(1 / (1 + lift * 2));
-    // 寝ている間は布団の下なので、影を出さない（マットレスより広く、宙に浮いて見える）
+    // 座る・寝るの間は足元が家具の上なので、影を出さない（家具より広く、宙に浮いて見える）
     shadow.material.opacity = SHADOW_OPACITY / (1 + lift * 4) * (1 - posed);
 
     mixer.update(dt);
@@ -481,7 +501,7 @@ export async function createKarami(container, modelName = "karami") {
     },
     // dx: 横にドラッグした画素数。画面の半分ほどで半回転する
     turn(dx) {
-      // 横になったまま回すと、体がベッドの上で回ってしまう。起こすだけにする
+      // ポーズのまま回すと、体が家具の上で回ってしまう。立たせるだけにする
       if (wake()) return;
       turning = true;
       yaw += dx * 0.01;

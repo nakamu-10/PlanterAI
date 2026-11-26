@@ -1,6 +1,7 @@
 import {
   layerWeights,
   moodLevels,
+  partPoses,
   restStep,
   wiltFromMoistureScore,
 } from "../app/src/mood.js";
@@ -168,6 +169,27 @@ assert(
   assert(
     "ポーズの無い居場所では、横にならない",
     run({ ...asleep, hasPose: false, posed: 0 }, 2).state.posed === 0,
+  );
+}
+
+{
+  const sitting = partPoses({ seatOnly: true, posed: 1 });
+  assert(
+    "座るときは、根元と脚だけをポーズにする",
+    sitting.seat === 1 && sitting.body === 0 && sitting.leaves === 0 &&
+      sitting.mouth === 0,
+  );
+  const sleeping = partPoses({ seatOnly: false, posed: 0.6 });
+  assert(
+    "寝るときは、体ごとポーズにする",
+    [sleeping.seat, sleeping.body, sleeping.leaves, sleeping.mouth].every(
+      (v) => v === 0.6,
+    ),
+  );
+  const standing = partPoses({ seatOnly: null, posed: 1 });
+  assert(
+    "ポーズの無い所では、どこもポーズにしない",
+    Object.values(standing).every((v) => v === 0),
   );
 }
 
