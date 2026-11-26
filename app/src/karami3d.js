@@ -1,10 +1,16 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { layerWeights, moodLevels, partPoses, restStep } from "./mood.js";
+import {
+  layerWeights,
+  moodLevels,
+  partPoses,
+  restStep,
+  TEARS_FROM,
+} from "./mood.js";
 import { touchRoleOf } from "./home.logic.js";
 import { modelUrl } from "./models.js";
 import { loadRoom, spotOf } from "./room3d.js";
-import { replanTrip } from "./walk.logic.js";
+import { planWander, replanTrip, wanderPoint } from "./walk.logic.js";
 
 // 触ったかを調べる、押した点からのずれ[px]。指の腹くらいの広さ
 const TOUCH_OFFSETS = [
@@ -51,6 +57,17 @@ const STRIDES = { karami: 0.097, cactus: 0.127, everfresh: 0.127 };
 // 家具に跳び上がる・跳び下りるのにかける秒数と、跳ぶ高さ[m]
 const HOP_SECONDS = 0.5;
 const HOP_HEIGHT = 0.15;
+// 機嫌のよいとき、立ち位置のまわりをうろうろ歩く。歩くのは、この立ち位置にいて涙が出ていないとき
+// だけ（座る・寝る・日照不足の窓辺・不安・苛立ちでは、訴えやポーズが見えなくならないよう歩かない）
+const WANDER_POSES = new Set(["stand", "sunbathe"]);
+// 立ち位置から歩く先までの最大の距離[m]と、歩き出すまでの秒数（この間で毎回選ぶ）と、先で待つ秒数
+const WANDER_REACH = 0.6;
+const WANDER_EVERY = [15, 30];
+const WANDER_PAUSE = 3;
+// うろうろ歩く先を、画面の左右の端からこれだけ内側[m]に収める（キャラの半分の幅ほど）
+const WANDER_MARGIN = 0.35;
+const nextWander = () =>
+  WANDER_EVERY[0] + Math.random() * (WANDER_EVERY[1] - WANDER_EVERY[0]);
 // 向きを変える速さ[rad/秒]
 const TURN_SPEED = 6;
 // 座っている・寝ている所を触ると立ち上がり、この秒数さわられなければ戻る
@@ -181,6 +198,7 @@ export async function createKarami(container, modelName = "karami") {
   const walk = playBody("Walk", "", isSeatTrack).play();
   walk.setEffectiveWeight(0);
   const walkSpeed = 2 * STRIDES[modelName] * CHARACTER_SCALE;
+  const walkRoom = { ...walkArea, radius: WALK_RADIUS };
   // 涙は常に流しておき、目のうるみごと骨 cry_* の大きさで出し入れする
   mixer.clipAction(keepTracks(findClip("Cry"), "Cry", isTearTrack)).play();
   const cryBones = [findNode("cry_L"), findNode("cry_R")];
@@ -273,6 +291,13 @@ export async function createKarami(container, modelName = "karami") {
   let hop = null;
   let stepping = 0;
   let placed = false;
+  // 今の居場所と、画面が歩くキャラについていくか（うろうろ歩くときは、部屋を動かせるままにする）、
+  // 次にうろうろ歩き出すまでの秒数
+  let here = spot;
+  let following = false;
+  let wanderIn = nextWander();
+  // うろうろ歩いている途中か。途中で機嫌が悪くなったら、立ち位置へ戻る
+  let wandering = false;
   const clock = new THREE.Clock();
 
   // 体をつかんで回した向き。離してしばらくすると、顔が見える正面へ戻る
@@ -322,8 +347,8 @@ export async function createKarami(container, modelName = "karami") {
     return actor.quaternion.angleTo(facing) < 0.05;
   }
 
-  // 道のりを1フレーム進める。床を歩いている間は true
-  function travel(dt) {
+  // 道のりを1フレーム進める。床を歩いている間は true。pace：しおれているほど小さく、歩く・跳ぶが遅くなる
+  function travel(dt, pace) {
     const step = trip[0];
     if (!step) return false;
     if (step.kind === "stand") {
@@ -338,8 +363,8 @@ export async function createKarami(container, modelName = "karami") {
       const to = new THREE.Vector3(step.to.x, step.to.y, step.to.z);
       const left = to.clone().sub(actor.position);
       const flat = Math.hypot(left.x, left.z);
-      turnToward(to, dt);
-      const move = walkSpeed * dt;
+      turnToward(to, dt * pace);
+      const move = walkSpeed * dt * pace;
       if (flat <= move) {
         actor.position.copy(to);
         trip.shift();
@@ -348,9 +373,14 @@ export async function createKarami(container, modelName = "karami") {
       }
       return true;
     }
+    if (step.kind === "pause") {
+      step.left = (step.left ?? step.seconds) - dt;
+      if (step.left <= 0) trip.shift();
+      return false;
+    }
     if (step.kind === "hop") {
       hop ??= { from: actor.position.clone(), t: 0 };
-      hop.t = Math.min(hop.t + dt / HOP_SECONDS, 1);
+      hop.t = Math.min(hop.t + dt * pace / HOP_SECONDS, 1);
       actor.position.lerpVectors(hop.from, step.to, hop.t);
       actor.position.y += HOP_HEIGHT * Math.sin(Math.PI * hop.t);
       if (hop.t === 1) {
@@ -422,11 +452,39 @@ export async function createKarami(container, modelName = "karami") {
     ({ awake, posed, pending } = rest);
     // 持ち上げている間と、1回だけの動きの間は、その場で止まる
     const pace = 1 - 0.5 * level.body;
-    const walking = !held && !playing && travel(dt * pace);
+    const walking = !held && !playing && travel(dt, pace);
     stepping += ((walking ? 1 : 0) - stepping) * (1 - Math.exp(-dt * 8));
     walk.timeScale = pace;
     walk.setEffectiveWeight(stepping * (1 - shot));
-    if (trip.length > 0) {
+    // 機嫌は、追いつく途中の level でなく目標の target で見る。悪くなったらすぐ歩くのをやめる
+    const calm = here !== null && WANDER_POSES.has(here.pose) &&
+      target.body < TEARS_FROM;
+    if (trip.length === 0) wandering = false;
+    if (wandering && !calm) {
+      wandering = false;
+      trip = replanTrip(actor.position, hop ? trip[0] : null, here, walkRoom);
+    }
+    if (calm && trip.length === 0 && !held && !playing && !turning) {
+      wanderIn -= dt;
+      if (wanderIn <= 0) {
+        wanderIn = nextWander();
+        // 画面はついていかないので、今写っている所から出ない先を選ぶ
+        const fits = (p) =>
+          Math.abs(
+            (p.x - focus.x) * right.x + (p.z - focus.z) * right.z - pan,
+          ) <
+            camera.right - WANDER_MARGIN;
+        const point = wanderPoint(here.at, walkRoom, WANDER_REACH, { fits });
+        if (point) {
+          trip = planWander(here, point, WANDER_PAUSE, walkRoom);
+          following = false;
+          wandering = true;
+          // 回したあと正面へ戻りきる前でも、すぐ戻す。横を向いたまま歩かないように
+          sinceTurn = Infinity;
+        }
+      }
+    }
+    if (following && trip.length > 0) {
       const follow = actor.position.clone().sub(focus).dot(right);
       panTo(pan + (follow - pan) * (1 - Math.exp(-dt * 3)));
     }
@@ -562,16 +620,21 @@ export async function createKarami(container, modelName = "karami") {
       spotName = chosen;
       const destination = chosen === name ? next : spot;
       if (!first) {
-        trip = replanTrip(actor.position, hop ? trip[0] : null, destination, {
-          ...walkArea,
-          radius: WALK_RADIUS,
-        });
+        trip = replanTrip(
+          actor.position,
+          hop ? trip[0] : null,
+          destination,
+          walkRoom,
+        );
+        here = destination;
+        following = true;
         // 回している途中でも、歩き出したらすぐ正面へ戻す。横を向いたまま進まないように
         turning = false;
         sinceTurn = Infinity;
         return;
       }
       placeAt(destination);
+      here = destination;
       // 移った先で立った姿から始める。ポーズの所なら、そこで横になる・座る
       pose = poses[destination.pose] ?? null;
       posed = 0;

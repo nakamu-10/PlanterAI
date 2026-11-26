@@ -4,7 +4,9 @@ import {
   approachPoint,
   planPath,
   planTrip,
+  planWander,
   replanTrip,
+  wanderPoint,
 } from "../app/src/walk.logic.js";
 
 let pass = 0;
@@ -210,6 +212,52 @@ const room = { floor, blocks, radius };
   assert(
     "跳んでいなければ、今いる所から決め直す",
     walking.map((step) => step.kind).join() === "walk,settle",
+  );
+}
+{
+  const home = { x: 0.35, z: 0.35 };
+  const sequence = (values: number[]) => () => values.shift() ?? 0;
+  // 角度は 0（+x の向き）、距離は reach × (0.5 + 0.5 × 1)
+  const p = wanderPoint(home, room, 0.6, { random: sequence([0, 1]) });
+  assert(
+    "うろうろ歩く先は、立ち位置から reach までの床の点",
+    p !== null && near(p.x, 0.95) && near(p.z, 0.35),
+  );
+  // 窓辺から奥（-z）はタンスにかかるので、選び直して手前（+z）へ行く
+  const nearChest = { x: 1.15, z: -0.6 };
+  const q = wanderPoint(nearChest, room, 0.6, {
+    random: sequence([0.75, 1, 0.25, 1]),
+  });
+  assert(
+    "家具にかかる点は選び直す",
+    q !== null && near(q.x, 1.15) && near(q.z, 0),
+  );
+  assert(
+    "何度選んでも家具にかかるなら null",
+    wanderPoint(nearChest, room, 0.6, { random: () => 0.75 }) === null,
+  );
+  // 1回目の +x の点は画面の外として外し、2回目の +z の点を選ぶ
+  const r = wanderPoint(home, room, 0.6, {
+    random: sequence([0, 1, 0.25, 1]),
+    fits: (point) => point.x < 0.6,
+  });
+  assert(
+    "fits に合わない点は選び直す",
+    r !== null && near(r.x, 0.35) && near(r.z, 0.95),
+  );
+}
+{
+  const center = {
+    at: { x: 0.35, y: 0.016, z: 0.35 },
+    look: { x: 2.65, y: 0, z: 2.65 },
+    pose: "stand",
+  };
+  const steps = planWander(center, { x: 0.95, z: 0.35 }, 3, room);
+  assert(
+    "うろうろは、歩いて待って、戻って向きを直す",
+    steps.map((step) => step.kind).join() === "walk,pause,walk,settle" &&
+      steps[0].to.y === 0 && steps[2].to.y === 0.016 &&
+      near(steps[2].to.x, 0.35),
   );
 }
 
