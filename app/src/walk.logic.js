@@ -75,8 +75,14 @@ export function replanTrip(position, hopping, to, room) {
 }
 
 // うろうろ歩く先。立ち位置 home のまわり reach[m] までの床で、家具にかからない点を選ぶ。
-// random は 0〜1 を返す関数。何度か選んでも見つからなければ null（その回は歩かない）
-export function wanderPoint(home, room, reach, random = Math.random) {
+// random は 0〜1 を返す関数。fits は、ほかに守らせる条件（画面の中に収まるか など）。
+// 何度か選んでも見つからなければ null（その回は歩かない）
+export function wanderPoint(
+  home,
+  room,
+  reach,
+  { random = Math.random, fits = () => true } = {},
+) {
   const walkable = grow(room.floor, -room.radius);
   for (let i = 0; i < 8; i++) {
     const angle = random() * 2 * Math.PI;
@@ -88,7 +94,7 @@ export function wanderPoint(home, room, reach, random = Math.random) {
     const free = !room.blocks.some((rect) =>
       isInside(p, grow(rect, room.radius))
     );
-    if (isInside(p, walkable) && free) return p;
+    if (isInside(p, walkable) && free && fits(p)) return p;
   }
   return null;
 }
@@ -98,7 +104,8 @@ export function planWander(spot, point, seconds, room) {
   const walk = (from, to) =>
     planPath(from, to, room).map((p) => ({
       kind: "walk",
-      to: { x: p.x, y: spot.at.y, z: p.z },
+      // 床の高さは0。立ち位置は敷物の上なので、立ち位置だけその高さにする
+      to: { x: p.x, y: p === spot.at ? spot.at.y : 0, z: p.z },
     }));
   return [
     ...walk(spot.at, point),
