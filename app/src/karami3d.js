@@ -60,7 +60,7 @@ const VIEW_DIRECTION = new THREE.Vector3(
 
 // 焼いた部屋に、キャラの色の明るさを合わせる値（目で見て決めた）
 const ROOM_EXPOSURE = 1.0;
-const SHADOW_OPACITY = 0.55;
+const SHADOW_OPACITY = 0.8;
 
 // 足元の丸い影。部屋は光を焼き込んであって影を落とせないので、ぼかした円を床に敷く
 function createContactShadow() {
@@ -84,7 +84,7 @@ function createContactShadow() {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   const shadow = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.75, 0.75),
+    new THREE.PlaneGeometry(0.9, 0.9),
     new THREE.MeshBasicMaterial({
       map: texture,
       transparent: true,
@@ -132,10 +132,15 @@ export async function createKarami(container, modelName = "karami") {
       ),
     );
   // 1本の動きを、葉・マントの部分と口と、根元と脚と、それ以外に分けて流す
+  // 待機としおれの、根元の上下の弾みは外す。足ごと床から浮き、部屋の上で揺れて見える
   const split = (name) => ({
     leaves: playBody(name, "_leaves", isLeafTrack).play(),
     mouth: playBody(name, "_mouth", isMouthTrack).play(),
-    seat: playBody(name, "_seat", isSeatTrack).play(),
+    seat: playBody(
+      name,
+      "_seat",
+      (t) => isSeatTrack(t) && t.name !== "root.position",
+    ).play(),
     body: playBody(
       name,
       "_body",
