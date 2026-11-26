@@ -669,6 +669,8 @@ export async function createKarami(container, modelName = "karami") {
       );
       const { entry, steps } = planWelcome(here, outsideX, walkRoom);
       placeAt({ at: new THREE.Vector3(entry.x, 0, entry.z), look: here.at });
+      // 跳んでいる途中で迎えたとき、残った跳ぶ様子で、あとの跳ぶ一歩が前の所から始まらないように
+      hop = null;
       pose = null;
       posed = 0;
       awake = 0;
