@@ -348,7 +348,7 @@ export async function createKarami(container, modelName = "karami") {
       seat: level.body,
       mouth: target.frown,
     };
-    // 部位の名前は partPoses から取る。名前がずれたら、ここで止まって気づける
+    // 部位の名前は partPoses から取る。split に無い名前なら、idle[part] で止まる
     const posedParts = partPoses({ seatOnly: pose?.seatOnly ?? null, posed });
     for (const [part, posePart] of Object.entries(posedParts)) {
       const wilt = wiltOf[part];
