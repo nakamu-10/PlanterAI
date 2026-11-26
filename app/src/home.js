@@ -14,6 +14,7 @@ import {
   describeAgo,
   describeForecast,
   imageFor,
+  isLongAbsence,
   isOnHeadArea,
   modelFor,
   propPage,
@@ -103,6 +104,8 @@ const MESSAGE_MS = 8_000;
 const REACTION_MS = 2_200;
 // どのセリフまで見たかは鉢ごとに覚える。共有すると、別の鉢の新しいセリフで「もう見た」になる
 const SEEN_KEY = `planterai:lastSeenMessageAt:${POT}`;
+// 前に開いた時刻も鉢ごとに覚える。久しぶりなら、キャラが歩いてきて迎える
+const OPENED_KEY = `planterai:lastOpenedAt:${POT}`;
 
 function showReaction(kind) {
   // ?emotion= などで固定した練習の操作は、本物の鉢の記憶に混ぜない
@@ -161,6 +164,18 @@ function showMessage(message) {
     localStorage.setItem(SEEN_KEY, message.created_at);
   } catch {
     // 保存できない（プライベートブラウズなど）ときは、次に開いたときにもう一度出るだけ
+  }
+}
+
+// 前に開いた時刻を読み、今を開いた時刻として残す
+function swapOpenedAt() {
+  try {
+    const last = localStorage.getItem(OPENED_KEY);
+    localStorage.setItem(OPENED_KEY, new Date().toISOString());
+    return last;
+  } catch {
+    // 保存できないときは、毎回初めて開いたことになり、迎えないだけ
+    return null;
   }
 }
 
@@ -254,6 +269,7 @@ async function setup3d(model) {
     moistureScore: currentMoisture,
   });
   placeKarami();
+  if (isLongAbsence(swapOpenedAt())) karami3d.welcome();
   // ?debug を付けると、コンソールから karami.cheer() などで動きを試せる（デモの練習用）
   if (new URLSearchParams(location.search).has("debug")) {
     window.karami = karami3d;

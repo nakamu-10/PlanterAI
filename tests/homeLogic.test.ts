@@ -9,6 +9,7 @@ import {
   describeForecast,
   describeLightToday,
   imageFor,
+  isLongAbsence,
   isOnHeadArea,
   isStaleMessage,
   modelFor,
@@ -369,6 +370,20 @@ assert(
   "気分が訴える点数なら「今すぐ」",
   describeForecast({ status: "dry" }, 79) === "今すぐ",
 );
+
+{
+  const now = Date.parse("2026-11-26T12:00:00Z");
+  assert(
+    "6時間ぶりに開いたら迎える",
+    isLongAbsence("2026-11-26T06:00:00Z", now),
+  );
+  assert(
+    "6時間たっていなければ迎えない",
+    !isLongAbsence("2026-11-26T06:00:01Z", now),
+  );
+  assert("初めて開いたときは迎えない", !isLongAbsence(null, now));
+  assert("読めない時刻なら迎えない", !isLongAbsence("きのう", now));
+}
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

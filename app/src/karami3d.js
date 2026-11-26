@@ -10,7 +10,7 @@ import {
 import { touchRoleOf } from "./home.logic.js";
 import { modelUrl } from "./models.js";
 import { loadRoom, spotOf } from "./room3d.js";
-import { planWander, replanTrip, wanderPoint } from "./walk.logic.js";
+import { planTrip, planWander, replanTrip, wanderPoint } from "./walk.logic.js";
 
 // 触ったかを調べる、押した点からのずれ[px]。指の腹くらいの広さ
 const TOUCH_OFFSETS = [
@@ -66,6 +66,8 @@ const WANDER_EVERY = [15, 30];
 const WANDER_PAUSE = 3;
 const nextWander = () =>
   WANDER_EVERY[0] + Math.random() * (WANDER_EVERY[1] - WANDER_EVERY[0]);
+// 久しぶりに開いたとき、キャラが歩き出す所の、部屋の右手前の床の縁からの距離[m]。画面の外から入ってくる
+const WELCOME_OUTSIDE = 0.6;
 // 向きを変える速さ[rad/秒]
 const TURN_SPEED = 6;
 // 座っている・寝ている所を触ると立ち上がり、この秒数さわられなければ戻る
@@ -369,6 +371,11 @@ export async function createKarami(container, modelName = "karami") {
       }
       return true;
     }
+    if (step.kind === "cheer") {
+      trip.shift();
+      playOnce("joy");
+      return false;
+    }
     if (step.kind === "pause") {
       step.left = (step.left ?? step.seconds) - dt;
       if (step.left <= 0) trip.shift();
@@ -621,6 +628,22 @@ export async function createKarami(container, modelName = "karami") {
       posed = 0;
       awake = 0;
       panTo(destination.at.clone().sub(focus).dot(right));
+    },
+    // 久しぶりに開いたとき：部屋の右手前の外から今の居場所まで歩いてきて、喜ぶ。
+    // 部屋は奥と左が壁なので、開いている右（+x）の縁の外から入る
+    welcome() {
+      if (held || trip.length > 0) return;
+      const entry = new THREE.Vector3(
+        walkArea.floor.maxX + WELCOME_OUTSIDE,
+        0,
+        here.at.z,
+      );
+      placeAt({ at: entry, look: here.at });
+      pose = null;
+      posed = 0;
+      awake = 0;
+      trip = [...planTrip(entry, here, walkRoom), { kind: "cheer" }];
+      following = true;
     },
     // 画面のこの点に見える家具の、触ったときの役目（calendar など）。何もなければ null
     touchedProp(clientX, clientY) {
