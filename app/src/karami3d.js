@@ -4,7 +4,7 @@ import { layerWeights, moodLevels, partPoses, restStep } from "./mood.js";
 import { touchRoleOf } from "./home.logic.js";
 import { modelUrl } from "./models.js";
 import { loadRoom, spotOf } from "./room3d.js";
-import { planTrip } from "./walk.logic.js";
+import { replanTrip } from "./walk.logic.js";
 
 // 触ったかを調べる、押した点からのずれ[px]。指の腹くらいの広さ
 const TOUCH_OFFSETS = [
@@ -562,14 +562,13 @@ export async function createKarami(container, modelName = "karami") {
       spotName = chosen;
       const destination = chosen === name ? next : spot;
       if (!first) {
-        const area = { ...walkArea, radius: WALK_RADIUS };
-        // 跳んでいる途中なら、跳び終えた所から歩き直す。途中でやめると、宙を滑って下りる
-        const hopping = hop ? trip[0] : null;
-        trip = hopping
-          ? [hopping, ...planTrip(hopping.to, destination, area)]
-          : planTrip(actor.position, destination, area);
-        // 回している途中でも、歩き出したら正面へ戻す。横を向いたまま進まないように
+        trip = replanTrip(actor.position, hop ? trip[0] : null, destination, {
+          ...walkArea,
+          radius: WALK_RADIUS,
+        });
+        // 回している途中でも、歩き出したらすぐ正面へ戻す。横を向いたまま進まないように
         turning = false;
+        sinceTurn = Infinity;
         return;
       }
       placeAt(destination);

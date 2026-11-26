@@ -43,14 +43,18 @@ export function approachPoint(point, { floor, blocks, radius }) {
 // stand：ポーズをやめて立つ、hop：家具に跳び上がる・跳び下りる、walk：床を歩く、
 // settle：向く先を向いて、その居場所のポーズをとる
 export function planTrip(from, to, room) {
-  // 家具の中にいるかで、跳び下りる・跳び上がるを決める。出られる縁が無くても、ポーズのまま滑らない
   const raised = (point) => room.blocks.some((rect) => isInside(point, rect));
   const start = approachPoint(from, room);
   const goal = approachPoint(to.at, room);
-  const steps = [];
-  if (raised(from)) {
-    steps.push({ kind: "stand" }, { kind: "hop", to: { ...start, y: 0 } });
+  const stand = raised(from) ? [{ kind: "stand" }] : [];
+  // 家具から床へ出られる縁が無ければ、歩かずに行き先へ跳んで移る。ポーズのまま滑ったり、
+  // 家具にめり込んだりしないように
+  const stuck = (point, exit) => raised(point) && exit === point;
+  if (stuck(from, start) || stuck(to.at, goal)) {
+    return [...stand, { kind: "hop", to: to.at }, { kind: "settle", spot: to }];
   }
+  const steps = [...stand];
+  if (raised(from)) steps.push({ kind: "hop", to: { ...start, y: 0 } });
   const path = planPath(start, goal, room);
   for (const point of path) {
     // 床の高さは0。家具の外の立ち位置は敷物の上なので、立ち位置の高さに合わせる
@@ -60,6 +64,14 @@ export function planTrip(from, to, room) {
   if (raised(to.at)) steps.push({ kind: "hop", to: to.at });
   steps.push({ kind: "settle", spot: to });
   return steps;
+}
+
+// 移っている途中で行き先が変わったときの、新しい道のり。跳んでいる途中（hopping はその跳ぶ一歩）なら、
+// 跳び終えた所から決め直す。途中でやめると、宙を滑って下りてしまう
+export function replanTrip(position, hopping, to, room) {
+  return hopping
+    ? [hopping, ...planTrip(hopping.to, to, room)]
+    : planTrip(position, to, room);
 }
 
 // 線分 a→b が四角の内側を通るか。縁をなぞるだけなら通らない
