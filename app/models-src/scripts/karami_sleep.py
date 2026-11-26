@@ -1,7 +1,7 @@
 exec(bpy.data.texts["karami_struggle"].as_string())
 import math
 import bmesh
-from mathutils import Vector
+from mathutils import Quaternion, Vector
 from mathutils.bvhtree import BVHTree
 
 # ベッドで横向きに寝て、布団をかぶる（くり返し）。部屋のベッドの立ち位置（spot_bed）に合わせ、
@@ -25,6 +25,29 @@ SINK = 0.1
 FOLD = 55
 FOLDED = []
 BODY_BONES = ("body", "root")
+FLIP_AXES = {}
+
+def flip_on_head(pb, mesh_name):
+    """頭の面に貼ったパーツを、その中心で面に沿って 180° 回す。
+    顔の正面の軸で回すと、横に寄った目は外側の端が頭に沈み、短い線しか見えなくなる"""
+    if mesh_name not in FLIP_AXES:
+        rig.data.pose_position = "REST"
+        bpy.context.view_layer.update()
+        to_rig = rig.matrix_world.inverted()
+        part = bpy.data.objects[mesh_name]
+        verts = [to_rig @ part.matrix_world @ v.co for v in part.data.vertices]
+        center = sum(verts, Vector()) / len(verts)
+        head = bpy.data.objects["HeadMesh"]
+        corners = [to_rig @ head.matrix_world @ Vector(c) for c in head.bound_box]
+        head_center = sum(corners, Vector()) / len(corners)
+        rig.data.pose_position = "POSE"
+        FLIP_AXES[mesh_name] = ((center - head_center).normalized(), center)
+    axis, center = FLIP_AXES[mesh_name]
+    rot_world(pb, axis, 180)
+    # 骨の根元のまわりに回るので、パーツの中心が元の所に戻るように動かす
+    pivot = pb.bone.head_local
+    turned = pivot + Quaternion(axis, math.pi) @ (center - pivot)
+    move_world(pb, center - turned)
 
 def lie_down():
     pose_from("Idle", 0)
@@ -43,7 +66,7 @@ def lie_down():
         happy.scale = (1,1,1)
         # Idle は笑い目の回転をキーにしていないので、戻さないと呼ぶたびに 180° ずつ重なって目が回る
         happy.rotation_quaternion = (1,0,0,0)
-        rot_world(happy, Y, 180)
+        flip_on_head(happy, "HappyEye_" + side)
     for pb in P:
         if pb.name.startswith(HIDDEN_UNDER_FUTON):
             pb.scale = (0.001,)*3
@@ -69,6 +92,8 @@ def rig_box(only=None):
     for o in bpy.data.objects:
         if o.type != "MESH" or o.parent is not rig: continue
         if only and o.name not in only: continue
+        # 前に作った布団が残っていると、足先の位置に入って体がずれる。作り直しても同じ所に寝かせる
+        if o.parent_bone == "futon": continue
         if any(s < 0.01 for s in o.matrix_world.to_scale()): continue
         for c in o.bound_box:
             w = to_rig @ o.matrix_world @ Vector(c)
