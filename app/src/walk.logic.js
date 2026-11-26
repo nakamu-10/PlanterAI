@@ -62,7 +62,8 @@ function crosses(a, b, rect) {
 // from から to までの、家具をよけた道。家具をキャラの半径だけ広げ、その角をたどる最短の道を探す。
 // 戻り値は from の次から to までの点の並び。道が見つからなければ、まっすぐ to へ向かう。
 // 置かれた所や行き先が広げた家具にかかっているときは、そこから出る・そこへ入る1本だけ、広げる前の
-// 家具をよければよいことにする（家具のすぐそばに降ろされると、どこへも出られなくなるため）
+// 家具をよければよいことにする（家具のすぐそばに降ろされると、どこへも出られなくなるため）。
+// from と to は家具の外の床の点にする。家具の上の点は、approachPoint で床へ出してから渡す
 export function planPath(from, to, { floor, blocks, radius }) {
   const obstacles = blocks.map((rect) => ({ rect, grown: grow(rect, radius) }));
   const grown = obstacles.map((obstacle) => obstacle.grown);

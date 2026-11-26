@@ -118,6 +118,19 @@ const room = { floor, blocks, radius };
       Math.abs(path[1].z) > 0.3,
   );
 }
+{
+  const table = { minX: -0.3, maxX: 0.3, minZ: -0.3, maxZ: 0.3 };
+  const path = planPath({ x: -0.8, z: 0 }, { x: 0.45, z: 0 }, {
+    floor,
+    blocks: [table],
+    radius,
+  });
+  assert(
+    "行き先が家具のすぐそばでも、その家具を突き抜けずに回る",
+    path.length === 3 && Math.abs(path[0].z) > 0.3 &&
+      Math.abs(path[1].z) > 0.3,
+  );
+}
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
