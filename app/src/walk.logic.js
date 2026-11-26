@@ -74,6 +74,40 @@ export function replanTrip(position, hopping, to, room) {
     : planTrip(position, to, room);
 }
 
+// うろうろ歩く先。立ち位置 home のまわり reach[m] までの床で、家具にかからない点を選ぶ。
+// random は 0〜1 を返す関数。何度か選んでも見つからなければ null（その回は歩かない）
+export function wanderPoint(home, room, reach, random = Math.random) {
+  const walkable = grow(room.floor, -room.radius);
+  for (let i = 0; i < 8; i++) {
+    const angle = random() * 2 * Math.PI;
+    const distance = reach * (0.5 + 0.5 * random());
+    const p = {
+      x: home.x + distance * Math.cos(angle),
+      z: home.z + distance * Math.sin(angle),
+    };
+    const free = !room.blocks.some((rect) =>
+      isInside(p, grow(rect, room.radius))
+    );
+    if (isInside(p, walkable) && free) return p;
+  }
+  return null;
+}
+
+// 立ち位置 spot から point まで歩き、seconds 秒いてから戻る道のり。pause：その場で待つ
+export function planWander(spot, point, seconds, room) {
+  const walk = (from, to) =>
+    planPath(from, to, room).map((p) => ({
+      kind: "walk",
+      to: { x: p.x, y: spot.at.y, z: p.z },
+    }));
+  return [
+    ...walk(spot.at, point),
+    { kind: "pause", seconds },
+    ...walk(point, spot.at),
+    { kind: "settle", spot },
+  ];
+}
+
 // 線分 a→b が四角の内側を通るか。縁をなぞるだけなら通らない
 function crosses(a, b, rect) {
   let enter = 0;
