@@ -212,6 +212,7 @@ document.addEventListener("visibilitychange", () => {
     saveOpenedAt();
   }
 });
+
 function lastSeenAt() {
   try {
     return localStorage.getItem(SEEN_KEY);
