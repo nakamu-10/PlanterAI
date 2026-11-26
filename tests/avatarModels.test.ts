@@ -114,6 +114,15 @@ for (const name of ["karami", "cactus", "everfresh"]) {
       `${name}: Sleep の閉じた目（${side}）は回らない`,
       keys.length > 0 && keys.every(sameAsFirst),
     );
+    // 目の位置はコマごとに置き換える。前の値に足すと、コマごとにずれていく
+    const places = sleepKeys(`eye_happy_${side}`, "translation", 3);
+    assert(
+      `${name}: Sleep の閉じた目（${side}）は動かない`,
+      places.length > 0 &&
+        places.every((p) =>
+          p.every((v, k) => Math.abs(v - places[0][k]) < 1e-4)
+        ),
+    );
   }
 }
 
