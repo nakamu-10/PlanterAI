@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { layerWeights, moodLevels, restStep } from "./mood.js";
+import { layerWeights, moodLevels, partPoses, restStep } from "./mood.js";
 import { touchRoleOf } from "./home.logic.js";
 import { modelUrl } from "./models.js";
 import { loadRoom, spotOf } from "./room3d.js";
@@ -27,7 +27,7 @@ const isMouthTrack = (track) => /^mouth(_frown)?\./.test(track.name);
 // 涙の動きは Cry からだけ取り、ほかの動きからは外す（混ぜると流れる距離が縮む）
 const isTearTrack = (track) => /^(cry|tear)_/.test(track.name);
 // 根元と脚の骨。座るときは、ここだけを座る動きに入れ替える
-const isSeatTrack = (track) => /^(root|leg_[LR])\./.test(track.name);
+const isSeatTrack = (track) => /^(root\.|leg_)/.test(track.name);
 const keepTracks = (clip, name, keep) =>
   new THREE.AnimationClip(name, clip.duration, clip.tracks.filter(keep));
 
@@ -342,16 +342,15 @@ export async function createKarami(container, modelName = "karami") {
     if (rest.play) play(oneShots[rest.play]);
     level.leaves += (target.leaves - level.leaves) * k;
     level.body += (target.body - level.body) * k;
-    // 根元と脚はどのポーズでも入れ替え、ほかは体ごとのポーズのときだけ入れ替える
-    const wholeBody = pose && !pose.seatOnly ? posed : 0;
+    const posedParts = partPoses({ seatOnly: pose?.seatOnly ?? null, posed });
     const parts = [
-      ["leaves", level.leaves, wholeBody],
-      ["body", level.body, wholeBody],
-      ["seat", level.body, posed],
-      ["mouth", target.frown, wholeBody],
+      ["leaves", level.leaves],
+      ["body", level.body],
+      ["seat", level.body],
+      ["mouth", target.frown],
     ];
-    for (const [part, wilt, posePart] of parts) {
-      const weights = layerWeights({ wilt, pose: posePart, shot });
+    for (const [part, wilt] of parts) {
+      const weights = layerWeights({ wilt, pose: posedParts[part], shot });
       idle[part].setEffectiveWeight(weights.idle);
       wiltLoop[part].setEffectiveWeight(weights.wilt);
       if (part !== "mouth") {
