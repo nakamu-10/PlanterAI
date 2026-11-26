@@ -5,9 +5,16 @@ import { modelUrl } from "./models.js";
 // 歩ける床と障害物は、Blender で置いた目印。見せず、触っても当たらないよう外す
 const isMarker = (name) => /^(nav_floor|block_)/.test(name);
 
+// 目印を、上から見た四角にする（walk.logic.js が使う形）
+function footprint(marker) {
+  const box = new THREE.Box3().setFromObject(marker);
+  return { minX: box.min.x, maxX: box.max.x, minZ: box.min.z, maxZ: box.max.z };
+}
+
 // 部屋の光は、Blender で1枚の絵に焼き込んである（材質 baked。.blend はリポジトリの外）。
 // 焼いた絵には光も色の調子も入っているので、光を当てずにそのまま出す。
-// 時刻などで変える部品（dyn_*）は焼かずに、ふつうの材質のまま光を当てる
+// 時刻などで変える部品（dyn_*）は焼かずに、ふつうの材質のまま光を当てる。
+// 歩ける床と家具（walkArea）は、目印を外す前に読んでおく
 export async function loadRoom() {
   const gltf = await new GLTFLoader().loadAsync(modelUrl("room"));
   const room = gltf.scene;
@@ -24,9 +31,15 @@ export async function loadRoom() {
       baked.dispose();
     }
   });
-  for (const marker of markers) marker.removeFromParent();
   room.updateMatrixWorld(true);
-  return room;
+  const walkArea = {
+    floor: footprint(markers.find((marker) => marker.name === "nav_floor")),
+    blocks: markers
+      .filter((marker) => marker.name.startsWith("block_"))
+      .map(footprint),
+  };
+  for (const marker of markers) marker.removeFromParent();
+  return { room, walkArea };
 }
 
 // 立ち位置（spot_*）の床の点と、向く先の点と、そこでとるポーズ

@@ -1,6 +1,6 @@
 // 部屋の中を歩く道（app/src/walk.logic.js）の検証
 // 実行: npx tsx tests/walkLogic.test.ts
-import { approachPoint, planPath } from "../app/src/walk.logic.js";
+import { approachPoint, planPath, planTrip } from "../app/src/walk.logic.js";
 
 let pass = 0;
 let fail = 0;
@@ -83,6 +83,33 @@ const room = { floor, blocks, radius };
   assert(
     "道が見つからなければ、まっすぐ向かう",
     path.length === 1 && path[0] === to,
+  );
+}
+{
+  const sofaSpot = {
+    at: { x: -0.65, y: 0.42, z: -1.05 },
+    look: { x: 0, y: 0, z: 4 },
+    pose: "sit",
+  };
+  const kinds = planTrip({ x: 0.35, y: 0.016, z: 0.35 }, sofaSpot, room)
+    .map((step) => step.kind);
+  assert(
+    "床からソファへは、前まで歩いて跳び上がり、座る",
+    kinds.join() === "walk,hop,settle",
+  );
+}
+{
+  const center = {
+    at: { x: 0.35, y: 0.016, z: 0.35 },
+    look: { x: 2.65, y: 0, z: 2.65 },
+    pose: "stand",
+  };
+  const steps = planTrip({ x: -1.58, y: 0.27, z: 0.72 }, center, room);
+  const last = steps.findLast((step) => step.kind === "walk");
+  assert(
+    "ベッドから真ん中へは、立って跳び下り、歩いて向きを変える",
+    steps.map((step) => step.kind).join() === "stand,hop,walk,settle" &&
+      steps[1].to.y === 0 && last.to.y === 0.016,
   );
 }
 

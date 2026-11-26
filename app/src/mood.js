@@ -74,9 +74,10 @@ export function restStep({ hasPose, awake, posed, pending, held, dt }) {
 }
 
 // 部位ごとの、ポーズに入れ替える度合い。座るは根元と脚（seat）だけを入れ替え、顔・頭・葉は
-// 気分のまま動かす。寝るは布団をかぶるので体ごと入れ替える。seatOnly が null ならポーズの無い所
-export function partPoses({ seatOnly, posed }) {
+// 気分のまま動かす。寝るは布団をかぶるので体ごと入れ替える。seatOnly が null ならポーズの無い所。
+// stepping は歩く度合いで、座ると同じく根元と脚だけを入れ替える（しおれたまま歩けるように）
+export function partPoses({ seatOnly, posed, stepping = 0 }) {
   const whole = seatOnly === false ? posed : 0;
-  const seat = seatOnly === null ? 0 : posed;
+  const seat = Math.min((seatOnly === null ? 0 : posed) + stepping, 1);
   return { leaves: whole, body: whole, mouth: whole, seat };
 }

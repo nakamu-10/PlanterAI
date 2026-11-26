@@ -4,6 +4,7 @@ import { layerWeights, moodLevels, partPoses, restStep } from "./mood.js";
 import { touchRoleOf } from "./home.logic.js";
 import { modelUrl } from "./models.js";
 import { loadRoom, spotOf } from "./room3d.js";
+import { planTrip } from "./walk.logic.js";
 
 // 触ったかを調べる、押した点からのずれ[px]。指の腹くらいの広さ
 const TOUCH_OFFSETS = [
@@ -42,6 +43,16 @@ const POSE_CLIPS = {
   sit: { clip: "Sit", seatOnly: true },
   sleep: { clip: "Sleep", seatOnly: false },
 };
+// 歩くとき、家具をよける広さ[m]（足元の半径）
+const WALK_RADIUS = 0.2;
+// Walk の1歩で足が進む距離（大きさ 1 のとき。karami_walk.py の stride()）。
+// Walk は1秒で2歩なので、歩く速さ[m/秒]はこの2倍に部屋の中での大きさを掛けたもの
+const STRIDES = { karami: 0.097, cactus: 0.127, everfresh: 0.127 };
+// 家具に跳び上がる・跳び下りるのにかける秒数と、跳ぶ高さ[m]
+const HOP_SECONDS = 0.5;
+const HOP_HEIGHT = 0.15;
+// 向きを変える速さ[rad/秒]
+const TURN_SPEED = 6;
 // 座っている・寝ている所を触ると立ち上がり、この秒数さわられなければ戻る
 const WAKE_SECONDS = 10;
 // 写す高さ[m]。部屋全体だとスマホではキャラが小さすぎるので、キャラのまわりだけ写し、
@@ -103,7 +114,7 @@ function createContactShadow() {
 // どのモデルも骨と動きの名前をカラ美にそろえてあるので、同じ操作で動く。
 // 待機（Idle）としおれ（Wilt）は常に流して混ぜ、ほかは1回だけ流す
 export async function createKarami(container, modelName = "karami") {
-  const [gltf, room] = await Promise.all([
+  const [gltf, { room, walkArea }] = await Promise.all([
     new GLTFLoader().loadAsync(modelUrl(modelName)),
     loadRoom(),
   ]);
@@ -166,6 +177,10 @@ export async function createKarami(container, modelName = "karami") {
       poses[pose] = { action, seatOnly };
     }
   }
+  // 歩く間は根元と脚だけを Walk に入れ替える。重みは歩く度合い（stepping）で上げ下げする
+  const walk = playBody("Walk", "", isSeatTrack).play();
+  walk.setEffectiveWeight(0);
+  const walkSpeed = 2 * STRIDES[modelName] * CHARACTER_SCALE;
   // 涙は常に流しておき、目のうるみごと骨 cry_* の大きさで出し入れする
   mixer.clipAction(keepTracks(findClip("Cry"), "Cry", isTearTrack)).play();
   const cryBones = [findNode("cry_L"), findNode("cry_R")];
@@ -252,6 +267,12 @@ export async function createKarami(container, modelName = "karami") {
   let posed = 0;
   let awake = 0;
   let pending = null;
+  // 居場所を移る道のり（walk.logic.js の planTrip）と、跳んでいる途中の様子と、歩く度合い（0〜1）。
+  // 開いたときは歩かずに、最初から居場所にいる
+  let trip = [];
+  let hop = null;
+  let stepping = 0;
+  let placed = false;
   const clock = new THREE.Clock();
 
   // 体をつかんで回した向き。離してしばらくすると、顔が見える正面へ戻る
@@ -288,6 +309,66 @@ export async function createKarami(container, modelName = "karami") {
     current = action;
     action.reset().play();
   }
+  // point の方へ向きを変える。向き終わったら true
+  function turnToward(point, dt) {
+    const dx = point.x - actor.position.x;
+    const dz = point.z - actor.position.z;
+    if (Math.hypot(dx, dz) < 1e-3) return true;
+    const facing = new THREE.Quaternion().setFromAxisAngle(
+      new THREE.Vector3(0, 1, 0),
+      Math.atan2(dx, dz),
+    );
+    actor.quaternion.rotateTowards(facing, TURN_SPEED * dt);
+    return actor.quaternion.angleTo(facing) < 0.05;
+  }
+
+  // 道のりを1フレーム進める。床を歩いている間は true
+  function travel(dt) {
+    const step = trip[0];
+    if (!step) return false;
+    if (step.kind === "stand") {
+      awake = Infinity;
+      if (posed < 0.05) {
+        pose = null;
+        trip.shift();
+      }
+      return false;
+    }
+    if (step.kind === "walk") {
+      const to = new THREE.Vector3(step.to.x, step.to.y, step.to.z);
+      const left = to.clone().sub(actor.position);
+      const flat = Math.hypot(left.x, left.z);
+      turnToward(to, dt);
+      const move = walkSpeed * dt;
+      if (flat <= move) {
+        actor.position.copy(to);
+        trip.shift();
+      } else {
+        actor.position.addScaledVector(left, move / flat);
+      }
+      return true;
+    }
+    if (step.kind === "hop") {
+      hop ??= { from: actor.position.clone(), t: 0 };
+      hop.t = Math.min(hop.t + dt / HOP_SECONDS, 1);
+      actor.position.lerpVectors(hop.from, step.to, hop.t);
+      actor.position.y += HOP_HEIGHT * Math.sin(Math.PI * hop.t);
+      if (hop.t === 1) {
+        hop = null;
+        trip.shift();
+      }
+      return false;
+    }
+    // 座る・寝るのポーズは、向く先を向いてからとる。横を向いたまま座ると、背もたれからずれる
+    if (turnToward(step.spot.look, dt)) {
+      pose = poses[step.spot.pose] ?? null;
+      posed = 0;
+      awake = 0;
+      trip.shift();
+    }
+    return false;
+  }
+
   // 座っている・寝ている所を触ったら立たせる。ポーズのまま1回だけの動きを流すと急に立ち上がる
   // ので、立ってから流す
   const wake = () => {
@@ -339,6 +420,16 @@ export async function createKarami(container, modelName = "karami") {
       dt,
     });
     ({ awake, posed, pending } = rest);
+    // 持ち上げている間と、1回だけの動きの間は、その場で止まる
+    const pace = 1 - 0.5 * level.body;
+    const walking = !held && !playing && travel(dt * pace);
+    stepping += ((walking ? 1 : 0) - stepping) * (1 - Math.exp(-dt * 8));
+    walk.timeScale = pace;
+    walk.setEffectiveWeight(stepping * (1 - shot));
+    if (trip.length > 0) {
+      const follow = actor.position.clone().sub(focus).dot(right);
+      panTo(pan + (follow - pan) * (1 - Math.exp(-dt * 3)));
+    }
     if (rest.play) play(oneShots[rest.play]);
     level.leaves += (target.leaves - level.leaves) * k;
     level.body += (target.body - level.body) * k;
@@ -349,7 +440,11 @@ export async function createKarami(container, modelName = "karami") {
       mouth: target.frown,
     };
     // 部位の名前は partPoses から取る。split に無い名前なら、idle[part] で止まる
-    const posedParts = partPoses({ seatOnly: pose?.seatOnly ?? null, posed });
+    const posedParts = partPoses({
+      seatOnly: pose?.seatOnly ?? null,
+      posed,
+      stepping,
+    });
     for (const [part, posePart] of Object.entries(posedParts)) {
       const wilt = wiltOf[part];
       const weights = layerWeights({ wilt, pose: posePart, shot });
@@ -452,7 +547,8 @@ export async function createKarami(container, modelName = "karami") {
         panTo(pan - dx * VIEW_HEIGHT / container.clientHeight);
       }
     },
-    // 部屋の立ち位置（spot_* の名前）へ移り、画面をそこへ向ける。
+    // 部屋の立ち位置（spot_* の名前）へ移る。開いて最初はその場に置き、画面をそこへ向ける。
+    // 2回目からは、家具をよけて歩いて移り、画面もついていく。
     // 座る・寝るの動きが glb に無いうちは、ソファやベッドの上に立たせず真ん中にいる
     setSpot(name) {
       // 持ち上げている途中で動かすと、指から離れてしまう。次の読み直しで移る
@@ -460,9 +556,19 @@ export async function createKarami(container, modelName = "karami") {
       const next = spotOf(room, name);
       const placeable = !POSE_CLIPS[next.pose] || Boolean(poses[next.pose]);
       const chosen = placeable ? name : "center";
+      const first = !placed;
+      placed = true;
       if (chosen === spotName) return;
       spotName = chosen;
       const destination = chosen === name ? next : spot;
+      if (!first) {
+        trip = planTrip(actor.position, destination, {
+          ...walkArea,
+          radius: WALK_RADIUS,
+        });
+        hop = null;
+        return;
+      }
       placeAt(destination);
       // 移った先で立った姿から始める。ポーズの所なら、そこで横になる・座る
       pose = poses[destination.pose] ?? null;
@@ -501,8 +607,9 @@ export async function createKarami(container, modelName = "karami") {
     },
     // dx: 横にドラッグした画素数。画面の半分ほどで半回転する
     turn(dx) {
-      // ポーズのまま回すと、体が家具の上で回ってしまう。立たせるだけにする
-      if (wake()) return;
+      // ポーズのまま回すと、体が家具の上で回ってしまう。立たせるだけにする。
+      // 歩いている間に回すと、横を向いたまま進むので回さない
+      if (wake() || trip.length > 0) return;
       turning = true;
       yaw += dx * 0.01;
     },

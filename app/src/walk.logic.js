@@ -35,6 +35,27 @@ export function approachPoint(point, { floor, blocks, radius }) {
   );
 }
 
+// 今いる所 from（床か家具の上）から、立ち位置 to（{ at, look, pose }）までの道のり。
+// stand：ポーズをやめて立つ、hop：家具に跳び上がる・跳び下りる、walk：床を歩く、
+// settle：向く先を向いて、その居場所のポーズをとる
+export function planTrip(from, to, room) {
+  const start = approachPoint(from, room);
+  const goal = approachPoint(to.at, room);
+  const steps = [];
+  if (start !== from) {
+    steps.push({ kind: "stand" }, { kind: "hop", to: { ...start, y: 0 } });
+  }
+  const path = planPath(start, goal, room);
+  for (const point of path) {
+    // 床の高さは0。家具の外の立ち位置は敷物の上なので、立ち位置の高さに合わせる
+    const y = point === to.at ? to.at.y : 0;
+    steps.push({ kind: "walk", to: { x: point.x, y, z: point.z } });
+  }
+  if (goal !== to.at) steps.push({ kind: "hop", to: to.at });
+  steps.push({ kind: "settle", spot: to });
+  return steps;
+}
+
 // 線分 a→b が四角の内側を通るか。縁をなぞるだけなら通らない
 function crosses(a, b, rect) {
   let enter = 0;
