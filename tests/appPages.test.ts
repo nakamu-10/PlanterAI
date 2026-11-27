@@ -57,7 +57,7 @@ assert(
 );
 assert(
   "広い画面では、シートの中身を 640px までにして真ん中に置く",
-  ruleOf(".home-sheet").includes("(100% - 640px) / 2"),
+  ruleOf(".home-sheet").split("(100% - 640px) / 2").length - 1 === 2,
 );
 assert(
   "Safari の一番上の帯の色（theme-color）は、ホームの地の壁の色と同じ",
