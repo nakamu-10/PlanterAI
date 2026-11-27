@@ -294,6 +294,10 @@ console.log("--- 最後のセリフのボタンの置き場 ---");
   assert("右にはみ出さない", nearEdge.left === 352);
   const high = recallPlace({ ...head, top: 90 }, area, 48);
   assert("上にはみ出さない", high.top === 0);
+  const underHeader = recallPlace({ ...head, top: 150 }, area, 48, 180);
+  assert("重なったヘッダーの下に置く", underHeader.top === 80);
+  const belowHeader = recallPlace(head, area, 48, 180);
+  assert("ヘッダーより下なら頭に合わせたまま", belowHeader.top === 176);
 }
 
 console.log("--- 部屋の家具を触る ---");

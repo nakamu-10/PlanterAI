@@ -17,20 +17,44 @@
     <link rel="stylesheet" href="/src/style.css" />
     <script type="module" src="/src/home.js"></script>
   </head>
-  <body class="home">
+  <body class="home home--room">
+    <main class="home-stage">
+      <div id="karamiStage" class="karami-stage">
+        <div id="karamiBubble" class="karami-bubble" aria-live="polite"></div>
+        <p id="karamiLoading" class="karami-loading">カラ美を呼んでいます…</p>
+        <!-- 3D を表示できないときだけ出す -->
+        <img id="karamiImg" class="karami-stage__img" src="/images/karami.png"
+          alt="カラ美" hidden />
+      </div>
+      <!-- ステージは iPhone の拡大を止めるために touchend を止めているので、ボタンはその外に置く -->
+      <button id="bubbleRecall" class="bubble-recall" type="button"
+        aria-label="最後のセリフを見る" hidden>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"
+          aria-hidden="true">
+          <path d="M4 5.5h16v10H10l-4 3.5v-3.5H4z"></path>
+          <path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" stroke-width="2.4"
+            stroke-linecap="round"></path>
+        </svg>
+      </button>
+    </main>
+
     <header class="home-header">
       <div>
-        <a class="home-site-link" href="/index.html#pots">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2.4" aria-hidden="true">
-            <path d="M15 5l-7 7 7 7"></path>
-          </svg>
-          公式サイト
-        </a>
         <h1 id="plantName" class="home-header__name">カラ美</h1>
         <p id="plantDays" class="home-header__sub"></p>
+        <nav id="potSwitcher" class="pot-switcher" aria-label="鉢を選ぶ"
+          hidden></nav>
       </div>
       <nav class="home-header__menu" aria-label="メニュー">
+        <a class="home-icon-button" href="/app/numbers.html" data-keep-query
+          aria-label="数値">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <path d="M3.5 17l5.5-5.5 4 4 7.5-7.5"></path>
+          </svg>
+        </a>
         <a class="home-icon-button" href="/app/records.html" data-keep-query
           aria-label="記録">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
@@ -51,65 +75,38 @@
       </nav>
     </header>
 
-    <nav id="potSwitcher" class="pot-switcher" aria-label="鉢を選ぶ"
-      hidden></nav>
+    <section class="home-sheet" aria-label="今のようす">
+      <div class="home-sheet__handle" aria-hidden="true"></div>
+      <dl class="home-status">
+        <div class="home-status__cell">
+          <dt>今の気分</dt>
+          <dd id="statusMood" class="home-status__value">—</dd>
+          <dd id="statusMoodNote" class="home-status__note"></dd>
+        </div>
+        <div class="home-status__cell">
+          <dt>次の水やり</dt>
+          <dd id="statusNextWatering" class="home-status__value">—</dd>
+        </div>
+        <div class="home-status__cell">
+          <dt>最後の水やり</dt>
+          <dd id="statusWatering" class="home-status__value">—</dd>
+        </div>
+      </dl>
 
-    <div class="view-toggle">
-      <span class="view-toggle__item is-active"
-        aria-current="page">キャラ</span>
-      <a class="view-toggle__item" href="/app/numbers.html"
-        data-keep-query>数値</a>
-    </div>
+      <form id="chatForm" class="home-chat">
+        <label class="sr-only" for="chatInput">カラ美に話しかける</label>
+        <input id="chatInput" type="text" placeholder="カラ美に話しかける"
+          maxlength="500" autocomplete="off" required />
+        <button type="submit" aria-label="送信">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M5 12h13M13 6l6 6-6 6"></path>
+          </svg>
+        </button>
+      </form>
 
-    <dl class="home-status">
-      <div class="home-status__cell">
-        <dt>今の気分</dt>
-        <dd id="statusMood" class="home-status__value">—</dd>
-        <dd id="statusMoodNote" class="home-status__note"></dd>
-      </div>
-      <div class="home-status__cell">
-        <dt>次の水やり</dt>
-        <dd id="statusNextWatering" class="home-status__value">—</dd>
-      </div>
-      <div class="home-status__cell">
-        <dt>最後の水やり</dt>
-        <dd id="statusWatering" class="home-status__value">—</dd>
-      </div>
-    </dl>
-
-    <main class="home-stage">
-      <div id="karamiStage" class="karami-stage">
-        <div id="karamiBubble" class="karami-bubble" aria-live="polite"></div>
-        <p id="karamiLoading" class="karami-loading">カラ美を呼んでいます…</p>
-        <!-- 3D を表示できないときだけ出す -->
-        <img id="karamiImg" class="karami-stage__img" src="/images/karami.png"
-          alt="カラ美" hidden />
-      </div>
-      <!-- ステージは iPhone の拡大を止めるために touchend を止めているので、ボタンはその外に置く -->
-      <button id="bubbleRecall" class="bubble-recall" type="button"
-        aria-label="最後のセリフを見る" hidden>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"
-          aria-hidden="true">
-          <path d="M4 5.5h16v10H10l-4 3.5v-3.5H4z"></path>
-          <path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" stroke-width="2.4"
-            stroke-linecap="round"></path>
-        </svg>
-      </button>
       <p id="karamiHint"
         class="karami-hint">タップでつつく・頭をなでる・体を回す・長押しで持ち上げる・部屋は横にスワイプ</p>
-    </main>
-
-    <form id="chatForm" class="home-chat">
-      <label class="sr-only" for="chatInput">カラ美に話しかける</label>
-      <input id="chatInput" type="text" placeholder="カラ美に話しかける"
-        maxlength="500" autocomplete="off" required />
-      <button type="submit" aria-label="送信">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-          <path d="M5 12h13M13 6l6 6-6 6"></path>
-        </svg>
-      </button>
-    </form>
+    </section>
   </body>
 </html>

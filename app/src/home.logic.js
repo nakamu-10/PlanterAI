@@ -190,10 +190,11 @@ export function isOnHeadArea(clientX, clientY, head) {
     clientY <= head.bottom;
 }
 
-// 最後のセリフのボタンを、頭の右上に置く。ボタンの置き場（area）からはみ出さない
-export function recallPlace(head, area, size) {
+// 最後のセリフのボタンを、頭の右上に置く。ボタンの置き場（area）からはみ出さない。
+// 部屋の上にはヘッダーが重なるので、ボタンの上端は topLimit（画面の座標）より下にする
+export function recallPlace(head, area, size, topLimit = area.top) {
   const left = Math.min(head.right - area.left, area.width - size);
-  const top = head.top - size / 2 - area.top;
+  const top = Math.max(head.top - size / 2, topLimit) - area.top;
   return { left: Math.max(left, 0), top: Math.max(top, 0) };
 }
 

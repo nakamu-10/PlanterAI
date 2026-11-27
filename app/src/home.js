@@ -71,6 +71,7 @@ const statusNextWatering = document.getElementById("statusNextWatering");
 const statusWatering = document.getElementById("statusWatering");
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
+const homeHeader = document.querySelector(".home-header");
 
 // 鍵なしの app-public は読み取りだけで、チャットは受けない（ADR 0006）
 chatForm.hidden = isPublicView;
@@ -150,6 +151,7 @@ function followHead() {
     karami3d.headRect(),
     recall.parentElement.getBoundingClientRect(),
     recall.offsetWidth,
+    homeHeader.getBoundingClientRect().bottom,
   );
   recall.style.left = `${place.left}px`;
   recall.style.top = `${place.top}px`;

@@ -85,7 +85,7 @@ const WAKE_SECONDS = 10;
 // 残りは横にスワイプして見回す
 const VIEW_HEIGHT = 2.8;
 // 写す中心の、立ち位置からの高さ[m]。頭の上の壁（時計・棚）まで入れる
-const FOCUS_HEIGHT = 0.95;
+const FOCUS_HEIGHT = 1.15;
 // 部屋を焼いたときと同じ斜めの向きから、少しだけ見下ろす（12°）。
 // 正面から見ていた前の構図に近づけ、キャラの顔がよく見えるようにする
 const VIEW_ELEVATION = THREE.MathUtils.degToRad(12);

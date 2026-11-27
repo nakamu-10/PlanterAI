@@ -215,22 +215,6 @@ a:hover {
   font-size: 12px;
   color: var(--green-800);
 }
-/* 公式サイトのトップ（鉢を選ぶ欄）へ戻る。3択から入った人が、ほかの植物を選び直せるように。
-   右の丸いボタンの並びに足すと長い名前が折り返すので、名前の上に置く */
-.home-site-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin: -8px 0 0 -6px;
-  padding: 8px 10px 4px 4px;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--green-800);
-  text-decoration: none;
-}
-.home-site-link:hover {
-  color: var(--ink);
-}
 .home-header__menu {
   display: flex;
   gap: 8px;
@@ -273,34 +257,6 @@ a:hover {
   text-decoration: none;
 }
 .pot-switcher__item.is-active {
-  background: var(--card);
-  font-weight: 700;
-}
-
-.view-toggle {
-  align-self: center;
-  display: flex;
-  padding: 3px;
-  margin-bottom: 12px;
-  border-radius: 999px;
-  background: rgba(22, 33, 28, .12);
-}
-.view-toggle__item {
-  width: 92px;
-  height: 34px;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ink);
-  font-family: var(--font-display);
-  font-size: 14px;
-  text-decoration: none;
-}
-.view-toggle__item:hover {
-  color: var(--ink);
-}
-.view-toggle__item.is-active {
   background: var(--card);
   font-weight: 700;
 }
@@ -409,6 +365,91 @@ a:hover {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+}
+
+/* ホームは部屋を画面いっぱいに出し、名前とボタンを上に重ね、下は1枚のシートにまとめる（ADR 0020） */
+.home--room {
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+}
+.home--room .home-stage {
+  padding-bottom: 0;
+}
+/* 背の低い画面（横向きなど）でも、下のシートを画面の中に残す */
+.home--room .karami-stage {
+  min-height: 0;
+}
+.home--room .home-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  align-items: flex-start;
+  /* 部屋をなでたり回したりする指を、ヘッダーの空いた所で止めない */
+  pointer-events: none;
+}
+.home--room .home-header > * {
+  pointer-events: auto;
+}
+/* 鉢が多いときは、名前の欄を縮めて鉢のボタンの列を横に送れるようにする。
+   右のボタンの下へ入り込まないように */
+.home--room .home-header > div {
+  min-width: 0;
+}
+.home--room .home-header__name {
+  font-size: 24px;
+}
+.home--room .home-icon-button {
+  background: rgba(255, 255, 255, .6);
+}
+.home--room .pot-switcher {
+  padding: 8px 0 0;
+}
+.home--room .pot-switcher__item {
+  background: rgba(255, 255, 255, .6);
+}
+.home--room .karami-bubble {
+  top: 28%;
+}
+/* 角を丸めた上の隅から部屋が見えるよう、シートを部屋の下の端に少し重ねる */
+.home-sheet {
+  position: relative;
+  z-index: 2;
+  margin-top: -24px;
+  padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+  background: var(--card);
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -2px 12px rgba(22, 33, 28, .08);
+}
+.home-sheet__handle {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 8px;
+  border-radius: 2px;
+  background: rgba(22, 33, 28, .16);
+}
+.home-sheet .home-status {
+  margin: 0;
+  border-bottom: 1px solid rgba(22, 33, 28, .08);
+}
+.home-sheet .home-status__cell {
+  padding: 6px 12px 10px 0;
+}
+.home-sheet .home-status__cell + .home-status__cell {
+  padding-left: 12px;
+}
+.home-sheet .home-chat {
+  position: static;
+  padding: 12px 0 0;
+  background: none;
+  border-radius: 0;
+}
+.home-sheet .karami-hint {
+  color: #56645A;
+  font-size: 11px;
+  margin-top: 8px;
 }
 
 /* ---------- numbers ---------- */
