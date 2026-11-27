@@ -457,12 +457,55 @@ a:hover {
   border-radius: 22px 22px 0 0;
   box-shadow: 0 -2px 12px rgba(22, 33, 28, .08);
 }
+/* つまみは、押すか上下に引くとシートを広げる。指で押しやすいよう、見える棒より広く取る */
 .home-sheet__handle {
+  display: block;
+  width: 100%;
+  height: 24px;
+  margin: -8px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: grab;
+  touch-action: none;
+}
+.home-sheet__handle::before {
+  content: "";
+  display: block;
   width: 40px;
   height: 4px;
-  margin: 0 auto 8px;
+  margin: 0 auto;
   border-radius: 2px;
   background: rgba(22, 33, 28, .16);
+}
+/* 広げた分だけシートを上へ重ね、部屋の大きさは変えない（変えるとカメラが動く） */
+.home-sheet {
+  --sheet-more: 50dvh;
+  transition: margin-top .3s ease;
+}
+.home-sheet.is-expanded {
+  margin-top: calc(-24px - var(--sheet-more));
+}
+.home-sheet__more {
+  height: 0;
+  overflow: hidden;
+  transition: height .3s ease;
+}
+.home-sheet.is-expanded .home-sheet__more {
+  height: var(--sheet-more);
+  overflow-y: auto;
+}
+.home-sheet__title {
+  margin: 14px 0 8px;
+  font-family: var(--font-display);
+  font-size: 14px;
+}
+.home-sheet__link {
+  display: block;
+  padding: 12px 0;
+  color: var(--green-700);
+  font-size: 13px;
+  font-weight: 500;
 }
 .home-sheet .home-status {
   margin: 0;
