@@ -56,6 +56,10 @@ assert(
   ruleOf(".home-sheet").includes("env(safe-area-inset-bottom)"),
 );
 assert(
+  "広い画面では、シートの中身を 640px までにして真ん中に置く",
+  ruleOf(".home-sheet").includes("(100% - 640px) / 2"),
+);
+assert(
   "Safari の一番上の帯の色（theme-color）は、ホームの地の壁の色と同じ",
   (() => {
     const wall = style.match(/--room-wall: (#[0-9A-Fa-f]{6});/)?.[1];
