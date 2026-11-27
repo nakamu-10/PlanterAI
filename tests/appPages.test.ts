@@ -94,17 +94,21 @@ const pages = {
   settings,
   records: readFileSync("app/records.html", "utf8"),
 };
+// /manifest.webmanifest は、app/public に同じ名前のファイルがあると、ビルドで
+// /app/manifest.webmanifest に書き換わる（vite の base）。上で読めたのでファイルはある
 for (const [name, html] of Object.entries(pages)) {
   assert(
     `${name} は、アプリの manifest を読み、帯の裏まで描く`,
     html.includes('<link rel="manifest" href="/manifest.webmanifest">') &&
-      html.includes('content="black-translucent"') &&
+      /name="apple-mobile-web-app-status-bar-style"\s+content="black-translucent"/
+        .test(html) &&
       html.includes("viewport-fit=cover"),
   );
 }
 assert(
   "ホームのほかのページは、帯とノッチの分だけ中身を内側へ寄せる",
-  ruleOf(".home:not(.home--room)").includes("env(safe-area-inset-top)"),
+  ruleOf(".home:not(.home--room)").includes("env(safe-area-inset-top)") &&
+    ruleOf(".home:not(.home--room)").includes("env(safe-area-inset-bottom)"),
 );
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
