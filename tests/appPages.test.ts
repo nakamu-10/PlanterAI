@@ -54,6 +54,20 @@ assert(
     ruleOf("html:has(.home--room)").includes("overscroll-behavior: none;"),
 );
 assert(
+  "ブラウザの縦向きでだけ、部屋の上の端を帯と同じ壁の色からぼかす",
+  (() => {
+    // 整形で条件が折り返されるので、空白をつめてから見る
+    const start = style.indexOf("@media (display-mode: browser)");
+    const end = style.indexOf("\n}", start);
+    const block = start === -1
+      ? ""
+      : style.slice(start, end).replace(/\s+/g, " ");
+    return block.includes("(orientation: portrait) and (pointer: coarse)") &&
+      block.includes(".home--room .home-stage::before {") &&
+      block.includes("linear-gradient(var(--room-wall), transparent)");
+  })(),
+);
+assert(
   "重ねたヘッダーは、ノッチの分だけ下げる",
   ruleOf(".home--room .home-header").includes("env(safe-area-inset-top)"),
 );
