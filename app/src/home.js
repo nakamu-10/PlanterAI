@@ -87,6 +87,7 @@ const homeHeader = document.querySelector(".home-header");
 
 // 鍵なしの app-public は読み取りだけで、チャットは受けない（ADR 0006）
 chatForm.hidden = isPublicView;
+document.getElementById("recentTalkNote").hidden = !isPublicView;
 keepQueryOnLinks();
 
 // ?emotion=不安 や ?moisture=20（土の水分の快適度 0〜100）を付けると、
@@ -440,11 +441,24 @@ function renderStatus(data, latest) {
 
 let firstLoad = true;
 
-// 初めてシートを広げたときに読む。記録のページと同じ会話（展示では植物のセリフだけ）
+// シートを広げるたびに読み直す。話しかけた言葉も、読み込みに失敗したあとも次に出る。
+// 記録のページと同じ会話（展示では植物のセリフだけ）
+let talkLoad = 0;
 async function showRecentTalk() {
   const list = document.getElementById("recentTalk");
+  const load = ++talkLoad;
+  const note = (text) => {
+    const item = document.createElement("li");
+    item.className = "recent-talk__note";
+    item.textContent = text;
+    list.replaceChildren(item);
+  };
+  if (list.childElementCount === 0) note("読み込んでいます…");
   try {
     const rows = recentTalk((await fetchRecords()).conversation);
+    // 続けて開け閉めしたときは、最後に読んだ分だけを出す
+    if (load !== talkLoad) return;
+    if (rows.length === 0) return note("まだ会話がありません。");
     list.replaceChildren(...rows.map((row) => {
       const item = document.createElement("li");
       item.className = `recent-talk__item recent-talk__item--${row.role}`;
@@ -454,10 +468,9 @@ async function showRecentTalk() {
       item.append(row.message, time);
       return item;
     }));
-    if (rows.length === 0) list.textContent = "まだ会話がありません。";
   } catch (error) {
     console.error(error);
-    list.textContent = "会話を読み込めませんでした。";
+    if (load === talkLoad) note("会話を読み込めませんでした。");
   }
 }
 
@@ -466,7 +479,7 @@ setupSheet({
   handle: document.getElementById("sheetHandle"),
   more: document.getElementById("sheetMore"),
   header: homeHeader,
-  onFirstOpen: showRecentTalk,
+  onOpen: showRecentTalk,
 });
 
 // 読み込んだ鉢のデータを返す（読めなかったときと、気分を固定しているときは null）

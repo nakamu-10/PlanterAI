@@ -520,6 +520,17 @@ a:hover {
 .recent-talk__item + .recent-talk__item {
   border-top: 1px solid rgba(22, 33, 28, .08);
 }
+.recent-talk__note {
+  padding: 10px 0;
+}
+.home-sheet__note {
+  margin: -4px 0 4px;
+  font-size: 12px;
+  color: #56645A;
+}
+.home-sheet__note[hidden] {
+  display: none;
+}
 .recent-talk__time {
   display: block;
   font-size: 11px;
