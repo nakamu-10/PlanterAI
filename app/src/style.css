@@ -20,6 +20,8 @@ img {
 
 /* ---------- tokens (site/src/style.cssと共通) ---------- */
 :root {
+  /* ホームの地。部屋の壁の上の端の色。app/index.html の theme-color と同じ値にする */
+  --room-wall: #D9E8D6;
   --green-900: #16211C;
   --green-800: #1F2E27;
   --green-700: #1F6B4A;
@@ -416,7 +418,7 @@ a:hover {
   max-width: none;
   height: 100dvh;
   overflow: hidden;
-  background: #D9E8D6;
+  background: var(--room-wall);
 }
 .home--room .home-stage {
   padding-bottom: 0;
@@ -463,9 +465,11 @@ a:hover {
   position: relative;
   z-index: 2;
   margin-top: -24px;
-  padding: 8px calc(16px + env(safe-area-inset-right))
+  /* 白い地は端まで伸ばし、中身は広い画面（PC・iPad）でも 640px までにして真ん中に置く */
+  padding: 8px
+    max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2))
     calc(8px + env(safe-area-inset-bottom))
-    calc(16px + env(safe-area-inset-left));
+    max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2));
   background: var(--card);
   border-radius: 22px 22px 0 0;
   box-shadow: 0 -2px 12px rgba(22, 33, 28, .08);
