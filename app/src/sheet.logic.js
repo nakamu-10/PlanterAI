@@ -14,3 +14,15 @@ export function sheetMoreHeight({ viewportHeight, sheetTop, headerBottom }) {
   const room = sheetTop - headerBottom - HEADER_GAP_PX;
   return Math.max(0, Math.min(viewportHeight / 2, room));
 }
+
+// つまみの click で開け閉めするか。Enter・Space で押した click は detail が 0。
+// 指で引いたあとに click が来ず、引いた印が残っていても、キーで押したら切り替える
+export function togglesOnClick(clickDetail, dragged) {
+  return clickDetail === 0 || !dragged;
+}
+
+// 広げる高さは広げた時の画面で測るので、広げたまま回すとつまみがヘッダーの下に隠れうる。
+// 幅が変わったら閉じる。高さだけの変化（文字を打つキーボード）では閉じない
+export function closesOnResize(widthBefore, widthAfter) {
+  return widthBefore !== widthAfter;
+}

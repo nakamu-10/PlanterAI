@@ -1,9 +1,11 @@
 // 下のシートを引き上げて広げる（app/src/sheet.logic.js）の検証
 // 実行: npx tsx tests/sheet.test.ts
 import {
+  closesOnResize,
   SHEET_DRAG_PX,
   sheetExpandedAfterDrag,
   sheetMoreHeight,
+  togglesOnClick,
 } from "../app/src/sheet.logic.js";
 
 let pass = 0;
@@ -36,6 +38,21 @@ const height = (viewportHeight: number, sheetTop: number) =>
 assert("縦長の画面では、画面の半分", height(860, 660) === 430);
 assert("背の低い画面では、ヘッダーの下までに抑える", height(375, 200) === 102);
 assert("すき間が無ければ広げない", height(300, 80) === 0);
+
+console.log("--- つまみの click ---");
+assert("指やマウスで押したら切り替える", togglesOnClick(1, false));
+assert("引いたあとに来た click では切り替えない", !togglesOnClick(1, true));
+assert(
+  "キーで押したら、引いた印が残っていても切り替える",
+  togglesOnClick(0, true),
+);
+
+console.log("--- 画面の大きさが変わったとき ---");
+assert("幅が変わったら閉じる（画面を回した）", closesOnResize(402, 860));
+assert(
+  "幅が同じなら閉じない（キーボードで高さだけ変わった）",
+  !closesOnResize(402, 402),
+);
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
