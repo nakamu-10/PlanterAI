@@ -54,6 +54,12 @@ assert(
     ruleOf("html:has(.home--room)").includes("overscroll-behavior: none;"),
 );
 assert(
+  "部屋の上の端を、Safari の帯と同じ壁の色からぼかす",
+  ruleOf(".home--room .home-stage::before").includes(
+    "linear-gradient(var(--room-wall), transparent)",
+  ),
+);
+assert(
   "重ねたヘッダーは、ノッチの分だけ下げる",
   ruleOf(".home--room .home-header").includes("env(safe-area-inset-top)"),
 );
