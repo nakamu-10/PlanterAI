@@ -64,23 +64,17 @@ if (view) {
 }
 
 // 床と壁は、部屋の端（右 x=2.0m、手前 z=1.5m）から外へ 4m 続く。切り口が画面に
-// 写らないように（#156、ADR 0019）
-const floorRight = bounds("slab_out_right");
-const floorFront = bounds("slab_out_front");
-const wallBack = bounds("wall_back_out");
-const wallLeft = bounds("wall_left_out");
+// 写らないように（#156、ADR 0019）。外の部品は1つのメッシュに結合してある
+const outside = bounds("static_outside");
+assert("外の部品は1つのメッシュ static_outside", outside !== null);
+if (outside) {
+  assert("床と奥の壁が右へ 4m 続く", near(outside.max[0], 6.0));
+  assert("床と左の壁が手前へ 4m 続く", outside.max[2] >= 5.5);
+  assert("外に壁の高さがある", outside.max[1] > 2.3);
+}
 assert(
-  "床が右へ 4m 続く",
-  floorRight !== null && near(floorRight.max[0], 6.0),
-);
-assert(
-  "床が手前へ 4m 続く",
-  floorFront !== null && near(floorFront.max[2], 5.5),
-);
-assert("奥の壁が右へ 4m 続く", wallBack !== null && near(wallBack.max[0], 6.0));
-assert(
-  "左の壁が手前へ 4m 続く",
-  wallLeft !== null && near(wallLeft.max[2], 5.5),
+  "外の部品は static_outside のほかに無い",
+  !gltf.nodes.some((n) => /_out(_|$)/.test(n.name)),
 );
 
 // 部屋の中と外は別の絵に焼く。部屋の中の細かさを落とさないように
@@ -91,12 +85,8 @@ const materialOf = (name: string) => {
 };
 assert("部屋の床は baked", materialOf("slab") === "baked");
 assert(
-  "外の床は baked_outside",
-  materialOf("slab_out_right") === "baked_outside",
-);
-assert(
-  "外の壁は baked_outside",
-  materialOf("wall_back_out") === "baked_outside",
+  "外の部品は baked_outside",
+  materialOf("static_outside") === "baked_outside",
 );
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
