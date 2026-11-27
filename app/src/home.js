@@ -453,7 +453,8 @@ async function showRecentTalk() {
     item.textContent = text;
     list.replaceChildren(item);
   };
-  if (list.childElementCount === 0) note("読み込んでいます…");
+  // 前に読めた会話は、読み直す間も出しておく。読めていなければ（初めて・前に失敗）、読み込み中と出す
+  if (!list.querySelector(".recent-talk__item")) note("読み込んでいます…");
   try {
     const rows = recentTalk((await fetchRecords()).conversation);
     // 続けて開け閉めしたときは、最後に読んだ分だけを出す
