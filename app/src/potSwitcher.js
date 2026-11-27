@@ -45,8 +45,10 @@ export function setupPotMenu(button, menu) {
     setOpen(button, menu, false);
     button.focus();
   });
-  // Tab で一覧の外へ出たら閉じる
-  menu.addEventListener("focusout", (event) => {
-    if (!isInside(event.relatedTarget)) setOpen(button, menu, false);
-  });
+  // Tab・Shift+Tab で、ボタンと一覧の外へ出たら閉じる
+  for (const element of [button, menu]) {
+    element.addEventListener("focusout", (event) => {
+      if (!isInside(event.relatedTarget)) setOpen(button, menu, false);
+    });
+  }
 }
