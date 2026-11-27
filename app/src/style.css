@@ -409,19 +409,30 @@ a:hover {
 }
 
 /* ホームは部屋を画面いっぱいに出し、名前とボタンを上に重ね、下は1枚のシートにまとめる（ADR 0020） */
+/* 画面の端（ノッチやホームバーの裏、横向きの左右）まで部屋で埋める。ページの横幅の上限は
+   外す。Safari は一番上の帯をページの地の色で塗るので、地を部屋の壁の色にする */
 .home--room {
   position: relative;
+  max-width: none;
   height: 100dvh;
   overflow: hidden;
+  background: #D9E8D6;
 }
 .home--room .home-stage {
   padding-bottom: 0;
+}
+/* 地が壁の色なので、読み込み中の文字は白でなく濃い色にする */
+.home--room .karami-loading {
+  color: #56645A;
 }
 /* 背の低い画面（横向きなど）でも、下のシートを画面の中に残す */
 .home--room .karami-stage {
   min-height: 0;
 }
 .home--room .home-header {
+  padding: calc(20px + env(safe-area-inset-top))
+    calc(16px + env(safe-area-inset-right)) 10px
+    calc(20px + env(safe-area-inset-left));
   position: absolute;
   top: 0;
   left: 0;
@@ -452,7 +463,9 @@ a:hover {
   position: relative;
   z-index: 2;
   margin-top: -24px;
-  padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+  padding: 8px calc(16px + env(safe-area-inset-right))
+    calc(8px + env(safe-area-inset-bottom))
+    calc(16px + env(safe-area-inset-left));
   background: var(--card);
   border-radius: 22px 22px 0 0;
   box-shadow: 0 -2px 12px rgba(22, 33, 28, .08);

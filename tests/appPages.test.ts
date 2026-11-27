@@ -38,6 +38,10 @@ assert(
     settings.includes('href="/index.html#pots"'),
 );
 assert(
+  "ホームは、ノッチやホームバーの裏まで部屋を描く",
+  home.includes("viewport-fit=cover"),
+);
+assert(
   "気分・水やりと話しかける欄は、下のシートにまとまる",
   /<section class="home-sheet"[\s\S]*id="statusMood"[\s\S]*id="chatForm"[\s\S]*<\/section>/
     .test(home),
