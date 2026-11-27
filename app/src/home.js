@@ -23,7 +23,12 @@ import {
   TOUCH_HINT_2D,
 } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
-import { keepQueryOnLinks, renderPotSwitcher } from "./potSwitcher.js";
+import { potCountLabel } from "./potMenu.logic.js";
+import {
+  keepQueryOnLinks,
+  renderPotSwitcher,
+  setupPotMenu,
+} from "./potSwitcher.js";
 
 gsap.registerPlugin(Draggable);
 
@@ -65,6 +70,10 @@ const bubble = document.getElementById("karamiBubble");
 const recall = document.getElementById("bubbleRecall");
 const plantName = document.getElementById("plantName");
 const plantDays = document.getElementById("plantDays");
+const potCount = document.getElementById("potCount");
+const potMenuButton = document.getElementById("potMenuButton");
+const potMenu = document.getElementById("potMenu");
+setupPotMenu(potMenuButton, potMenu);
 const statusMood = document.getElementById("statusMood");
 const statusMoodNote = document.getElementById("statusMoodNote");
 const statusNextWatering = document.getElementById("statusNextWatering");
@@ -409,7 +418,8 @@ function describeForced() {
 
 function renderStatus(data, latest) {
   plantName.textContent = data.device.plant_name;
-  renderPotSwitcher(document.getElementById("potSwitcher"), data.pots);
+  renderPotSwitcher(potMenuButton, potMenu, data.pots);
+  potCount.textContent = potCountLabel(data.pots);
   chatInput.placeholder = `${data.device.plant_name}に話しかける`;
   plantDays.textContent = `一緒に過ごして ${
     daysTogether(data.device.created_at)

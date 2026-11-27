@@ -41,10 +41,22 @@
 
     <header class="home-header">
       <div>
-        <h1 id="plantName" class="home-header__name">カラ美</h1>
-        <p id="plantDays" class="home-header__sub"></p>
-        <nav id="potSwitcher" class="pot-switcher" aria-label="鉢を選ぶ"
-          hidden></nav>
+        <h1 class="home-header__name">
+          <button id="potMenuButton" class="pot-menu-button" type="button"
+            aria-haspopup="true" aria-expanded="false"
+            aria-controls="potMenu" disabled>
+            <span id="plantName">カラ美</span>
+            <svg class="pot-menu-button__mark" width="18" height="18"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.2" aria-hidden="true">
+              <path d="M6 9l6 6 6-6"></path>
+            </svg>
+          </button>
+        </h1>
+        <p class="home-header__sub">
+          <span id="plantDays"></span><span id="potCount"></span>
+        </p>
+        <nav id="potMenu" class="pot-menu" aria-label="鉢を選ぶ" hidden></nav>
       </div>
       <nav class="home-header__menu" aria-label="メニュー">
         <a class="home-icon-button" href="/app/numbers.html" data-keep-query
