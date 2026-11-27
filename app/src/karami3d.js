@@ -4,6 +4,7 @@ import {
   layerWeights,
   moodLevels,
   partPoses,
+  partWilts,
   restStep,
   TEARS_FROM,
 } from "./mood.js";
@@ -512,12 +513,11 @@ export async function createKarami(container, modelName = "karami") {
     if (rest.play) play(oneShots[rest.play]);
     level.leaves += (target.leaves - level.leaves) * k;
     level.body += (target.body - level.body) * k;
-    const wiltOf = {
+    const wiltOf = partWilts({
       leaves: level.leaves,
       body: level.body,
-      seat: level.body,
-      mouth: target.frown,
-    };
+      frown: target.frown,
+    });
     // 部位の名前は partPoses から取る。split に無い名前なら、idle[part] で止まる
     const posedParts = partPoses({
       seatOnly: pose?.seatOnly ?? null,

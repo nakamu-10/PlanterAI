@@ -2,6 +2,7 @@ import {
   layerWeights,
   moodLevels,
   partPoses,
+  partWilts,
   restStep,
   wiltFromMoistureScore,
 } from "../app/src/mood.js";
@@ -201,6 +202,13 @@ assert(
   assert(
     "歩くときは、根元と脚だけを歩く動きにする",
     walking.seat === 0.7 && walking.body === 0 && walking.leaves === 0,
+  );
+  const wilts = partWilts({ leaves: 0.3, body: 0.5, frown: 1 });
+  assert(
+    "しおれの度合いは、ポーズと同じ部位の全部にある",
+    Object.keys(partPoses({ seatOnly: false, posed: 1 })).every((part) =>
+      Number.isFinite(wilts[part])
+    ),
   );
   const landing = partPoses({ seatOnly: true, posed: 0.6, stepping: 0.6 });
   assert("座ると歩くを合わせても、1 を超えない", landing.seat === 1);
