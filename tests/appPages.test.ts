@@ -79,5 +79,33 @@ assert(
     .test(home),
 );
 
+// ホーム画面から開いたときは、全画面で帯の裏まで描く（ADR 0021）
+const manifest = JSON.parse(
+  readFileSync("app/public/manifest.webmanifest", "utf8"),
+);
+assert(
+  "ホーム画面のアイコンからは、アプリを全画面で開く",
+  manifest.display === "standalone" && manifest.start_url === "/app/" &&
+    manifest.scope === "/app/",
+);
+const pages = {
+  home,
+  numbers,
+  settings,
+  records: readFileSync("app/records.html", "utf8"),
+};
+for (const [name, html] of Object.entries(pages)) {
+  assert(
+    `${name} は、アプリの manifest を読み、帯の裏まで描く`,
+    html.includes('<link rel="manifest" href="/manifest.webmanifest">') &&
+      html.includes('content="black-translucent"') &&
+      html.includes("viewport-fit=cover"),
+  );
+}
+assert(
+  "ホームのほかのページは、帯とノッチの分だけ中身を内側へ寄せる",
+  ruleOf(".home:not(.home--room)").includes("env(safe-area-inset-top)"),
+);
+
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

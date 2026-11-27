@@ -191,6 +191,12 @@ a:hover {
   flex-direction: column;
   color: var(--ink);
 }
+/* ホーム画面から全画面で開くと、ページが時刻などの帯やノッチの裏まで描かれる（ADR 0021）。
+   ホームは部屋を裏まで描くので、ほかのページだけ中身をその分内側へ寄せる */
+.home:not(.home--room) {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0
+    env(safe-area-inset-left);
+}
 .sr-only {
   position: absolute;
   width: 1px;
