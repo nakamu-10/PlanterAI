@@ -215,22 +215,6 @@ a:hover {
   font-size: 12px;
   color: var(--green-800);
 }
-/* 公式サイトのトップ（鉢を選ぶ欄）へ戻る。3択から入った人が、ほかの植物を選び直せるように。
-   右の丸いボタンの並びに足すと長い名前が折り返すので、名前の上に置く */
-.home-site-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin: -8px 0 0 -6px;
-  padding: 8px 10px 4px 4px;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--green-800);
-  text-decoration: none;
-}
-.home-site-link:hover {
-  color: var(--ink);
-}
 .home-header__menu {
   display: flex;
   gap: 8px;
@@ -273,34 +257,6 @@ a:hover {
   text-decoration: none;
 }
 .pot-switcher__item.is-active {
-  background: var(--card);
-  font-weight: 700;
-}
-
-.view-toggle {
-  align-self: center;
-  display: flex;
-  padding: 3px;
-  margin-bottom: 12px;
-  border-radius: 999px;
-  background: rgba(22, 33, 28, .12);
-}
-.view-toggle__item {
-  width: 92px;
-  height: 34px;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ink);
-  font-family: var(--font-display);
-  font-size: 14px;
-  text-decoration: none;
-}
-.view-toggle__item:hover {
-  color: var(--ink);
-}
-.view-toggle__item.is-active {
   background: var(--card);
   font-weight: 700;
 }
@@ -420,6 +376,10 @@ a:hover {
 .home--room .home-stage {
   padding-bottom: 0;
 }
+/* 背の低い画面（横向きなど）でも、下のシートを画面の中に残す */
+.home--room .karami-stage {
+  min-height: 0;
+}
 .home--room .home-header {
   position: absolute;
   top: 0;
@@ -440,11 +400,7 @@ a:hover {
   background: rgba(255, 255, 255, .6);
 }
 .home--room .pot-switcher {
-  position: absolute;
-  top: 76px;
-  left: 0;
-  right: 0;
-  z-index: 3;
+  padding: 8px 0 0;
 }
 .home--room .pot-switcher__item {
   background: rgba(255, 255, 255, .6);

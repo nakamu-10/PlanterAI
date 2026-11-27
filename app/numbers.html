@@ -20,17 +20,18 @@
   <body class="home">
     <header class="home-header">
       <div>
-        <a class="home-site-link" href="/index.html#pots">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2.4" aria-hidden="true">
-            <path d="M15 5l-7 7 7 7"></path>
-          </svg>
-          公式サイト
-        </a>
         <h1 id="plantName" class="home-header__name">カラ美</h1>
         <p id="plantDays" class="home-header__sub"></p>
       </div>
       <nav class="home-header__menu" aria-label="メニュー">
+        <a class="home-icon-button" href="/app/" data-keep-query
+          aria-label="ホームへ戻る">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M4 11l8-7 8 7"></path>
+            <path d="M6 9.5V20h12V9.5"></path>
+          </svg>
+        </a>
         <a class="home-icon-button" href="/app/records.html" data-keep-query
           aria-label="記録">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
@@ -50,11 +51,6 @@
         </a>
       </nav>
     </header>
-
-    <div class="view-toggle">
-      <a class="view-toggle__item" href="/app/" data-keep-query>キャラ</a>
-      <span class="view-toggle__item is-active" aria-current="page">数値</span>
-    </div>
 
     <main class="numbers">
       <section class="numbers-card numbers-values" aria-label="今の値">

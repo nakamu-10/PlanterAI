@@ -17,18 +17,24 @@ function assert(name: string, condition: boolean) {
 
 const home = readFileSync("app/index.html", "utf8");
 const settings = readFileSync("app/settings.html", "utf8");
+const numbers = readFileSync("app/numbers.html", "utf8");
 
 assert(
   "ホームの右上から数値の画面を開ける",
   /<a class="home-icon-button" href="\/app\/numbers\.html"/.test(home),
 );
 assert(
-  "ホームに「キャラ／数値」の切り替えは無い",
-  !home.includes("view-toggle"),
+  "「キャラ／数値」の切り替えは、ホームにも数値の画面にも無い",
+  !home.includes("view-toggle") && !numbers.includes("view-toggle"),
 );
 assert(
-  "公式サイトへのリンクは、ホームでなく設定のページにある",
+  "数値の画面からホームへ戻れる",
+  /<a class="home-icon-button" href="\/app\/"/.test(numbers),
+);
+assert(
+  "公式サイトへのリンクは、設定のページにだけある",
   !home.includes("/index.html#pots") &&
+    !numbers.includes("/index.html#pots") &&
     settings.includes('href="/index.html#pots"'),
 );
 assert(
