@@ -205,10 +205,22 @@ assert(
   );
   const wilts = partWilts({ leaves: 0.3, body: 0.5, frown: 1 });
   assert(
+    "葉は水分、口はへの字、目・体・根元と脚は気分でしおれる",
+    JSON.stringify(wilts) ===
+      JSON.stringify({
+        leaves: 0.3,
+        body: 0.5,
+        mouth: 1,
+        eyes: 0.5,
+        seat: 0.5,
+      }),
+  );
+  assert(
     "しおれの度合いは、ポーズと同じ部位の全部にある",
-    Object.keys(partPoses({ seatOnly: false, posed: 1 })).every((part) =>
-      Number.isFinite(wilts[part])
-    ),
+    JSON.stringify(Object.keys(wilts).sort()) ===
+      JSON.stringify(
+        Object.keys(partPoses({ seatOnly: false, posed: 1 })).sort(),
+      ),
   );
   const landing = partPoses({ seatOnly: true, posed: 0.6, stepping: 0.6 });
   assert("座ると歩くを合わせても、1 を超えない", landing.seat === 1);
