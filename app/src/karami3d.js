@@ -39,6 +39,8 @@ const isMouthTrack = (track) => /^mouth(_frown)?\./.test(track.name);
 // 涙の骨。glb の書き出しで全部の動きに止まったままのトラックが入るので、
 // 涙の動きは Cry からだけ取り、ほかの動きからは外す（混ぜると流れる距離が縮む）
 const isTearTrack = (track) => /^(cry|tear)_/.test(track.name);
+// 目とまぶたの骨。寝るときは混ぜずに切り替える（mood.js の partPoses）
+const isEyeTrack = (track) => /^(eye|lid)_/.test(track.name);
 // 根元と脚の骨。座るときは、ここだけを座る動きに入れ替える
 const isSeatTrack = (track) => /^(root|leg_)/.test(track.name);
 const keepTracks = (clip, name, keep) =>
@@ -173,10 +175,13 @@ export async function createKarami(container, modelName = "karami") {
     leaves: playBody(name, "_leaves", isLeafTrack).play(),
     mouth: playBody(name, "_mouth", isMouthTrack).play(),
     seat: playBody(name, "_seat", isSeatTrack).play(),
+    eyes: playBody(name, "_eyes", isEyeTrack).play(),
     body: playBody(
       name,
       "_body",
-      (t) => !isLeafTrack(t) && !isMouthTrack(t) && !isSeatTrack(t),
+      (t) =>
+        !isLeafTrack(t) && !isMouthTrack(t) && !isSeatTrack(t) &&
+        !isEyeTrack(t),
     ).play(),
   });
   const idle = split("Idle");
@@ -197,10 +202,12 @@ export async function createKarami(container, modelName = "karami") {
   const poses = {};
   for (const [pose, { clip, seatOnly }] of Object.entries(POSE_CLIPS)) {
     if (THREE.AnimationClip.findByName(gltf.animations, clip)) {
-      const keep = seatOnly ? isSeatTrack : () => true;
+      const keep = seatOnly ? isSeatTrack : (t) => !isEyeTrack(t);
       const action = playBody(clip, "", keep).play();
       action.setEffectiveWeight(0);
-      poses[pose] = { action, seatOnly };
+      const eyes = seatOnly ? null : playBody(clip, "_eyes", isEyeTrack).play();
+      eyes?.setEffectiveWeight(0);
+      poses[pose] = { action, eyes, seatOnly };
     }
   }
   // 歩く間は根元と脚だけを Walk に入れ替える。重みは歩く度合い（stepping）で上げ下げする
@@ -528,8 +535,10 @@ export async function createKarami(container, modelName = "karami") {
       }
     }
     for (const candidate of Object.values(poses)) {
-      candidate.action.setEffectiveWeight(
-        candidate === pose ? posed * (1 - shot) : 0,
+      const chosen = candidate === pose;
+      candidate.action.setEffectiveWeight(chosen ? posed * (1 - shot) : 0);
+      candidate.eyes?.setEffectiveWeight(
+        chosen ? posedParts.eyes * (1 - shot) : 0,
       );
     }
 

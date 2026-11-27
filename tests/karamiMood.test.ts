@@ -186,6 +186,12 @@ assert(
       (v) => v === 0.6,
     ),
   );
+  assert(
+    "寝る途中の目は混ぜず、半分で閉じた目に切り替える",
+    sleeping.eyes === 1 &&
+      partPoses({ seatOnly: false, posed: 0.4 }).eyes === 0,
+  );
+  assert("座るときは、目を閉じない", sitting.eyes === 0);
   const standing = partPoses({ seatOnly: null, posed: 1 });
   assert(
     "ポーズの無い所では、どこもポーズにしない",
