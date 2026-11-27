@@ -465,6 +465,7 @@ setupSheet({
   sheet: document.querySelector(".home-sheet"),
   handle: document.getElementById("sheetHandle"),
   more: document.getElementById("sheetMore"),
+  header: homeHeader,
   onFirstOpen: showRecentTalk,
 });
 

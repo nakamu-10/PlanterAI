@@ -4,6 +4,7 @@ import {
   recentTalk,
   SHEET_DRAG_PX,
   sheetExpandedAfterDrag,
+  sheetMoreHeight,
 } from "../app/src/sheet.logic.js";
 
 let pass = 0;
@@ -29,6 +30,13 @@ assert(
   !sheetExpandedAfterDrag(false, -(SHEET_DRAG_PX - 1)) &&
     sheetExpandedAfterDrag(true, SHEET_DRAG_PX - 1),
 );
+
+console.log("--- 広げる高さ ---");
+const height = (viewportHeight: number, sheetTop: number) =>
+  sheetMoreHeight({ viewportHeight, sheetTop, headerBottom: 90 });
+assert("縦長の画面では、画面の半分", height(860, 660) === 430);
+assert("背の低い画面では、ヘッダーの下までに抑える", height(375, 200) === 102);
+assert("すき間が無ければ広げない", height(300, 80) === 0);
 
 console.log("--- 最近の会話 ---");
 const rows = [
