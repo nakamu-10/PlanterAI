@@ -411,6 +411,86 @@ a:hover {
   cursor: pointer;
 }
 
+/* ホームは部屋を画面いっぱいに出し、名前とボタンを上に重ね、下は1枚のシートにまとめる（ADR 0020） */
+.home--room {
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+}
+.home--room .home-stage {
+  padding-bottom: 0;
+}
+.home--room .home-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  align-items: flex-start;
+  /* 部屋をなでたり回したりする指を、ヘッダーの空いた所で止めない */
+  pointer-events: none;
+}
+.home--room .home-header > * {
+  pointer-events: auto;
+}
+.home--room .home-header__name {
+  font-size: 24px;
+}
+.home--room .home-icon-button {
+  background: rgba(255, 255, 255, .6);
+}
+.home--room .pot-switcher {
+  position: absolute;
+  top: 76px;
+  left: 0;
+  right: 0;
+  z-index: 3;
+}
+.home--room .pot-switcher__item {
+  background: rgba(255, 255, 255, .6);
+}
+.home--room .karami-bubble {
+  top: 28%;
+}
+/* 角を丸めた上の隅から部屋が見えるよう、シートを部屋の下の端に少し重ねる */
+.home-sheet {
+  position: relative;
+  z-index: 2;
+  margin-top: -24px;
+  padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+  background: var(--card);
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -2px 12px rgba(22, 33, 28, .08);
+}
+.home-sheet__handle {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 8px;
+  border-radius: 2px;
+  background: rgba(22, 33, 28, .16);
+}
+.home-sheet .home-status {
+  margin: 0;
+  border-bottom: 1px solid rgba(22, 33, 28, .08);
+}
+.home-sheet .home-status__cell {
+  padding: 6px 12px 10px 0;
+}
+.home-sheet .home-status__cell + .home-status__cell {
+  padding-left: 12px;
+}
+.home-sheet .home-chat {
+  position: static;
+  padding: 12px 0 0;
+  background: none;
+  border-radius: 0;
+}
+.home-sheet .karami-hint {
+  color: #56645A;
+  font-size: 11px;
+  margin-top: 8px;
+}
+
 /* ---------- numbers ---------- */
 .numbers {
   display: flex;
