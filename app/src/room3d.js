@@ -39,9 +39,9 @@ export async function loadRoom() {
       .filter((marker) => marker.name.startsWith("block_"))
       .map(footprint),
   };
-  const viewArea = new THREE.Box3().setFromObject(
-    markers.find((marker) => marker.name === "view_area"),
-  );
+  const viewMarker = markers.find((marker) => marker.name === "view_area");
+  if (!viewMarker) throw new Error("view_area が部屋にありません");
+  const viewArea = new THREE.Box3().setFromObject(viewMarker);
   for (const marker of markers) marker.removeFromParent();
   return { room, walkArea, viewArea };
 }
