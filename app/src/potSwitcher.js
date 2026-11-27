@@ -45,12 +45,11 @@ export function setupPotMenu(button, menu) {
     setOpen(button, menu, false);
     button.focus();
   });
-  // Tab・Shift+Tab で、ボタンと一覧の外へ出たら閉じる。行き先が無いとき（一覧の余白を
-  // 押した、ウィンドウを切り替えた）は閉じない。外を押したときは pointerdown で閉じる
+  // ボタンと一覧の外へ選択が出たら閉じる（Tab・Shift+Tab、ページの外へ出たとき）。
+  // 一覧の余白を押しても閉じないよう、一覧自体を選べるようにしてある（tabindex="-1"）
   for (const element of [button, menu]) {
     element.addEventListener("focusout", (event) => {
-      const leaving = event.relatedTarget && !isInside(event.relatedTarget);
-      if (leaving) setOpen(button, menu, false);
+      if (!isInside(event.relatedTarget)) setOpen(button, menu, false);
     });
   }
 }

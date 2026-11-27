@@ -278,6 +278,10 @@ a:hover {
 .pot-menu[hidden] {
   display: none;
 }
+/* 余白を押したときに一覧へ選択が移るが、枠は出さない */
+.pot-menu:focus {
+  outline: none;
+}
 .pot-menu__item {
   min-height: 44px;
   padding: 0 12px;
