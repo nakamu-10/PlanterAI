@@ -31,6 +31,9 @@ function setOpen(button, menu, open) {
 
 export function setupPotMenu(button, menu) {
   const isInside = (target) => button.contains(target) || menu.contains(target);
+  // Safari は押したボタンに選択を移さず、一覧の選択が外へ出たとみなして閉じてから、
+  // click でまた開いてしまう。押した時に選択を移して、ほかのブラウザと同じ順にする
+  button.addEventListener("pointerdown", () => button.focus());
   button.addEventListener("click", () => setOpen(button, menu, menu.hidden));
   // 一覧が開いている間に外を押したら、閉じるだけにする。部屋の小物やキャラに届くと、
   // 閉じたうえでページを移ったり、なでた反応が出たりする。
@@ -46,6 +49,7 @@ export function setupPotMenu(button, menu) {
     button.focus();
   });
   // ボタンと一覧の外へ選択が出たら閉じる（Tab・Shift+Tab、ページの外へ出たとき）。
+  // ページの外へ出たのとウィンドウの切り替えは見分けられないので、切り替えでも閉じる。
   // 一覧の余白を押しても閉じないよう、一覧自体を選べるようにしてある（tabindex="-1"）
   for (const element of [button, menu]) {
     element.addEventListener("focusout", (event) => {
