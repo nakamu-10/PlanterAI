@@ -393,6 +393,11 @@ a:hover {
 .home--room .home-header > * {
   pointer-events: auto;
 }
+/* 鉢が多いときは、名前の欄を縮めて鉢のボタンの列を横に送れるようにする。
+   右のボタンの下へ入り込まないように */
+.home--room .home-header > div {
+  min-width: 0;
+}
 .home--room .home-header__name {
   font-size: 24px;
 }
