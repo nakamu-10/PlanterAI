@@ -20,6 +20,8 @@ img {
 
 /* ---------- tokens (site/src/style.cssと共通) ---------- */
 :root {
+  /* ホームの地。部屋の壁の上の端の色。app/index.html の theme-color と同じ値にする */
+  --room-wall: #D9E8D6;
   --green-900: #16211C;
   --green-800: #1F2E27;
   --green-700: #1F6B4A;
@@ -409,19 +411,40 @@ a:hover {
 }
 
 /* ホームは部屋を画面いっぱいに出し、名前とボタンを上に重ね、下は1枚のシートにまとめる（ADR 0020） */
+/* 画面の端（ノッチやホームバーの裏、横向きの左右）まで部屋で埋める。ページの横幅の上限は
+   外す。Safari は一番上の帯をページの地の色で塗るので、地を部屋の壁の色にする。
+   ページは画面に固定し、上下にスクロールさせない。iPhone の Safari は、ページが
+   画面より長いと（body の min-height: 100vh はツールバーを除いた大きい方の高さ）
+   スクロールでき、端で引くとページごと伸びて戻る。広げたシートの中の一覧は、
+   その中でスクロールする */
 .home--room {
-  position: relative;
-  height: 100dvh;
+  position: fixed;
+  inset: 0;
+  min-height: 0;
+  max-width: none;
   overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--room-wall);
+}
+html:has(.home--room) {
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 .home--room .home-stage {
   padding-bottom: 0;
+}
+/* 地が壁の色なので、読み込み中の文字は白でなく濃い色にする */
+.home--room .karami-loading {
+  color: #56645A;
 }
 /* 背の低い画面（横向きなど）でも、下のシートを画面の中に残す */
 .home--room .karami-stage {
   min-height: 0;
 }
 .home--room .home-header {
+  padding: calc(20px + env(safe-area-inset-top))
+    calc(16px + env(safe-area-inset-right)) 10px
+    calc(20px + env(safe-area-inset-left));
   position: absolute;
   top: 0;
   left: 0;
@@ -452,7 +475,11 @@ a:hover {
   position: relative;
   z-index: 2;
   margin-top: -24px;
-  padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+  /* 白い地は端まで伸ばし、中身は広い画面（PC・iPad）でも 640px までにして真ん中に置く */
+  padding: 8px
+    max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2))
+    calc(8px + env(safe-area-inset-bottom))
+    max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2));
   background: var(--card);
   border-radius: 22px 22px 0 0;
   box-shadow: 0 -2px 12px rgba(22, 33, 28, .08);

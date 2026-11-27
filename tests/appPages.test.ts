@@ -18,6 +18,12 @@ function assert(name: string, condition: boolean) {
 const home = readFileSync("app/index.html", "utf8");
 const settings = readFileSync("app/settings.html", "utf8");
 const numbers = readFileSync("app/numbers.html", "utf8");
+const style = readFileSync("app/src/style.css", "utf8");
+// CSS の中の、そのセレクタだけで始まる規則の中身
+function ruleOf(selector: string) {
+  const start = style.indexOf(`\n${selector} {`);
+  return start === -1 ? "" : style.slice(start, style.indexOf("}", start));
+}
 
 assert(
   "ホームの右上から数値の画面を開ける",
@@ -36,6 +42,36 @@ assert(
   !home.includes("/index.html#pots") &&
     !numbers.includes("/index.html#pots") &&
     settings.includes('href="/index.html#pots"'),
+);
+assert(
+  "ホームは、ノッチやホームバーの裏まで部屋を描く",
+  home.includes("viewport-fit=cover"),
+);
+assert(
+  "ホームのページは画面に固定し、上下にスクロールさせない",
+  ruleOf(".home--room").includes("position: fixed;") &&
+    ruleOf("html:has(.home--room)").includes("overflow: hidden;") &&
+    ruleOf("html:has(.home--room)").includes("overscroll-behavior: none;"),
+);
+assert(
+  "重ねたヘッダーは、ノッチの分だけ下げる",
+  ruleOf(".home--room .home-header").includes("env(safe-area-inset-top)"),
+);
+assert(
+  "下のシートは、ホームバーの分だけ中身を上げる",
+  ruleOf(".home-sheet").includes("env(safe-area-inset-bottom)"),
+);
+assert(
+  "広い画面では、シートの中身を 640px までにして真ん中に置く",
+  ruleOf(".home-sheet").split("(100% - 640px) / 2").length - 1 === 2,
+);
+assert(
+  "Safari の一番上の帯の色（theme-color）は、ホームの地の壁の色と同じ",
+  (() => {
+    const wall = style.match(/--room-wall: (#[0-9A-Fa-f]{6});/)?.[1];
+    return wall !== undefined &&
+      home.includes(`<meta name="theme-color" content="${wall}">`);
+  })(),
 );
 assert(
   "気分・水やりと話しかける欄は、下のシートにまとまる",
