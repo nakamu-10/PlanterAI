@@ -234,31 +234,72 @@ a:hover {
   background: rgba(255, 255, 255, .45);
 }
 
-.pot-switcher {
-  display: flex;
-  gap: 8px;
-  padding: 0 16px 10px;
-  overflow-x: auto;
+.pot-menu-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
 }
-.pot-switcher[hidden] {
+/* 鉢が1つのときの名前。iOS Safari は無効のボタンの文字を薄くするので、元の濃さに戻す */
+.pot-menu-button:disabled {
+  cursor: default;
+  opacity: 1;
+  -webkit-text-fill-color: currentColor;
+}
+.pot-menu-button:disabled .pot-menu-button__mark {
   display: none;
 }
-.pot-switcher__item {
-  flex: none;
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: 999px;
+.pot-menu-button[aria-expanded="true"] .pot-menu-button__mark {
+  transform: rotate(180deg);
+}
+#potCount:not(:empty)::before {
+  content: "・";
+  margin: 0 6px;
+}
+.pot-menu {
+  position: absolute;
+  z-index: 4;
+  margin-top: 8px;
+  min-width: 180px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(22, 33, 28, .18);
+}
+.pot-menu[hidden] {
+  display: none;
+}
+/* 余白を押したときに一覧へ選択が移るが、枠は出さない */
+.pot-menu:focus {
+  outline: none;
+}
+.pot-menu__item {
+  min-height: 44px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, .28);
+  border-radius: 10px;
   color: var(--ink);
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 15px;
   text-decoration: none;
 }
-.pot-switcher__item.is-active {
-  background: var(--card);
+.pot-menu__item:hover {
+  color: var(--ink);
+  background: rgba(22, 33, 28, .06);
+}
+.pot-menu__item[aria-current="page"] {
   font-weight: 700;
+  background: rgba(31, 107, 74, .1);
 }
 
 .home-status {
@@ -393,8 +434,7 @@ a:hover {
 .home--room .home-header > * {
   pointer-events: auto;
 }
-/* 鉢が多いときは、名前の欄を縮めて鉢のボタンの列を横に送れるようにする。
-   右のボタンの下へ入り込まないように */
+/* 長い名前は折り返し、右のボタンの下へ入り込まないようにする */
 .home--room .home-header > div {
   min-width: 0;
 }
@@ -402,12 +442,6 @@ a:hover {
   font-size: 24px;
 }
 .home--room .home-icon-button {
-  background: rgba(255, 255, 255, .6);
-}
-.home--room .pot-switcher {
-  padding: 8px 0 0;
-}
-.home--room .pot-switcher__item {
   background: rgba(255, 255, 255, .6);
 }
 .home--room .karami-bubble {

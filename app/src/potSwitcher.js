@@ -1,4 +1,5 @@
 import { POT } from "./api.js";
+import { potMenuItems } from "./potMenu.logic.js";
 
 // 画面を移っても、見ている鉢と ?demo・?debug を保つ
 export function keepQueryOnLinks() {
@@ -7,23 +8,52 @@ export function keepQueryOnLinks() {
   }
 }
 
-// 見学会では鉢が3つ並ぶので、ホームと数値の画面の上で鉢を選べるようにする。
-// 鉢が1つだけのとき（鍵ありの手元の開発も）は出さない
-export function renderPotSwitcher(nav, pots) {
-  nav.hidden = !pots || pots.length < 2;
-  if (nav.hidden) return;
-  nav.replaceChildren(...pots.map((pot) => {
+// 見学会では鉢が3つ並ぶので、名前を押すと鉢の一覧を開けるようにする。
+// 鉢が1つだけのとき（鍵ありの手元の開発も）は、名前はただの文字に見せる
+export function renderPotSwitcher(button, menu, pots) {
+  const items = potMenuItems(pots, POT, location.pathname, location.search);
+  button.disabled = items.length === 0;
+  if (button.disabled) setOpen(button, menu, false);
+  menu.replaceChildren(...items.map((item) => {
     const link = document.createElement("a");
-    link.className = "pot-switcher__item";
-    // ?demo や ?debug は残し、鉢だけを替える
-    const params = new URLSearchParams(location.search);
-    params.set("pot", pot.slug);
-    link.href = `${location.pathname}?${params}`;
-    link.textContent = pot.name;
-    if (pot.slug === POT) {
-      link.classList.add("is-active");
-      link.setAttribute("aria-current", "page");
-    }
+    link.className = "pot-menu__item";
+    link.href = item.href;
+    link.textContent = item.name;
+    if (item.current) link.setAttribute("aria-current", "page");
     return link;
   }));
+}
+
+function setOpen(button, menu, open) {
+  menu.hidden = !open;
+  button.setAttribute("aria-expanded", String(open));
+}
+
+export function setupPotMenu(button, menu) {
+  const isInside = (target) => button.contains(target) || menu.contains(target);
+  // Safari は押したボタンに選択を移さず、一覧の選択が外へ出たとみなして閉じてから、
+  // click でまた開いてしまう。押した時に選択を移して、ほかのブラウザと同じ順にする
+  button.addEventListener("pointerdown", () => button.focus());
+  button.addEventListener("click", () => setOpen(button, menu, menu.hidden));
+  // 一覧が開いている間に外を押したら、閉じるだけにする。部屋の小物やキャラに届くと、
+  // 閉じたうえでページを移ったり、なでた反応が出たりする。
+  // 部屋のステージは touchend を止めていて iPhone では click が来ないので、押した時で見る
+  document.addEventListener("pointerdown", (event) => {
+    if (menu.hidden || isInside(event.target)) return;
+    event.stopPropagation();
+    setOpen(button, menu, false);
+  }, { capture: true });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || menu.hidden) return;
+    setOpen(button, menu, false);
+    button.focus();
+  });
+  // ボタンと一覧の外へ選択が出たら閉じる（Tab・Shift+Tab、ページの外へ出たとき）。
+  // ページの外へ出たのとウィンドウの切り替えは見分けられないので、切り替えでも閉じる。
+  // 一覧の余白を押しても閉じないよう、一覧自体を選べるようにしてある（tabindex="-1"）
+  for (const element of [button, menu]) {
+    element.addEventListener("focusout", (event) => {
+      if (!isInside(event.relatedTarget)) setOpen(button, menu, false);
+    });
+  }
 }
