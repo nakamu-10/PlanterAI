@@ -1,14 +1,19 @@
 import { SHEET_DRAG_PX, sheetExpandedAfterDrag } from "./sheet.logic.js";
 
-// つまみを押すか上下に引くと、シートを広げたり戻したりする
-export function setupSheet({ sheet, handle, more }) {
+// つまみを押すか上下に引くと、シートを広げたり戻したりする。初めて広げたときに onFirstOpen を呼ぶ
+export function setupSheet({ sheet, handle, more, onFirstOpen }) {
   let expanded = false;
+  let opened = false;
   const setExpanded = (next) => {
     expanded = next;
     sheet.classList.toggle("is-expanded", expanded);
     handle.setAttribute("aria-expanded", String(expanded));
     // 閉じている間は、隠れたリンクに Tab で入らないようにする
     more.inert = !expanded;
+    if (expanded && !opened) {
+      opened = true;
+      onFirstOpen();
+    }
   };
   setExpanded(false);
 

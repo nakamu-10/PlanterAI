@@ -500,6 +500,31 @@ a:hover {
   font-family: var(--font-display);
   font-size: 14px;
 }
+.recent-talk {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: #56645A;
+}
+.recent-talk__item {
+  padding: 10px 0;
+  color: var(--ink);
+  line-height: 1.6;
+}
+/* 鍵のある手元では、人が送った言葉も来る。右に寄せて植物のセリフと分ける */
+.recent-talk__item--user {
+  text-align: right;
+  color: var(--green-700);
+}
+.recent-talk__item + .recent-talk__item {
+  border-top: 1px solid rgba(22, 33, 28, .08);
+}
+.recent-talk__time {
+  display: block;
+  font-size: 11px;
+  color: #56645A;
+}
 .home-sheet__link {
   display: block;
   padding: 12px 0;

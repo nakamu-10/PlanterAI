@@ -2,6 +2,7 @@ import { gsap } from "gsap";
 import { Draggable } from "gsap/Draggable";
 import {
   fetchDashboard,
+  fetchRecords,
   isPublicView,
   POT,
   recordTouch,
@@ -25,6 +26,7 @@ import {
 import { createKarami } from "./karami3d.js";
 import { potCountLabel } from "./potMenu.logic.js";
 import { setupSheet } from "./sheet.js";
+import { recentTalk } from "./sheet.logic.js";
 import {
   keepQueryOnLinks,
   renderPotSwitcher,
@@ -438,10 +440,32 @@ function renderStatus(data, latest) {
 
 let firstLoad = true;
 
+// 初めてシートを広げたときに読む。記録のページと同じ会話（展示では植物のセリフだけ）
+async function showRecentTalk() {
+  const list = document.getElementById("recentTalk");
+  try {
+    const rows = recentTalk((await fetchRecords()).conversation);
+    list.replaceChildren(...rows.map((row) => {
+      const item = document.createElement("li");
+      item.className = `recent-talk__item recent-talk__item--${row.role}`;
+      const time = document.createElement("span");
+      time.className = "recent-talk__time";
+      time.textContent = describeAgo(row.created_at);
+      item.append(row.message, time);
+      return item;
+    }));
+    if (rows.length === 0) list.textContent = "まだ会話がありません。";
+  } catch (error) {
+    console.error(error);
+    list.textContent = "会話を読み込めませんでした。";
+  }
+}
+
 setupSheet({
   sheet: document.querySelector(".home-sheet"),
   handle: document.getElementById("sheetHandle"),
   more: document.getElementById("sheetMore"),
+  onFirstOpen: showRecentTalk,
 });
 
 // 読み込んだ鉢のデータを返す（読めなかったときと、気分を固定しているときは null）

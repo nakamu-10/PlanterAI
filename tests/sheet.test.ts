@@ -1,6 +1,7 @@
 // 下のシートを引き上げて広げる（app/src/sheet.logic.js）の検証
 // 実行: npx tsx tests/sheet.test.ts
 import {
+  recentTalk,
   SHEET_DRAG_PX,
   sheetExpandedAfterDrag,
 } from "../app/src/sheet.logic.js";
@@ -28,6 +29,20 @@ assert(
   !sheetExpandedAfterDrag(false, -(SHEET_DRAG_PX - 1)) &&
     sheetExpandedAfterDrag(true, SHEET_DRAG_PX - 1),
 );
+
+console.log("--- 最近の会話 ---");
+const rows = [
+  { message: "a", created_at: "2026-11-20T10:00:00Z" },
+  { message: "c", created_at: "2026-11-27T10:00:00Z" },
+  { message: "b", created_at: "2026-11-25T10:00:00Z" },
+];
+assert(
+  "新しい順に並べる",
+  recentTalk(rows).map((r) => r.message).join("") === "cba",
+);
+assert("数を絞る", recentTalk(rows, 2).length === 2);
+assert("元の並びは変えない", rows[0].message === "a");
+assert("会話が無くても空で返す", recentTalk(undefined).length === 0);
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
