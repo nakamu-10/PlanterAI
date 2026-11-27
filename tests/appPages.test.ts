@@ -48,6 +48,11 @@ assert(
   home.includes("viewport-fit=cover"),
 );
 assert(
+  "ホームのページは画面に固定し、上下にスクロールさせない",
+  style.includes("html:has(.home--room) {") &&
+    style.includes(".home--room {\n  position: fixed;\n  inset: 0;"),
+);
+assert(
   "重ねたヘッダーは、ノッチの分だけ下げる",
   ruleOf(".home--room .home-header").includes("env(safe-area-inset-top)"),
 );
