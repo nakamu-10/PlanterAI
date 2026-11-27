@@ -49,8 +49,9 @@ assert(
 );
 assert(
   "ホームのページは画面に固定し、上下にスクロールさせない",
-  style.includes("html:has(.home--room) {") &&
-    style.includes(".home--room {\n  position: fixed;\n  inset: 0;"),
+  ruleOf(".home--room").includes("position: fixed;") &&
+    ruleOf("html:has(.home--room)").includes("overflow: hidden;") &&
+    ruleOf("html:has(.home--room)").includes("overscroll-behavior: none;"),
 );
 assert(
   "重ねたヘッダーは、ノッチの分だけ下げる",

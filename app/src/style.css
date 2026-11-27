@@ -412,24 +412,22 @@ a:hover {
 
 /* ホームは部屋を画面いっぱいに出し、名前とボタンを上に重ね、下は1枚のシートにまとめる（ADR 0020） */
 /* 画面の端（ノッチやホームバーの裏、横向きの左右）まで部屋で埋める。ページの横幅の上限は
-   外す。Safari は一番上の帯をページの地の色で塗るので、地を部屋の壁の色にする */
-.home--room {
-  max-width: none;
-  overflow: hidden;
-  background: var(--room-wall);
-}
-/* ホームのページは画面に固定し、上下にスクロールさせない。iPhone の Safari は、
-   ページが画面より長いと（body の min-height: 100vh はツールバーを除いた大きい方の
-   高さ）スクロールでき、端で引くとページごと伸びて戻る。広げたシートの中の
-   一覧は、その中でスクロールする */
-html:has(.home--room) {
-  overflow: hidden;
-  overscroll-behavior: none;
-}
+   外す。Safari は一番上の帯をページの地の色で塗るので、地を部屋の壁の色にする。
+   ページは画面に固定し、上下にスクロールさせない。iPhone の Safari は、ページが
+   画面より長いと（body の min-height: 100vh はツールバーを除いた大きい方の高さ）
+   スクロールでき、端で引くとページごと伸びて戻る。広げたシートの中の一覧は、
+   その中でスクロールする */
 .home--room {
   position: fixed;
   inset: 0;
   min-height: 0;
+  max-width: none;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--room-wall);
+}
+html:has(.home--room) {
+  overflow: hidden;
   overscroll-behavior: none;
 }
 .home--room .home-stage {
