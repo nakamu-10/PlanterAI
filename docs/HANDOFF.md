@@ -76,12 +76,16 @@
 - 部屋の .blend と焼き込みのスクリプトは、リポジトリの外の `PlanterAI-room/`。
   焼き込み（約8分）は Claude Code の中で流すと、メモリの見張りに止められる。
   `bake_extend.cmd` を別のウィンドウ（`cmd.exe //c start`）で流す
-- 焼かずに書き出しだけをやり直すときは、`blender.exe -b room.blend --python
-  bake_export.py -- <出力先> 2048 256 1024 reuse`
-  を直接流す（数十秒）。 `bake_extend.cmd`
-  は引数を渡さないので使えない。出力先には、前回焼いた `static_lightmap.png` と
-  `static_outside_lightmap.png`（今は `out_extend/`）
-  を置いておく。無くてもエラーにならず、絵の欠けた glb が出る
+- 焼かずに書き出しだけをやり直すときは、`PlanterAI-room/` に移ってから次を
+  直接流す（数十秒）。`bake_extend.cmd` は出力先 `out_extend` だけを決め打ちで
+  渡すので、`reuse` を付けられない。出力先には、前回焼いた `static_lightmap.png`
+  と `static_outside_lightmap.png`（今は `out_extend/`）を置いておく。無くても
+  エラーにならず、絵の欠けた glb が出る
+
+  ```sh
+  "/c/Program Files/Blender Foundation/Blender 4.2/blender.exe" -b room.blend \
+    --python bake_export.py -- <出力先> 2048 256 1024 reuse
+  ```
 - 地引さんは 11/20 の発表でチームを抜け、11/24 にリポジトリのコラボレーター
   から外した。レビューは CLAUDE.md の「レビュー（ひとりで開発している）」の
   とおりにする。`production` の承認者は中村だけにした（11/26）
