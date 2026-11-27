@@ -88,7 +88,9 @@
     </header>
 
     <section class="home-sheet" aria-label="今のようす">
-      <div class="home-sheet__handle" aria-hidden="true"></div>
+      <button id="sheetHandle" class="home-sheet__handle" type="button"
+        aria-expanded="false" aria-controls="sheetMore"
+        aria-label="最近の会話"></button>
       <dl class="home-status">
         <div class="home-status__cell">
           <dt>今の気分</dt>
@@ -104,6 +106,13 @@
           <dd id="statusWatering" class="home-status__value">—</dd>
         </div>
       </dl>
+
+      <div id="sheetMore" class="home-sheet__more">
+        <h2 class="home-sheet__title">最近の会話</h2>
+        <a class="home-sheet__link" href="/app/records.html" data-keep-query>
+          記録のページで、もっと見る
+        </a>
+      </div>
 
       <form id="chatForm" class="home-chat">
         <label class="sr-only" for="chatInput">カラ美に話しかける</label>

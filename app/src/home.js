@@ -24,6 +24,7 @@ import {
 } from "./home.logic.js";
 import { createKarami } from "./karami3d.js";
 import { potCountLabel } from "./potMenu.logic.js";
+import { setupSheet } from "./sheet.js";
 import {
   keepQueryOnLinks,
   renderPotSwitcher,
@@ -436,6 +437,13 @@ function renderStatus(data, latest) {
 }
 
 let firstLoad = true;
+
+setupSheet({
+  sheet: document.querySelector(".home-sheet"),
+  handle: document.getElementById("sheetHandle"),
+  more: document.getElementById("sheetMore"),
+  header: homeHeader,
+});
 
 // 読み込んだ鉢のデータを返す（読めなかったときと、気分を固定しているときは null）
 async function refreshState() {
