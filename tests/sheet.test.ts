@@ -1,10 +1,12 @@
 // 下のシートを引き上げて広げる（app/src/sheet.logic.js）の検証
 // 実行: npx tsx tests/sheet.test.ts
 import {
+  closesOnResize,
   recentTalk,
   SHEET_DRAG_PX,
   sheetExpandedAfterDrag,
   sheetMoreHeight,
+  togglesOnClick,
 } from "../app/src/sheet.logic.js";
 
 let pass = 0;
@@ -51,6 +53,21 @@ assert(
 assert("数を絞る", recentTalk(rows, 2).length === 2);
 assert("元の並びは変えない", rows[0].message === "a");
 assert("会話が無くても空で返す", recentTalk(undefined).length === 0);
+
+console.log("--- つまみの click ---");
+assert("指やマウスで押したら切り替える", togglesOnClick(1, false));
+assert("引いたあとに来た click では切り替えない", !togglesOnClick(1, true));
+assert(
+  "キーで押したら、引いた印が残っていても切り替える",
+  togglesOnClick(0, true),
+);
+
+console.log("--- 画面の大きさが変わったとき ---");
+assert("幅が変わったら閉じる（画面を回した）", closesOnResize(402, 860));
+assert(
+  "幅が同じなら閉じない（キーボードで高さだけ変わった）",
+  !closesOnResize(402, 402),
+);
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

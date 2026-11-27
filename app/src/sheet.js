@@ -1,7 +1,9 @@
 import {
+  closesOnResize,
   SHEET_DRAG_PX,
   sheetExpandedAfterDrag,
   sheetMoreHeight,
+  togglesOnClick,
 } from "./sheet.logic.js";
 
 // つまみを押すか上下に引くと、シートを広げたり戻したりする。広げるたびに onOpen を呼ぶ
@@ -50,18 +52,13 @@ export function setupSheet({ sheet, handle, more, header, onOpen }) {
     dragged = false;
   });
   handle.addEventListener("click", (event) => {
-    // Enter・Space で押した click は detail が 0。指で引いたあとに click が来ず
-    // 印が残っていても、キーで押したら切り替える
-    const fromKey = event.detail === 0;
-    if (fromKey || !dragged) setExpanded(!expanded);
+    if (togglesOnClick(event.detail, dragged)) setExpanded(!expanded);
     dragged = false;
   });
 
-  // 広げる高さは広げた時の画面で測るので、広げたまま回すとつまみがヘッダーの下に隠れうる。
-  // 幅が変わったら閉じる。高さだけの変化（文字を打つキーボード）では閉じない
   let width = innerWidth;
   addEventListener("resize", () => {
-    if (innerWidth !== width && expanded) setExpanded(false);
+    if (expanded && closesOnResize(width, innerWidth)) setExpanded(false);
     width = innerWidth;
   });
 }
