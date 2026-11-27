@@ -117,6 +117,21 @@ assert(
 );
 assert("奥の壁が右へ 4m 続く", wall.length > 0 && near(maxOf(wall, 0), 6.0));
 assert("左の壁が手前へ 4m 続く", wall.length > 0 && near(maxOf(wall, 2), 5.5));
+
+// 壁は 3.4m まで高くする。部屋を画面いっぱいに出すと、スマホでは 2.6m ほどの高さまで
+// 写り、2.4m の壁では上の端が画面に出ていた（ADR 0020）
+const wallBack = bounds("wall_back");
+const wallLeft = bounds("wall_left");
+assert(
+  "部屋の壁は 3.4m の高さまである",
+  wallBack !== null && near(wallBack.max[1], 3.4) &&
+    wallLeft !== null && near(wallLeft.max[1], 3.4),
+);
+// 外の部品は結合してあり、壁の上の縁（3cm）も含むので、3.4m 以上かで見る
+assert(
+  "外へ続く壁も 3.4m の高さまである",
+  wall.length > 0 && maxOf(wall, 1) >= 3.4,
+);
 assert(
   "外の部品は static_outside のほかに無い",
   !gltf.nodes.some((n) => /_out(_|$)/.test(n.name)),
