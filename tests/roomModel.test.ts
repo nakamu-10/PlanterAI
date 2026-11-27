@@ -16,7 +16,13 @@ function assert(name: string, condition: boolean) {
 }
 
 type Gltf = {
-  nodes: { name: string; mesh?: number; translation?: number[] }[];
+  nodes: {
+    name: string;
+    mesh?: number;
+    translation?: number[];
+    rotation?: number[];
+    scale?: number[];
+  }[];
   meshes: {
     primitives: { attributes: { POSITION: number }; material: number }[];
   }[];
@@ -29,10 +35,12 @@ const gltf: Gltf = JSON.parse(
   glb.subarray(20, 20 + glb.readUInt32LE(12)).toString("utf8"),
 );
 
-// 部屋の物は、どれも移動・回転なしで頂点に位置が入っている
+// 頂点の min/max だけを見る。node に移動・回転・拡大があると、アプリが測る範囲と
+// ずれるので、測らずに null を返して落とす
 function bounds(name: string) {
   const node = gltf.nodes.find((n) => n.name === name);
   if (node?.mesh === undefined) return null;
+  if (node.translation || node.rotation || node.scale) return null;
   const position = gltf.accessors[
     gltf.meshes[node.mesh].primitives[0].attributes.POSITION
   ];
@@ -55,15 +63,25 @@ if (view) {
   );
 }
 
-// 床と壁は、部屋の外へ続く。切り口が画面に写らないように（#156）
+// 床と壁は、部屋の端（右 x=2.0m、手前 z=1.5m）から外へ 4m 続く。切り口が画面に
+// 写らないように（#156、ADR 0019）
 const floorRight = bounds("slab_out_right");
 const floorFront = bounds("slab_out_front");
 const wallBack = bounds("wall_back_out");
 const wallLeft = bounds("wall_left_out");
-assert("床が右へ続く", floorRight !== null && floorRight.max[0] > 4);
-assert("床が手前へ続く", floorFront !== null && floorFront.max[2] > 3);
-assert("奥の壁が右へ続く", wallBack !== null && wallBack.max[0] > 4);
-assert("左の壁が手前へ続く", wallLeft !== null && wallLeft.max[2] > 3);
+assert(
+  "床が右へ 4m 続く",
+  floorRight !== null && near(floorRight.max[0], 6.0),
+);
+assert(
+  "床が手前へ 4m 続く",
+  floorFront !== null && near(floorFront.max[2], 5.5),
+);
+assert("奥の壁が右へ 4m 続く", wallBack !== null && near(wallBack.max[0], 6.0));
+assert(
+  "左の壁が手前へ 4m 続く",
+  wallLeft !== null && near(wallLeft.max[2], 5.5),
+);
 
 // 部屋の中と外は別の絵に焼く。部屋の中の細かさを落とさないように
 const materialOf = (name: string) => {
