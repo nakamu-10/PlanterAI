@@ -49,8 +49,19 @@ export function setupSheet({ sheet, handle, more, header, onOpen }) {
     press = null;
     dragged = false;
   });
-  handle.addEventListener("click", () => {
-    if (!dragged) setExpanded(!expanded);
+  handle.addEventListener("click", (event) => {
+    // Enter・Space で押した click は detail が 0。指で引いたあとに click が来ず
+    // 印が残っていても、キーで押したら切り替える
+    const fromKey = event.detail === 0;
+    if (fromKey || !dragged) setExpanded(!expanded);
     dragged = false;
+  });
+
+  // 広げる高さは広げた時の画面で測るので、広げたまま回すとつまみがヘッダーの下に隠れうる。
+  // 幅が変わったら閉じる。高さだけの変化（文字を打つキーボード）では閉じない
+  let width = innerWidth;
+  addEventListener("resize", () => {
+    if (innerWidth !== width && expanded) setExpanded(false);
+    width = innerWidth;
   });
 }
