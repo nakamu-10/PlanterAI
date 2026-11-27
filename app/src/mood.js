@@ -73,11 +73,20 @@ export function restStep({ hasPose, awake, posed, pending, held, dt }) {
   };
 }
 
+// 部位ごとの、しおれの度合い。葉は土の水分、目・体・根元と脚は気分、口はへの字にするか。
+// キーは partPoses とそろえる（無い部位は重みが NaN になり、その骨の姿勢が崩れる）
+export function partWilts({ leaves, body, frown }) {
+  return { leaves, body, mouth: frown, eyes: body, seat: body };
+}
+
 // 部位ごとの、ポーズに入れ替える度合い。座るは根元と脚（seat）だけを入れ替え、顔・頭・葉は
 // 気分のまま動かす。寝るは布団をかぶるので体ごと入れ替える。seatOnly が null ならポーズの無い所。
-// stepping は歩く度合いで、座ると同じく根元と脚だけを入れ替える（しおれたまま歩けるように）
+// stepping は歩く度合いで、座ると同じく根元と脚だけを入れ替える（しおれたまま歩けるように）。
+// 目は混ぜずに半分で切り替える。閉じた目は笑い目を 180° 回して動かしたものなので、
+// 混ぜると途中で横を向いた笑い目が開いた目の横に出る
 export function partPoses({ seatOnly, posed, stepping = 0 }) {
   const whole = seatOnly === false ? posed : 0;
   const seat = Math.min((seatOnly === null ? 0 : posed) + stepping, 1);
-  return { leaves: whole, body: whole, mouth: whole, seat };
+  const eyes = whole >= 0.5 ? 1 : 0;
+  return { leaves: whole, body: whole, mouth: whole, eyes, seat };
 }

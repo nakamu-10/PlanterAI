@@ -2,6 +2,7 @@ import {
   layerWeights,
   moodLevels,
   partPoses,
+  partWilts,
   restStep,
   wiltFromMoistureScore,
 } from "../app/src/mood.js";
@@ -186,6 +187,12 @@ assert(
       (v) => v === 0.6,
     ),
   );
+  assert(
+    "寝る途中の目は混ぜず、半分で閉じた目に切り替える",
+    sleeping.eyes === 1 &&
+      partPoses({ seatOnly: false, posed: 0.4 }).eyes === 0,
+  );
+  assert("座るときは、目を閉じない", sitting.eyes === 0);
   const standing = partPoses({ seatOnly: null, posed: 1 });
   assert(
     "ポーズの無い所では、どこもポーズにしない",
@@ -195,6 +202,25 @@ assert(
   assert(
     "歩くときは、根元と脚だけを歩く動きにする",
     walking.seat === 0.7 && walking.body === 0 && walking.leaves === 0,
+  );
+  const wilts = partWilts({ leaves: 0.3, body: 0.5, frown: 1 });
+  assert(
+    "葉は水分、口はへの字、目・体・根元と脚は気分でしおれる",
+    JSON.stringify(wilts) ===
+      JSON.stringify({
+        leaves: 0.3,
+        body: 0.5,
+        mouth: 1,
+        eyes: 0.5,
+        seat: 0.5,
+      }),
+  );
+  assert(
+    "しおれの度合いは、ポーズと同じ部位の全部にある",
+    JSON.stringify(Object.keys(wilts).sort()) ===
+      JSON.stringify(
+        Object.keys(partPoses({ seatOnly: false, posed: 1 })).sort(),
+      ),
   );
   const landing = partPoses({ seatOnly: true, posed: 0.6, stepping: 0.6 });
   assert("座ると歩くを合わせても、1 を超えない", landing.seat === 1);
