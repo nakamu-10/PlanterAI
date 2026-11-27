@@ -140,7 +140,7 @@ function createContactShadow() {
 // どのモデルも骨と動きの名前をカラ美にそろえてあるので、同じ操作で動く。
 // 待機（Idle）としおれ（Wilt）は常に流して混ぜ、ほかは1回だけ流す
 export async function createKarami(container, modelName = "karami") {
-  const [gltf, { room, walkArea }] = await Promise.all([
+  const [gltf, { room, walkArea, viewArea }] = await Promise.all([
     new GLTFLoader().loadAsync(modelUrl(modelName)),
     loadRoom(),
   ]);
@@ -251,16 +251,16 @@ export async function createKarami(container, modelName = "karami") {
   // 見回すときにカメラを動かす向き（画面の右）と、部屋が画面の横に広がる範囲
   const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
   const roomSpan = { min: Infinity, max: -Infinity };
-  const roomBox = new THREE.Box3().setFromObject(room);
-  for (const x of [roomBox.min.x, roomBox.max.x]) {
-    for (const z of [roomBox.min.z, roomBox.max.z]) {
+  // 床と壁は部屋の外へも続くので、部屋そのものの範囲（view_area）で測る
+  for (const x of [viewArea.min.x, viewArea.max.x]) {
+    for (const z of [viewArea.min.z, viewArea.max.z]) {
       const along = new THREE.Vector3(x, focus.y, z).sub(focus).dot(right);
       roomSpan.min = Math.min(roomSpan.min, along);
       roomSpan.max = Math.max(roomSpan.max, along);
     }
   }
   let pan = 0;
-  // 部屋の外が写らない所までだけ動かす。画面が部屋より広ければ真ん中に置く
+  // 画面の端が部屋の端に来る所までだけ動かす。画面が部屋より広ければ真ん中に置く
   function panTo(next) {
     const halfWidth = camera.right;
     const low = roomSpan.min + halfWidth;
