@@ -13,6 +13,7 @@ export function keepQueryOnLinks() {
 export function renderPotSwitcher(button, menu, pots) {
   const items = potMenuItems(pots, POT, location.pathname, location.search);
   button.disabled = items.length === 0;
+  if (button.disabled) setOpen(button, menu, false);
   menu.replaceChildren(...items.map((item) => {
     const link = document.createElement("a");
     link.className = "pot-menu__item";
@@ -23,19 +24,29 @@ export function renderPotSwitcher(button, menu, pots) {
   }));
 }
 
+function setOpen(button, menu, open) {
+  menu.hidden = !open;
+  button.setAttribute("aria-expanded", String(open));
+}
+
 export function setupPotMenu(button, menu) {
-  const open = (next) => {
-    menu.hidden = !next;
-    button.setAttribute("aria-expanded", String(next));
-  };
-  button.addEventListener("click", () => open(menu.hidden));
-  // 部屋のステージは touchend を止めていて iPhone では click が来ないので、押した時で閉じる
+  const isInside = (target) => button.contains(target) || menu.contains(target);
+  button.addEventListener("click", () => setOpen(button, menu, menu.hidden));
+  // 一覧が開いている間に外を押したら、閉じるだけにする。部屋の小物やキャラに届くと、
+  // 閉じたうえでページを移ったり、なでた反応が出たりする。
+  // 部屋のステージは touchend を止めていて iPhone では click が来ないので、押した時で見る
   document.addEventListener("pointerdown", (event) => {
-    const inside = button.contains(event.target) ||
-      menu.contains(event.target);
-    if (!menu.hidden && !inside) open(false);
-  });
+    if (menu.hidden || isInside(event.target)) return;
+    event.stopPropagation();
+    setOpen(button, menu, false);
+  }, { capture: true });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") open(false);
+    if (event.key !== "Escape" || menu.hidden) return;
+    setOpen(button, menu, false);
+    button.focus();
+  });
+  // Tab で一覧の外へ出たら閉じる
+  menu.addEventListener("focusout", (event) => {
+    if (!isInside(event.relatedTarget)) setOpen(button, menu, false);
   });
 }

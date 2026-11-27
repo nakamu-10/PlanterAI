@@ -247,8 +247,11 @@ a:hover {
   letter-spacing: inherit;
   cursor: pointer;
 }
+/* 鉢が1つのときの名前。iOS Safari は無効のボタンの文字を薄くするので、元の濃さに戻す */
 .pot-menu-button:disabled {
   cursor: default;
+  opacity: 1;
+  -webkit-text-fill-color: currentColor;
 }
 .pot-menu-button:disabled .pot-menu-button__mark {
   display: none;
