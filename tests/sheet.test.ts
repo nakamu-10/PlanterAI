@@ -2,6 +2,7 @@
 // 実行: npx tsx tests/sheet.test.ts
 import {
   closesOnResize,
+  recentTalk,
   SHEET_DRAG_PX,
   sheetExpandedAfterDrag,
   sheetMoreHeight,
@@ -38,6 +39,20 @@ const height = (viewportHeight: number, sheetTop: number) =>
 assert("縦長の画面では、画面の半分", height(860, 660) === 430);
 assert("背の低い画面では、ヘッダーの下までに抑える", height(375, 200) === 102);
 assert("すき間が無ければ広げない", height(300, 80) === 0);
+
+console.log("--- 最近の会話 ---");
+const rows = [
+  { message: "a", created_at: "2026-11-20T10:00:00Z" },
+  { message: "c", created_at: "2026-11-27T10:00:00Z" },
+  { message: "b", created_at: "2026-11-25T10:00:00Z" },
+];
+assert(
+  "新しい順に並べる",
+  recentTalk(rows).map((r) => r.message).join("") === "cba",
+);
+assert("数を絞る", recentTalk(rows, 2).length === 2);
+assert("元の並びは変えない", rows[0].message === "a");
+assert("会話が無くても空で返す", recentTalk(undefined).length === 0);
 
 console.log("--- つまみの click ---");
 assert("指やマウスで押したら切り替える", togglesOnClick(1, false));

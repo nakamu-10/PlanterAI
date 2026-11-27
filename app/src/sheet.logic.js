@@ -15,6 +15,13 @@ export function sheetMoreHeight({ viewportHeight, sheetTop, headerBottom }) {
   return Math.max(0, Math.min(viewportHeight / 2, room));
 }
 
+// 広げたシートには、最近の会話を新しい順に少しだけ出す。全部は記録のページで見る
+export function recentTalk(rows, count = 5) {
+  return [...(rows ?? [])]
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+    .slice(0, count);
+}
+
 // つまみの click で開け閉めするか。Enter・Space で押した click は detail が 0。
 // 指で引いたあとに click が来ず、引いた印が残っていても、キーで押したら切り替える
 export function togglesOnClick(clickDetail, dragged) {

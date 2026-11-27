@@ -2,6 +2,7 @@ import { gsap } from "gsap";
 import { Draggable } from "gsap/Draggable";
 import {
   fetchDashboard,
+  fetchRecords,
   isPublicView,
   POT,
   recordTouch,
@@ -25,6 +26,7 @@ import {
 import { createKarami } from "./karami3d.js";
 import { potCountLabel } from "./potMenu.logic.js";
 import { setupSheet } from "./sheet.js";
+import { recentTalk } from "./sheet.logic.js";
 import {
   keepQueryOnLinks,
   renderPotSwitcher,
@@ -85,6 +87,7 @@ const homeHeader = document.querySelector(".home-header");
 
 // 鍵なしの app-public は読み取りだけで、チャットは受けない（ADR 0006）
 chatForm.hidden = isPublicView;
+document.getElementById("recentTalkNote").hidden = !isPublicView;
 keepQueryOnLinks();
 
 // ?emotion=不安 や ?moisture=20（土の水分の快適度 0〜100）を付けると、
@@ -438,11 +441,46 @@ function renderStatus(data, latest) {
 
 let firstLoad = true;
 
+// シートを広げるたびに読み直す。話しかけた言葉も、読み込みに失敗したあとも次に出る。
+// 記録のページと同じ会話（展示では植物のセリフだけ）
+let talkLoad = 0;
+async function showRecentTalk() {
+  const list = document.getElementById("recentTalk");
+  const load = ++talkLoad;
+  const note = (text) => {
+    const item = document.createElement("li");
+    item.className = "recent-talk__note";
+    item.textContent = text;
+    list.replaceChildren(item);
+  };
+  // 前に読めた会話は、読み直す間も出しておく。読めていなければ（初めて・前に失敗）、読み込み中と出す
+  if (!list.querySelector(".recent-talk__item")) note("読み込んでいます…");
+  try {
+    const rows = recentTalk((await fetchRecords()).conversation);
+    // 続けて開け閉めしたときは、最後に読んだ分だけを出す
+    if (load !== talkLoad) return;
+    if (rows.length === 0) return note("まだ会話がありません。");
+    list.replaceChildren(...rows.map((row) => {
+      const item = document.createElement("li");
+      item.className = `recent-talk__item recent-talk__item--${row.role}`;
+      const time = document.createElement("span");
+      time.className = "recent-talk__time";
+      time.textContent = describeAgo(row.created_at);
+      item.append(row.message, time);
+      return item;
+    }));
+  } catch (error) {
+    console.error(error);
+    if (load === talkLoad) note("会話を読み込めませんでした。");
+  }
+}
+
 setupSheet({
   sheet: document.querySelector(".home-sheet"),
   handle: document.getElementById("sheetHandle"),
   more: document.getElementById("sheetMore"),
   header: homeHeader,
+  onOpen: showRecentTalk,
 });
 
 // 読み込んだ鉢のデータを返す（読めなかったときと、気分を固定しているときは null）

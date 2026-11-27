@@ -6,11 +6,12 @@ import {
   togglesOnClick,
 } from "./sheet.logic.js";
 
-// つまみを押すか上下に引くと、シートを広げたり戻したりする
-export function setupSheet({ sheet, handle, more, header }) {
+// つまみを押すか上下に引くと、シートを広げたり戻したりする。広げるたびに onOpen を呼ぶ
+export function setupSheet({ sheet, handle, more, header, onOpen }) {
   let expanded = false;
   const setExpanded = (next) => {
-    if (next && !expanded) {
+    const opening = next && !expanded;
+    if (opening) {
       // 閉じている今のシートの上端で測る
       const height = sheetMoreHeight({
         viewportHeight: innerHeight,
@@ -24,6 +25,7 @@ export function setupSheet({ sheet, handle, more, header }) {
     handle.setAttribute("aria-expanded", String(expanded));
     // 閉じている間は、隠れたリンクに Tab で入らないようにする
     more.inert = !expanded;
+    if (opening) onOpen();
   };
   setExpanded(false);
 
