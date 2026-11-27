@@ -442,6 +442,7 @@ setupSheet({
   sheet: document.querySelector(".home-sheet"),
   handle: document.getElementById("sheetHandle"),
   more: document.getElementById("sheetMore"),
+  header: homeHeader,
 });
 
 // 読み込んだ鉢のデータを返す（読めなかったときと、気分を固定しているときは null）
