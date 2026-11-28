@@ -234,9 +234,9 @@ export async function createKarami(container, modelName = "karami") {
 
   const scene = new THREE.Scene();
   scene.add(room);
-  // 窓・日だまり・ランプ・時計。照度は鉢のデータを読むたびに setLux で受け取る
+  // 窓・日だまり・ランプ・時計・小物。鉢のデータは読むたびに setRoomData で受け取る
   const roomLook = createRoomLook(room);
-  let lux = null;
+  let roomData = {};
 
   // キャラは立ち位置に置いた台（actor）に乗せる。動きの計算は台の上（足元が原点、
   // 正面が +z）のままで済み、立ち位置と大きさは台だけで決まる
@@ -455,7 +455,7 @@ export async function createKarami(container, modelName = "karami") {
   resize();
 
   renderer.setAnimationLoop(() => {
-    roomLook.update(Date.now(), lux);
+    roomLook.update(Date.now(), roomData);
     // 描画の間隔が端末によって違うので、経過時間で近づける（約1秒で8割）
     const dt = Math.min(clock.getDelta(), 0.5);
     const k = 1 - Math.exp(-dt * 1.6);
@@ -623,9 +623,10 @@ export async function createKarami(container, modelName = "karami") {
       target.tears = next.tears;
       target.frown = next.frown;
     },
-    // 鉢の照度[lx]。分からなければ null
-    setLux(next) {
-      lux = next;
+    // { lux: 鉢の照度[lx], lastWateringAt: 最後の水やりの時刻, lightToday: 今日の日照 }。
+    // 分からないものは null
+    setRoomData(next) {
+      roomData = next;
     },
     // 画面のこの点のそばに、カラ美の体（葉・マント・足を含む）があるか。
     // キャンバスはステージ全体に広がっているので、何もない所を触っても反応させない。

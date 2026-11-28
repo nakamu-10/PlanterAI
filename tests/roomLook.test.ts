@@ -6,7 +6,9 @@ import {
   DIM_LUX,
   freshLux,
   LUX_FRESH_MINUTES,
+  propsShown,
   roomLook,
+  WATERING_CAN_HOURS,
 } from "../app/src/room.logic.js";
 
 let pass = 0;
@@ -112,6 +114,33 @@ const at = (h: number, m = 0) =>
     "いつの照度か分からなければ、使わない",
     freshLux({ filtered: { lux: 800 } }, now) === null &&
       freshLux({ filtered: { lux: 800 }, created_at: "不明" }, now) === null,
+  );
+}
+
+{
+  const now = at(12);
+  const hoursAgo = (h: number) => new Date(now - h * 3_600_000).toISOString();
+  assert(
+    "水やりのあとは、じょうろを出す",
+    propsShown({ now, lastWateringAt: hoursAgo(2) }).wateringCan,
+  );
+  assert(
+    "水やりから時間がたったら、じょうろをしまう",
+    !propsShown({ now, lastWateringAt: hoursAgo(WATERING_CAN_HOURS) })
+      .wateringCan,
+  );
+  assert(
+    "水やりの記録が無ければ、じょうろを出さない",
+    !propsShown({ now, lastWateringAt: null }).wateringCan,
+  );
+  assert(
+    "今日の日照が目標に届いたら、タオルを出す",
+    propsShown({ now, lightToday: { lux_hours: 5000, target: 4000 } }).towel,
+  );
+  assert(
+    "目標に届いていない日と、日照が分からない日は、タオルを出さない",
+    !propsShown({ now, lightToday: { lux_hours: 3000, target: 4000 } }).towel &&
+      !propsShown({ now, lightToday: null }).towel,
   );
 }
 
