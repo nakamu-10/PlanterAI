@@ -8,6 +8,7 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PLANT_PROFILES } from "../_shared/config.ts";
+import { readWindowWeather } from "../_shared/dailyWeather.ts";
 import { fetchRecords, RECORD_CONVERSATION_ROWS } from "../_shared/records.ts";
 import { buildTrends, TREND_HOURS, TREND_MAX_ROWS } from "../_shared/trends.ts";
 import {
@@ -61,6 +62,7 @@ async function handleView(device: Device): Promise<Response> {
     conversationResult,
     trendResult,
     potsResult,
+    weatherToday,
   ] = await Promise.all([
     supabase
       .from("sensor_logs")
@@ -103,6 +105,7 @@ async function handleView(device: Device): Promise<Response> {
       .select("public_slug, plant_name")
       .not("public_slug", "is", null)
       .order("created_at", { ascending: true }),
+    readWindowWeather(supabase),
   ]);
 
   if (sensorResult.error) throw sensorResult.error;
@@ -126,6 +129,7 @@ async function handleView(device: Device): Promise<Response> {
     sensor_history: sensorHistory,
     emotion_history: emotionResult.data ?? [],
     latest_watering: wateringResult.data ?? null,
+    weather_today: weatherToday,
     last_plant_message: lastPlantNotice(conversationResult.data ?? []),
     trends: buildTrends(
       trendResult.data ?? [],

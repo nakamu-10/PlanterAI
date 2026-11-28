@@ -66,6 +66,18 @@ export function describeWeather(weather: TodayWeather): string {
   return "くもり";
 }
 
+/**
+ * アプリの部屋の窓に出す天気。天気のコードはその日で一番悪い天気なので、少し降っただけの日に
+ * 一日中雨を出さないよう、日が差さなかった日（isDimDay）だけ降らせる。分け方は describeWeather と同じ
+ */
+export type WindowWeather = "sunny" | "cloudy" | "rain" | "snow";
+
+export function windowWeather(weather: TodayWeather): WindowWeather {
+  if (!isDimDay(weather)) return "sunny";
+  const words = { "雨": "rain", "雪": "snow", "くもり": "cloudy" } as const;
+  return words[describeWeather(weather) as keyof typeof words];
+}
+
 /** 取れなかったときは null。天気が分からなくても、日照の判定は止めない */
 export async function fetchTodayWeather(
   place: Place,

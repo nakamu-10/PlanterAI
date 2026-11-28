@@ -10,6 +10,7 @@ import {
   placeFrom,
   weatherFromRow,
   weatherToRow,
+  windowWeather,
 } from "../supabase/functions/_shared/weather.ts";
 import { DIM_DAY_FALLBACK } from "../supabase/functions/_shared/fallback.ts";
 
@@ -81,6 +82,22 @@ assert("雨のコードは雨", describeWeather(day(0, 61)) === "雨");
 assert("霧雨も雨", describeWeather(day(0, 51)) === "雨");
 assert("雪のコードは雪", describeWeather(day(0, 73)) === "雪");
 assert("くもりのコードはくもり", describeWeather(day(1, 3)) === "くもり");
+
+console.log("--- 部屋の窓の天気 ---");
+assert("雨のコードは、窓に雨", windowWeather(day(0, 61)) === "rain");
+assert("雪のコードは、窓に雪", windowWeather(day(0, 73)) === "snow");
+assert(
+  "雨でなく日が差さない日は、くもり",
+  windowWeather(day(4.1, 3)) === "cloudy",
+);
+assert(
+  "雲のコードでも日が差した日は、晴れ",
+  windowWeather(day(10.0, 3)) === "sunny",
+);
+assert(
+  "少し降っただけで日が差した日は、窓に雨を出さない",
+  windowWeather(day(9.0, 51)) === "sunny",
+);
 
 console.log("--- 天気の取得 ---");
 const place = { latitude: 35.66, longitude: 139.54 };
