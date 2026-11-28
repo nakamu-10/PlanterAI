@@ -7,6 +7,7 @@ import {
   freshLux,
   LUX_FRESH_MINUTES,
   propsShown,
+  roomDataFrom,
   roomLook,
   WATERING_CAN_HOURS,
 } from "../app/src/room.logic.js";
@@ -120,27 +121,39 @@ const at = (h: number, m = 0) =>
 {
   const now = at(12);
   const hoursAgo = (h: number) => new Date(now - h * 3_600_000).toISOString();
+  // 読んだ時刻 readAt のデータで、時刻 seenAt に何を出すか
+  const shown = (data: object, readAt = now, seenAt = now) =>
+    propsShown({ now: seenAt, ...roomDataFrom(data, readAt) });
+  const reached = { lux_hours: 5000, target: 4000 };
   assert(
     "水やりのあとは、じょうろを出す",
-    propsShown({ now, lastWateringAt: hoursAgo(2) }).wateringCan,
+    shown({ lastWateringAt: hoursAgo(2) }).wateringCan,
   );
   assert(
     "水やりから時間がたったら、じょうろをしまう",
-    !propsShown({ now, lastWateringAt: hoursAgo(WATERING_CAN_HOURS) })
-      .wateringCan,
+    !shown({ lastWateringAt: hoursAgo(WATERING_CAN_HOURS) }).wateringCan,
   );
   assert(
-    "水やりの記録が無ければ、じょうろを出さない",
-    !propsShown({ now, lastWateringAt: null }).wateringCan,
+    "水やりの記録が無いか読めなければ、じょうろを出さない",
+    !shown({ lastWateringAt: null }).wateringCan &&
+      !shown({ lastWateringAt: "不明" }).wateringCan,
   );
   assert(
     "今日の日照が目標に届いたら、タオルを出す",
-    propsShown({ now, lightToday: { lux_hours: 5000, target: 4000 } }).towel,
+    shown({ lightToday: reached }).towel,
   );
   assert(
     "目標に届いていない日と、日照が分からない日は、タオルを出さない",
-    !propsShown({ now, lightToday: { lux_hours: 3000, target: 4000 } }).towel &&
-      !propsShown({ now, lightToday: null }).towel,
+    !shown({ lightToday: { lux_hours: 3000, target: 4000 } }).towel &&
+      !shown({ lightToday: null }).towel,
+  );
+  assert(
+    "読み直せないまま日付が変わったら、前の日のタオルをしまう",
+    !shown({ lightToday: reached }, at(23), at(24, 30)).towel,
+  );
+  assert(
+    "データが無くても、何も出さずに動く",
+    !propsShown({ now, ...roomDataFrom() }).wateringCan,
   );
 }
 

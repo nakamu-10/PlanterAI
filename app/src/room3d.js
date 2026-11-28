@@ -122,10 +122,11 @@ export function createRoomLook(room) {
   let drawn = "";
 
   return {
-    update(now, { lux = null, lastWateringAt = null, lightToday = null }) {
+    // data は room.logic.js の roomDataFrom の形
+    update(now, { lux = null, wateredAt = null, lightReachedDay = null } = {}) {
       const look = roomLook({ now, lux });
       // 子の注ぎ口も、じょうろと一緒に出し入れされる
-      const props = propsShown({ now, lastWateringAt, lightToday });
+      const props = propsShown({ now, wateredAt, lightReachedDay });
       wateringCan.visible = props.wateringCan;
       towel.visible = props.towel;
       // 照度の細かな揺れで毎回描き直さないよう、明るさは 10 段階に丸めて比べる
