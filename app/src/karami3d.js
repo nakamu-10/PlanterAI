@@ -12,6 +12,7 @@ import { touchRoleOf } from "./home.logic.js";
 import { modelUrl } from "./models.js";
 import { loadRoom, spotOf } from "./room3d.js";
 import {
+  holdRange,
   planWander,
   planWelcome,
   replanTrip,
@@ -325,7 +326,7 @@ export async function createKarami(container, modelName = "karami") {
   // 持ち上げ。指の位置は、台の上でカラ美の立つ面（z=0）の上の点に直して追う
   const stand = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   const raycaster = new THREE.Raycaster();
-  let held = null; // { grip: つかんだ点（足元から）, target: 指の位置 }
+  let held = null; // { grip: つかんだ点（足元から）, target: 指の位置, range: 足元を動かせる横の範囲 }
   let swing = 0; // 指を横に動かしたときの、ぶら下がった体の振れ
   let fallSpeed = 0;
 
@@ -565,8 +566,13 @@ export async function createKarami(container, modelName = "karami") {
       swing += (-pull - swing) * (1 - Math.exp(-dt * 6));
       // つかんだ点が指の位置に来るよう、振れた分だけ足元をずらす
       const { x, y } = held.grip;
+      // 指の位置を収めても、振れた分だけ足元が範囲の外へ出るので、足元でも収める
       model.position.set(
-        held.at.x - (x * Math.cos(swing) - y * Math.sin(swing)),
+        THREE.MathUtils.clamp(
+          held.at.x - (x * Math.cos(swing) - y * Math.sin(swing)),
+          held.range.min,
+          held.range.max,
+        ),
         // 振れた分だけ足元が下がっても、床には埋めない
         Math.max(held.at.y - (x * Math.sin(swing) + y * Math.cos(swing)), 0),
         0,
@@ -737,10 +743,19 @@ export async function createKarami(container, modelName = "karami") {
       // 持ち上げたら、起き上がってから流すはずだった動きはやめる
       pending = null;
       const grip = point.clone().sub(model.position);
+      // 台の横（+x）の向きに、床の中で動かせる範囲。台の上の座標に直すので、大きさで割る
+      const side = new THREE.Vector3(1, 0, 0).applyQuaternion(actor.quaternion);
+      const { min, max } = holdRange(
+        actor.position,
+        side,
+        walkArea.floor,
+        WALK_RADIUS,
+      );
       held = {
         grip,
         at: point.clone(),
         target: point.clone().add(new THREE.Vector3(0, 0.08, 0)),
+        range: { min: min / CHARACTER_SCALE, max: max / CHARACTER_SCALE },
       };
       play(struggle);
     },
@@ -752,6 +767,12 @@ export async function createKarami(container, modelName = "karami") {
         point.y,
         held.grip.y + 0.02,
         held.grip.y + MAX_LIFT,
+      );
+      // 足元が壁を抜けないよう、床の中に収める
+      point.x = THREE.MathUtils.clamp(
+        point.x,
+        held.range.min + held.grip.x,
+        held.range.max + held.grip.x,
       );
       held.target.copy(point);
     },
