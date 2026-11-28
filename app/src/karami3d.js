@@ -566,8 +566,13 @@ export async function createKarami(container, modelName = "karami") {
       swing += (-pull - swing) * (1 - Math.exp(-dt * 6));
       // つかんだ点が指の位置に来るよう、振れた分だけ足元をずらす
       const { x, y } = held.grip;
+      // 指の位置を収めても、振れた分だけ足元が範囲の外へ出るので、足元でも収める
       model.position.set(
-        held.at.x - (x * Math.cos(swing) - y * Math.sin(swing)),
+        THREE.MathUtils.clamp(
+          held.at.x - (x * Math.cos(swing) - y * Math.sin(swing)),
+          held.range.min,
+          held.range.max,
+        ),
         // 振れた分だけ足元が下がっても、床には埋めない
         Math.max(held.at.y - (x * Math.sin(swing) + y * Math.cos(swing)), 0),
         0,

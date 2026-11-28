@@ -338,6 +338,16 @@ const room = { floor, blocks, radius };
     "壁ぎわの家具の上にいても、その場は動かせる範囲に入る",
     onBed.min === 0 && near(onBed.max, 3.5),
   );
+  const corner = holdRange(
+    { x: -1.8, z: 1.15 },
+    { x: Math.SQRT1_2, z: Math.SQRT1_2 },
+    floor,
+    radius,
+  );
+  assert(
+    "どの向きの先も床の外なら、その場から動かさない",
+    corner.min === 0 && corner.max === 0,
+  );
 }
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);

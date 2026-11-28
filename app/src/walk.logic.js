@@ -134,6 +134,8 @@ export function holdRange(origin, direction, floor, radius) {
     min = Math.max(min, Math.min(a, b));
     max = Math.min(max, Math.max(a, b));
   }
+  // どの t でも四角に入らないなら、その場から動かさない
+  if (min > max) return { min: 0, max: 0 };
   return { min: Math.min(min, 0), max: Math.max(max, 0) };
 }
 
