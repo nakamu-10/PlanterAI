@@ -358,6 +358,11 @@ const room = { floor, blocks, radius };
     "床の外で床の縁に沿う向きでも、その場から動かさない",
     besideFloor.min === 0 && besideFloor.max === 0,
   );
+  const onEdge = holdRange({ x: 0, z: 1.2 }, { x: 1, z: 0 }, floor, radius);
+  assert(
+    "床の縁ちょうどなら、縁に沿って動かせる",
+    near(onEdge.min, -1.7) && near(onEdge.max, 1.7),
+  );
 }
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);

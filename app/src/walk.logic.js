@@ -130,7 +130,7 @@ export function holdRange(origin, direction, floor, radius) {
   ) {
     if (Math.abs(d) < 1e-9) {
       // この軸に沿って動かないので、外にいるならどの t でも四角に入らない
-      if (o <= low || o >= high) return { min: 0, max: 0 };
+      if (o < low || o > high) return { min: 0, max: 0 };
       continue;
     }
     const a = (low - o) / d;
