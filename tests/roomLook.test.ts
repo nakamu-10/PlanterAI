@@ -4,6 +4,8 @@ import {
   BRIGHT_LUX,
   clockAngles,
   DIM_LUX,
+  freshLux,
+  LUX_FRESH_MINUTES,
   roomLook,
 } from "../app/src/room.logic.js";
 
@@ -88,6 +90,23 @@ const at = (h: number, m = 0) =>
     "15時半は、短い針が3と4の間で、長い針が真下",
     near(halfPast.hour, Math.PI / 2 + Math.PI / 12) &&
       near(halfPast.minute, Math.PI),
+  );
+}
+
+{
+  const now = at(12);
+  const sensor = (minutesAgo: number, lux: unknown = 800) => ({
+    filtered: { lux },
+    created_at: new Date(now - minutesAgo * 60_000).toISOString(),
+  });
+  assert("新しい照度は、そのまま使う", freshLux(sensor(10), now) === 800);
+  assert(
+    "鉢が止まって古くなった照度は、使わない",
+    freshLux(sensor(LUX_FRESH_MINUTES), now) === null,
+  );
+  assert(
+    "センサー値や照度が無ければ、使わない",
+    freshLux(null, now) === null && freshLux(sensor(10, null), now) === null,
   );
 }
 

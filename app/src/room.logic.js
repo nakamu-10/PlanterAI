@@ -7,7 +7,21 @@ import { JST_MS, jstHour } from "./home.logic.js";
 export const DIM_LUX = 100;
 export const BRIGHT_LUX = 1500;
 
-// 昼・夕方（朝も）・夜を、日本時間の時刻で分ける
+// 照度がこれより古ければ使わない。鉢は約10分おきに送るので、1時間届かなければ止まっている
+export const LUX_FRESH_MINUTES = 60;
+
+// 最新のセンサー値の照度。古いとき（ESP32 が止まった夜の 0 lx が翌日も残るなど）と、無いときは null
+export function freshLux(sensor, now = Date.now()) {
+  const lux = sensor?.filtered?.lux;
+  const age = now - Date.parse(sensor?.created_at ?? "");
+  if (typeof lux !== "number" || !(age < LUX_FRESH_MINUTES * 60_000)) {
+    return null;
+  }
+  return lux;
+}
+
+// 昼・夕方（朝も）・夜を、日本時間の時刻で分ける。区切りは冬（日の入りが16時半ごろ）に合わせた仮の値で、
+// 季節では変えない。夏に合わないときは、日の出・日の入りを月ごとに持つ
 function phaseOf(hour) {
   if (hour >= 18 || hour < 6) return "night";
   if (hour < 7 || hour >= 16) return "twilight";

@@ -104,6 +104,8 @@ export function createRoomLook(room) {
   canvas.width = canvas.height = 128;
   const skyTexture = new THREE.CanvasTexture(canvas);
   skyTexture.colorSpace = THREE.SRGBColorSpace;
+  // 空の面は、上の頂点が v=0 になっている。既定の上下反転のままだと、月が下に出る
+  skyTexture.flipY = false;
   const sky = find("dyn_sky");
   sky.material.dispose();
   sky.material = new THREE.MeshBasicMaterial({
