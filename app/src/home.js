@@ -23,7 +23,7 @@ import {
   shouldSaveSeenAt,
   TOUCH_HINT_2D,
 } from "./home.logic.js";
-import { freshLux } from "./room.logic.js";
+import { freshLux, roomDataFrom } from "./room.logic.js";
 import { createKarami } from "./karami3d.js";
 import { potCountLabel } from "./potMenu.logic.js";
 import { setupSheet } from "./sheet.js";
@@ -106,7 +106,8 @@ const LIFT_PRESS_MS = 350;
 let currentEmotion = forcedEmotion ?? "満足";
 let currentComplaint = null;
 let currentMoisture = forcedMoisture;
-let currentLux = null;
+// 部屋の窓と小物に使う鉢のデータ（karami3d の setRoomData）
+let currentRoomData = roomDataFrom();
 let bubbleTimeout = null;
 let recallFrame = 0;
 let karami3d = null;
@@ -319,7 +320,7 @@ async function setup3d(model) {
     emotion: currentEmotion,
     moistureScore: currentMoisture,
   });
-  karami3d.setLux(currentLux);
+  karami3d.setRoomData(currentRoomData);
   placeKarami();
   greetIfAway();
   // ?debug を付けると、コンソールから karami.cheer() などで動きを試せる（デモの練習用）
@@ -500,8 +501,13 @@ async function refreshState() {
     // 葉のしおれは、気分ではなく最新の土の水分で決める
     const moisture = data.latest_sensor?.scores?.moisture;
     currentMoisture = typeof moisture === "number" ? moisture : null;
-    currentLux = freshLux(data.latest_sensor);
-    karami3d?.setLux(currentLux);
+    // 日照が目標に届いた日は、読んだこの時刻の日にする（3D ができるのを待つ間に日付が変わってもずれない）
+    currentRoomData = roomDataFrom({
+      lux: freshLux(data.latest_sensor),
+      lastWateringAt: data.latest_watering?.created_at ?? null,
+      lightToday: data.trends?.light_today ?? null,
+    });
+    karami3d?.setRoomData(currentRoomData);
     karami3d?.setMood({
       emotion: currentEmotion,
       moistureScore: currentMoisture,

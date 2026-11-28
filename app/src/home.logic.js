@@ -91,7 +91,7 @@ export function describeAgo(iso, now = Date.now()) {
 // 鉢を登録した日を1日目として、日本時間の暦の日で数える
 // （24時間ごとに数えると、23時に登録して翌朝開いたときに「1日目」のままになる）
 export const JST_MS = 9 * 3_600_000;
-const jstDay = (ms) => Math.floor((ms + JST_MS) / 86_400_000);
+export const jstDay = (ms) => Math.floor((ms + JST_MS) / 86_400_000);
 
 export const jstHour = (ms) =>
   Math.floor(((ms + JST_MS) % 86_400_000) / 3_600_000);

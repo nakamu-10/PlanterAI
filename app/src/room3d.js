@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { modelUrl } from "./models.js";
-import { clockAngles, roomLook } from "./room.logic.js";
+import { clockAngles, propsShown, roomLook } from "./room.logic.js";
 
 // 歩ける床と障害物と、見回せる範囲は、Blender で置いた目印。見せず、触っても当たらないよう外す
 const isMarker = (name) => /^(nav_floor|block_|view_area)/.test(name);
@@ -92,7 +92,7 @@ function drawSky(ctx, { phase, daylight }) {
   }
 }
 
-// 窓の空・日だまり・ランプ・時計の針（dyn_*）を、時刻と照度に合わせる。
+// 窓の空・日だまり・ランプ・時計の針・棚の小物（dyn_*）を、時刻と鉢のデータに合わせる。
 // update は毎フレーム呼んでよい。見た目が変わるときだけ描き直す
 export function createRoomLook(room) {
   const find = (name) => {
@@ -117,11 +117,18 @@ export function createRoomLook(room) {
   const shade = find("dyn_lamp_shade").material;
   const hourHand = find("dyn_clock_hour");
   const minuteHand = find("dyn_clock_minute");
+  const wateringCan = find("dyn_prop_wateringcan");
+  const towel = find("dyn_prop_towel");
   let drawn = "";
 
   return {
-    update(now, lux) {
+    // data は room.logic.js の roomDataFrom の形
+    update(now, { lux = null, wateredAt = null, lightReachedDay = null } = {}) {
       const look = roomLook({ now, lux });
+      // 子の注ぎ口も、じょうろと一緒に出し入れされる
+      const props = propsShown({ now, wateredAt, lightReachedDay });
+      wateringCan.visible = props.wateringCan;
+      towel.visible = props.towel;
       // 照度の細かな揺れで毎回描き直さないよう、明るさは 10 段階に丸めて比べる
       const key = `${look.phase}:${
         Math.round(look.daylight * 10)
