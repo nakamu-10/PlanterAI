@@ -115,6 +115,28 @@ export function planWander(spot, point, seconds, room) {
   ];
 }
 
+// 持ち上げて横へ動かせる範囲。origin から水平な単位ベクトル direction の向きへ t[m] 進んだ点が、
+// 床を radius だけ縮めた四角の中にある t の区間 { min, max } を返す。壁を抜けないように使う。
+// origin が四角の外（壁ぎわの家具の上など）でも、その場（t=0）は区間に含める
+export function holdRange(origin, direction, floor, radius) {
+  const walkable = grow(floor, -radius);
+  let min = -Infinity;
+  let max = Infinity;
+  for (
+    const [o, d, low, high] of [
+      [origin.x, direction.x, walkable.minX, walkable.maxX],
+      [origin.z, direction.z, walkable.minZ, walkable.maxZ],
+    ]
+  ) {
+    if (Math.abs(d) < 1e-9) continue;
+    const a = (low - o) / d;
+    const b = (high - o) / d;
+    min = Math.max(min, Math.min(a, b));
+    max = Math.min(max, Math.max(a, b));
+  }
+  return { min: Math.min(min, 0), max: Math.max(max, 0) };
+}
+
 // 久しぶりに開いたときに歩き出す x。部屋の右の床の縁と、画面の右の端の、どちらよりも margin だけ外にする
 // （広い画面で部屋が全部写っていても、写っていない所から歩き出すように）。view は正射影のカメラで、
 // focus：写す中心、right：画面の右の向き（+x と -z の向きの水平な単位ベクトル）、halfWidth：

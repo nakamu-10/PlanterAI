@@ -2,6 +2,7 @@
 // 実行: npx tsx tests/walkLogic.test.ts
 import {
   approachPoint,
+  holdRange,
   planPath,
   planTrip,
   planWander,
@@ -311,6 +312,31 @@ const room = { floor, blocks, radius };
   assert(
     "画面の端が床の縁より内側なら、床の縁の外から歩き出す",
     near(welcomeStartX(floor, shifted, 0.6), floor.maxX + 0.6),
+  );
+}
+
+{
+  const radius = 0.2;
+  const across = holdRange({ x: 0, z: 0 }, { x: 1, z: 0 }, floor, radius);
+  assert(
+    "持ち上げて横へ動かすと、両側の壁の半径だけ手前で止まる",
+    near(across.min, -1.7) && near(across.max, 1.7),
+  );
+  const slant = { x: Math.SQRT1_2, z: -Math.SQRT1_2 };
+  const tilted = holdRange({ x: 0, z: 0 }, slant, floor, radius);
+  assert(
+    "斜めの向きでも、先に当たる壁の手前で止まる",
+    near(tilted.max, 1.15 * Math.SQRT2) && near(tilted.min, -1.2 * Math.SQRT2),
+  );
+  const byWall = holdRange({ x: -1.65, z: 0 }, { x: 1, z: 0 }, floor, radius);
+  assert(
+    "壁ぎわにいると、壁の側へはほとんど動かせない",
+    near(byWall.min, -0.05) && near(byWall.max, 3.35),
+  );
+  const onBed = holdRange({ x: -1.8, z: 0 }, { x: 1, z: 0 }, floor, radius);
+  assert(
+    "壁ぎわの家具の上にいても、その場は動かせる範囲に入る",
+    onBed.min === 0 && near(onBed.max, 3.5),
   );
 }
 
