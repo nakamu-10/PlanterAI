@@ -11,6 +11,8 @@ import {
   TodayWeather,
   weatherFromRow,
   weatherToRow,
+  WindowWeather,
+  windowWeather,
 } from "./weather.ts";
 
 /** 場所が未設定なら null（天気を見ずに判定する）。設定してあって今日の分が1度も取れていなければ "unavailable" */
@@ -49,4 +51,30 @@ export async function loadTodayWeather(
     }, { onConflict: "local_date,latitude,longitude" });
   if (saveError) console.error("[weather] 天気の保存に失敗:", saveError);
   return fetched;
+}
+
+/**
+ * アプリの部屋の窓に出す、今日の天気。ingest-sensor が覚えた予報を読むだけで、Open-Meteo には
+ * 問い合わせない（開くたびに取りに行かない）。場所が未設定・まだ取れていない・読めないときは null
+ */
+export async function readWindowWeather(
+  supabase: SupabaseClient,
+  now: Date = new Date(),
+): Promise<WindowWeather | null> {
+  const place = placeFrom(
+    Deno.env.get("WEATHER_LATITUDE"),
+    Deno.env.get("WEATHER_LONGITUDE"),
+  );
+  if (!place) return null;
+  const { data, error } = await supabase
+    .from("daily_weather")
+    .select("sunshine_hours, daylight_hours, weather_code")
+    .match({ local_date: jstDateKey(now), ...place })
+    .maybeSingle();
+  // 窓の飾りなので、読めなくてもホームは出す
+  if (error) {
+    console.error("[weather] 窓の天気の読み込みに失敗:", error);
+    return null;
+  }
+  return data ? windowWeather(weatherFromRow(data)) : null;
 }

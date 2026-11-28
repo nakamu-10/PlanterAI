@@ -5,6 +5,7 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { PLANT_PROFILES } from "../_shared/config.ts";
+import { readWindowWeather } from "../_shared/dailyWeather.ts";
 import { CHARACTERS } from "../_shared/llm.ts";
 import { fetchRecords } from "../_shared/records.ts";
 import { isTouchKind } from "../_shared/touches.ts";
@@ -63,6 +64,7 @@ async function handleDashboard(device: Device): Promise<Response> {
     wateringResult,
     plantMessageResult,
     trendResult,
+    weatherToday,
   ] = await Promise.all([
     supabase
       .from("sensor_logs")
@@ -110,6 +112,7 @@ async function handleDashboard(device: Device): Promise<Response> {
       )
       .order("created_at", { ascending: false })
       .limit(TREND_MAX_ROWS),
+    readWindowWeather(supabase),
   ]);
 
   if (sensorResult.error) throw sensorResult.error;
@@ -134,6 +137,7 @@ async function handleDashboard(device: Device): Promise<Response> {
     emotion_history: emotionHistory,
     relationship_summary: summaryResult.data?.summary ?? null,
     latest_watering: wateringResult.data ?? null,
+    weather_today: weatherToday,
     last_plant_message: plantMessageResult.data ?? null,
     trends: buildTrends(
       trendResult.data ?? [],
