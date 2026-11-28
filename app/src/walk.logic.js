@@ -128,7 +128,11 @@ export function holdRange(origin, direction, floor, radius) {
       [origin.z, direction.z, walkable.minZ, walkable.maxZ],
     ]
   ) {
-    if (Math.abs(d) < 1e-9) continue;
+    if (Math.abs(d) < 1e-9) {
+      // この軸に沿って動かないので、外にいるならどの t でも四角に入らない
+      if (o <= low || o >= high) return { min: 0, max: 0 };
+      continue;
+    }
     const a = (low - o) / d;
     const b = (high - o) / d;
     min = Math.max(min, Math.min(a, b));

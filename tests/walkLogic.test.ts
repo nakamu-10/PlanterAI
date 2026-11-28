@@ -348,6 +348,16 @@ const room = { floor, blocks, radius };
     "どの向きの先も床の外なら、その場から動かさない",
     corner.min === 0 && corner.max === 0,
   );
+  const besideFloor = holdRange(
+    { x: 0, z: 1.3 },
+    { x: 1, z: 0 },
+    floor,
+    radius,
+  );
+  assert(
+    "床の外で床の縁に沿う向きでも、その場から動かさない",
+    besideFloor.min === 0 && besideFloor.max === 0,
+  );
 }
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
