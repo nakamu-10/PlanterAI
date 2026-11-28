@@ -59,23 +59,28 @@ export function isDimDay(weather: TodayWeather): boolean {
   return weather.sunshineHours < weather.daylightHours * SUNNY_RATIO;
 }
 
+// WMO の天気コードの雪（71〜77 は雪、85・86 はにわか雪）。51 以上のそれ以外は雨として扱う
+const isSnowCode = (code: number) =>
+  (code >= 71 && code <= 77) || code === 85 || code === 86;
+
 /** セリフに渡す天気の言い方 */
 export function describeWeather(weather: TodayWeather): string {
-  if (weather.code >= 71 && weather.code <= 77) return "雪";
+  if (isSnowCode(weather.code)) return "雪";
   if (weather.code >= 51) return "雨";
   return "くもり";
 }
+
+export type WindowWeather = "sunny" | "cloudy" | "rain" | "snow";
 
 /**
  * アプリの部屋の窓に出す天気。天気のコードはその日で一番悪い天気なので、少し降っただけの日に
  * 一日中雨を出さないよう、日が差さなかった日（isDimDay）だけ降らせる。分け方は describeWeather と同じ
  */
-export type WindowWeather = "sunny" | "cloudy" | "rain" | "snow";
-
 export function windowWeather(weather: TodayWeather): WindowWeather {
   if (!isDimDay(weather)) return "sunny";
-  const words = { "雨": "rain", "雪": "snow", "くもり": "cloudy" } as const;
-  return words[describeWeather(weather) as keyof typeof words];
+  if (isSnowCode(weather.code)) return "snow";
+  if (weather.code >= 51) return "rain";
+  return "cloudy";
 }
 
 /** 取れなかったときは null。天気が分からなくても、日照の判定は止めない */

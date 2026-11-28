@@ -87,6 +87,10 @@ console.log("--- 部屋の窓の天気 ---");
 assert("雨のコードは、窓に雨", windowWeather(day(0, 61)) === "rain");
 assert("雪のコードは、窓に雪", windowWeather(day(0, 73)) === "snow");
 assert(
+  "にわか雪も雪",
+  windowWeather(day(0, 85)) === "snow" && describeWeather(day(0, 86)) === "雪",
+);
+assert(
   "雨でなく日が差さない日は、くもり",
   windowWeather(day(4.1, 3)) === "cloudy",
 );
