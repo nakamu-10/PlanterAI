@@ -497,6 +497,7 @@ async function refreshState() {
     // 葉のしおれは、気分ではなく最新の土の水分で決める
     const moisture = data.latest_sensor?.scores?.moisture;
     currentMoisture = typeof moisture === "number" ? moisture : null;
+    karami3d?.setLux(data.latest_sensor?.filtered?.lux ?? null);
     karami3d?.setMood({
       emotion: currentEmotion,
       moistureScore: currentMoisture,
