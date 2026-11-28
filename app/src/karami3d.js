@@ -10,7 +10,7 @@ import {
 } from "./mood.js";
 import { touchRoleOf } from "./home.logic.js";
 import { modelUrl } from "./models.js";
-import { loadRoom, spotOf } from "./room3d.js";
+import { createRoomLook, loadRoom, spotOf } from "./room3d.js";
 import {
   holdRange,
   planWander,
@@ -234,6 +234,9 @@ export async function createKarami(container, modelName = "karami") {
 
   const scene = new THREE.Scene();
   scene.add(room);
+  // 窓・日だまり・ランプ・時計。照度は鉢のデータを読むたびに setLux で受け取る
+  const roomLook = createRoomLook(room);
+  let lux = null;
 
   // キャラは立ち位置に置いた台（actor）に乗せる。動きの計算は台の上（足元が原点、
   // 正面が +z）のままで済み、立ち位置と大きさは台だけで決まる
@@ -452,6 +455,7 @@ export async function createKarami(container, modelName = "karami") {
   resize();
 
   renderer.setAnimationLoop(() => {
+    roomLook.update(Date.now(), lux);
     // 描画の間隔が端末によって違うので、経過時間で近づける（約1秒で8割）
     const dt = Math.min(clock.getDelta(), 0.5);
     const k = 1 - Math.exp(-dt * 1.6);
@@ -618,6 +622,10 @@ export async function createKarami(container, modelName = "karami") {
       target.body = next.body;
       target.tears = next.tears;
       target.frown = next.frown;
+    },
+    // 鉢の照度[lx]。分からなければ null
+    setLux(next) {
+      lux = next;
     },
     // 画面のこの点のそばに、カラ美の体（葉・マント・足を含む）があるか。
     // キャンバスはステージ全体に広がっているので、何もない所を触っても反応させない。

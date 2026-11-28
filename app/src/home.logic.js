@@ -90,10 +90,11 @@ export function describeAgo(iso, now = Date.now()) {
 
 // 鉢を登録した日を1日目として、日本時間の暦の日で数える
 // （24時間ごとに数えると、23時に登録して翌朝開いたときに「1日目」のままになる）
-const JST_MS = 9 * 3_600_000;
+export const JST_MS = 9 * 3_600_000;
 const jstDay = (ms) => Math.floor((ms + JST_MS) / 86_400_000);
 
-const jstHour = (ms) => Math.floor(((ms + JST_MS) % 86_400_000) / 3_600_000);
+export const jstHour = (ms) =>
+  Math.floor(((ms + JST_MS) % 86_400_000) / 3_600_000);
 
 // 部屋のどこにいるか（spot_* の名前）。上から順に見て、最初に当てはまった所。
 // つらいときは、寝ていて気づけないことがないよう、一番目に入る真ん中で訴える
