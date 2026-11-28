@@ -152,8 +152,13 @@ const at = (h: number, m = 0) =>
     !shown({ lightToday: reached }, at(23), at(24, 30)).towel,
   );
   assert(
+    "同じ日のうちなら、あとで見てもタオルを出す",
+    shown({ lightToday: reached }, at(9), at(23, 30)).towel,
+  );
+  const empty = propsShown({ now, ...roomDataFrom() });
+  assert(
     "データが無くても、何も出さずに動く",
-    !propsShown({ now, ...roomDataFrom() }).wateringCan,
+    !empty.wateringCan && !empty.towel,
   );
 }
 

@@ -624,10 +624,9 @@ export async function createKarami(container, modelName = "karami") {
       target.tears = next.tears;
       target.frown = next.frown;
     },
-    // { lux: 鉢の照度[lx], lastWateringAt: 最後の水やりの時刻, lightToday: 今日の日照 }。
-    // 分からないものは null
+    // 鉢のデータを、room.logic.js の roomDataFrom で直したもの
     setRoomData(next) {
-      roomData = roomDataFrom(next ?? {});
+      roomData = next ?? roomDataFrom();
     },
     // 画面のこの点のそばに、カラ美の体（葉・マント・足を含む）があるか。
     // キャンバスはステージ全体に広がっているので、何もない所を触っても反応させない。
