@@ -108,6 +108,11 @@ const at = (h: number, m = 0) =>
     "センサー値や照度が無ければ、使わない",
     freshLux(null, now) === null && freshLux(sensor(10, null), now) === null,
   );
+  assert(
+    "いつの照度か分からなければ、使わない",
+    freshLux({ filtered: { lux: 800 } }, now) === null &&
+      freshLux({ filtered: { lux: 800 }, created_at: "不明" }, now) === null,
+  );
 }
 
 console.log(`\n結果: ${pass} passed, ${fail} failed`);
